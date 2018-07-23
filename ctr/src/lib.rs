@@ -1,5 +1,5 @@
 #![no_std]
-extern crate stream_cipher;
+pub extern crate stream_cipher;
 extern crate block_cipher_trait;
 
 use stream_cipher::StreamCipherCore;
