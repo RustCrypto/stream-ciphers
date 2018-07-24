@@ -2,7 +2,9 @@
 pub extern crate stream_cipher;
 extern crate block_cipher_trait;
 
-use stream_cipher::StreamCipherCore;
+use stream_cipher::{
+    StreamCipherCore, NewFixStreamCipher, StreamCipherSeek, LoopError
+};
 
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray as GenArr};
 use block_cipher_trait::generic_array::typenum::{U16, Unsigned};
@@ -28,9 +30,8 @@ pub struct Ctr128<C>
     cipher: C,
     nonce: [u64; 2],
     counter: u64,
-    // keystream in blocks should be xor-able with data
     blocks: Blocks<C>,
-    pos: usize,
+    pos: u16,
 }
 
 #[inline(always)]
@@ -49,26 +50,96 @@ fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
     }
 }
 
-// replace with trait
-impl<C> Ctr128<C>
+impl<C> NewFixStreamCipher for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
         C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
 {
-    pub fn new(key: &GenArr<u8, C::KeySize>, nonce: &GenArr<u8, C::BlockSize>)
+    type KeySize = C::KeySize;
+    type NonceSize = C::BlockSize;
+
+    fn new(key: &GenArr<u8, Self::KeySize>, nonce: &GenArr<u8, Self::NonceSize>)
         -> Self
     {
+        assert!(Self::blocks_len() <= core::u16::MAX as usize);
         let nonce = conv_be(unsafe { mem::transmute_copy(nonce) });
 
-        let bs = C::BlockSize::to_usize();
-        let pb = C::ParBlocks::to_usize();
-
-        Self {
+        let mut cipher = Self {
             cipher: C::new(key),
             nonce,
             counter: 0,
             blocks: Default::default(),
-            pos: bs*pb, // this means that `blocks` are exhausted
+            pos: 0,
+        };
+        cipher.blocks = cipher.generate_blocks(0);
+        cipher
+    }
+}
+
+impl<C> StreamCipherCore for Ctr128<C>
+    where
+        C: BlockCipher<BlockSize = U16>,
+        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+{
+    fn try_apply_keystream(&mut self, mut data: &mut [u8])
+        -> Result<(), LoopError>
+    {
+        let leftover = self.leftover();
+        let data_blocks = (data.len() - leftover) / C::BlockSize::to_usize();
+        // check if counter will loop for given data length
+        if self.counter.checked_add(data_blocks as u64).is_none() {
+            return Err(LoopError);
+        }
+        if leftover > 0 {
+            if data.len() <= leftover {
+                let pos1 = self.pos as usize;
+                let pos2 = pos1 + data.len();
+                xor(data, &self.blocks_slice()[pos1..pos2]);
+                self.pos = pos2 as u16;
+                return Ok(());
+            } else {
+                let (l, r) = {data}.split_at_mut(leftover);
+                data = r;
+                xor(l, &self.blocks_slice()[self.pos as usize..]);
+            }
+        }
+
+        let bsl = Self::blocks_len();
+        let mut counter = self.counter;
+
+        while data.len() >= bsl {
+            let (l, r) = {data}.split_at_mut(bsl);
+            data = r;
+            counter += Self::par_blocks();
+            xor(l, to_slice::<C>(&self.generate_blocks(counter)));
+        }
+
+        self.counter += Self::par_blocks();
+        self.blocks = self.generate_blocks(self.counter);
+
+        let n = data.len();
+        self.pos = n as u16;
+        xor(data, &self.blocks_slice()[..n]);
+        Ok(())
+    }
+}
+
+impl<C> StreamCipherSeek for Ctr128<C>
+    where
+        C: BlockCipher<BlockSize = U16>,
+        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+{
+    fn current_pos(&self) -> u64 {
+        let bsl = Self::blocks_len() as u64;
+        self.counter*bsl + self.pos as u64
+    }
+
+    fn seek(&mut self, pos: u64) {
+        let bsl = Self::blocks_len() as u64;
+        self.counter = pos / bsl;
+        self.pos = (pos % bsl) as u16;
+        if self.pos != 0 {
+            self.blocks = self.generate_blocks(self.counter);
         }
     }
 }
@@ -78,7 +149,6 @@ impl<C> Ctr128<C>
         C: BlockCipher<BlockSize = U16>,
         C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
 {
-
     #[inline(always)]
     fn generate_blocks(&self, counter: u64) -> Blocks<C> {
         let mut block = self.nonce;
@@ -102,7 +172,7 @@ impl<C> Ctr128<C>
 
     #[inline(always)]
     fn leftover(&self) -> usize {
-        Self::blocks_len() - self.pos
+        Self::blocks_len() - self.pos as usize
     }
 
     #[inline(always)]
@@ -113,51 +183,5 @@ impl<C> Ctr128<C>
     #[inline(always)]
     fn par_blocks() -> u64 {
         C::ParBlocks::to_u64()
-    }
-}
-
-impl<C> StreamCipherCore for Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
-{
-
-    fn apply_keystream(&mut self, mut data: &mut [u8]) {
-        let leftover = self.leftover();
-        if leftover > 0 {
-            if data.len() <= leftover {
-                let range = self.pos..self.pos+data.len();
-                xor(data, &self.blocks_slice()[range]);
-                self.pos += data.len();
-                return;
-            } else {
-                let (l, r) = {data}.split_at_mut(leftover);
-                data = r;
-                xor(l, &self.blocks_slice()[self.pos..]);
-            }
-        }
-
-        let bsl = Self::blocks_len();
-        let mut counter = self.counter;
-
-        while data.len() >= bsl {
-            let (l, r) = {data}.split_at_mut(bsl);
-            data = r;
-            xor(l, to_slice::<C>(&self.generate_blocks(counter)));
-            counter += Self::par_blocks();
-        }
-
-        // we assume that `data.len() < u64::MAX`
-        if self.counter > counter { panic!("counter overflow in CTR mode"); }
-        self.counter = counter;
-        self.pos = bsl;
-
-        if data.len() > 0 {
-            self.blocks = self.generate_blocks(self.counter);
-            self.counter = self.counter.checked_add(Self::par_blocks())
-                .expect("counter overflow in CTR mode");
-            self.pos = data.len();
-            xor(data, &self.blocks_slice()[..self.pos])
-        }
     }
 }

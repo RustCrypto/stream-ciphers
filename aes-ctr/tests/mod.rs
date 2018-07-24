@@ -2,8 +2,8 @@
 extern crate aes_ctr;
 
 use aes_ctr::{Aes128Ctr, Aes256Ctr};
-use aes_ctr::stream_cipher::StreamCipherCore;
 use aes_ctr::stream_cipher::generic_array::GenericArray;
+use aes_ctr::stream_cipher::{StreamCipherCore, NewFixStreamCipher};
 
 macro_rules! impl_test {
     ($name:ident, $cipher:ty, $data:expr) => {
@@ -18,16 +18,14 @@ macro_rules! impl_test {
             let ciphertext = include_bytes!(
                 concat!("data/", $data, ".ciphertext.bin"));
 
-            let mut mode = <$cipher>::new(key, iv);
-            let mut pt = plaintext.to_vec();
-            {
-                let (a, t) = pt.split_at_mut(17);
-                let (b, c) = t.split_at_mut(5);
-                mode.apply_keystream(a);
-                mode.apply_keystream(b);
-                mode.apply_keystream(c);
+            for i in 1..256 {
+                let mut mode = <$cipher>::new(key, iv);
+                let mut pt = plaintext.to_vec();
+                for chunk in pt.chunks_mut(i) {
+                    mode.apply_keystream(chunk);
+                }
+                assert_eq!(pt, &ciphertext[..]);
             }
-            assert_eq!(pt, &ciphertext[..]);
         }
     }
 }
