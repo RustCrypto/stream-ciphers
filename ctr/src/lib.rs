@@ -13,14 +13,14 @@ use core::mem;
 
 #[inline(always)]
 pub fn xor(buf: &mut [u8], key: &[u8]) {
-    assert_eq!(buf.len(), key.len());
+    debug_assert_eq!(buf.len(), key.len());
     for (a, b) in buf.iter_mut().zip(key) {
         *a ^= *b;
     }
 }
 
-type Blocks<C> = GenArr<
-    GenArr<u8, <C as BlockCipher>::BlockSize>, <C as BlockCipher>::ParBlocks>;
+type Block<C> = GenArr<u8, <C as BlockCipher>::BlockSize>;
+type Blocks<C> = GenArr<Block<C>, <C as BlockCipher>::ParBlocks>;
 
 pub struct Ctr128<C>
     where
@@ -30,8 +30,8 @@ pub struct Ctr128<C>
     cipher: C,
     nonce: [u64; 2],
     counter: u64,
-    blocks: Blocks<C>,
-    pos: u16,
+    block: Block<C>,
+    pos: Option<u8>,
 }
 
 #[inline(always)]
@@ -61,18 +61,16 @@ impl<C> NewFixStreamCipher for Ctr128<C>
     fn new(key: &GenArr<u8, Self::KeySize>, nonce: &GenArr<u8, Self::NonceSize>)
         -> Self
     {
-        assert!(Self::blocks_len() <= core::u16::MAX as usize);
+        assert!(Self::block_size() <= core::u8::MAX as usize);
         let nonce = conv_be(unsafe { mem::transmute_copy(nonce) });
 
-        let mut cipher = Self {
+        Self {
             cipher: C::new(key),
             nonce,
             counter: 0,
-            blocks: Default::default(),
-            pos: 0,
-        };
-        cipher.blocks = cipher.generate_blocks(0);
-        cipher
+            block: Default::default(),
+            pos: None,
+        }
     }
 }
 
@@ -84,42 +82,60 @@ impl<C> StreamCipherCore for Ctr128<C>
     fn try_apply_keystream(&mut self, mut data: &mut [u8])
         -> Result<(), LoopError>
     {
-        let leftover = self.leftover();
-        let data_blocks = (data.len() - leftover) / C::BlockSize::to_usize();
-        // check if counter will loop for given data length
-        if self.counter.checked_add(data_blocks as u64).is_none() {
-            return Err(LoopError);
-        }
-        if leftover > 0 {
-            if data.len() <= leftover {
-                let pos1 = self.pos as usize;
-                let pos2 = pos1 + data.len();
-                xor(data, &self.blocks_slice()[pos1..pos2]);
-                self.pos = pos2 as u16;
-                return Ok(());
+        // xor with leftover bytes from the last call if any
+        if let Some(pos) = self.pos {
+            let pos = pos as usize;
+            if data.len() >= Self::block_size() - pos {
+                let buf = &self.block[pos..];
+                let (r, l) = {data}.split_at_mut(buf.len());
+                data = l;
+                self.check_data_len(data)?;
+                xor(r, buf);
+                self.pos = None;
             } else {
-                let (l, r) = {data}.split_at_mut(leftover);
-                data = r;
-                xor(l, &self.blocks_slice()[self.pos as usize..]);
+                let buf = &self.block[pos..pos + data.len()];
+                xor(data, buf);
+                self.pos = Some((pos + data.len()) as u8);
+                return Ok(());
             }
+        } else {
+            self.check_data_len(data)?;
         }
 
-        let bsl = Self::blocks_len();
         let mut counter = self.counter;
 
-        while data.len() >= bsl {
-            let (l, r) = {data}.split_at_mut(bsl);
-            data = r;
-            counter += Self::par_blocks();
-            xor(l, to_slice::<C>(&self.generate_blocks(counter)));
+        // Process blocks in parallel if cipher cupports it
+        if C::ParBlocks::to_usize() != 1 {
+            let pbs = Self::par_blocks_size();
+            while data.len() >= pbs {
+                let (l, r) = {data}.split_at_mut(pbs);
+                data = r;
+                let blocks = self.generate_par_blocks(counter);
+                counter += Self::par_blocks();
+                xor(l, to_slice::<C>(&blocks));
+            }
+            self.counter = counter;
         }
 
-        self.counter += Self::par_blocks();
-        self.blocks = self.generate_blocks(self.counter);
+        // Process one block at a type
+        let bs = Self::block_size();
+        while data.len() >= bs {
+            let (l, r) = {data}.split_at_mut(bs);
+            data = r;
+            xor(l, &self.generate_block(counter));
+            counter += 1;
+        }
 
-        let n = data.len();
-        self.pos = n as u16;
-        xor(data, &self.blocks_slice()[..n]);
+        if data.len() != 0 {
+            self.block = self.generate_block(counter);
+            counter += 1;
+            let n = data.len();
+            xor(data, &self.block[..n]);
+            self.pos = Some(n as u8);
+        }
+
+        self.counter = counter;
+
         Ok(())
     }
 }
@@ -130,16 +146,23 @@ impl<C> StreamCipherSeek for Ctr128<C>
         C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
 {
     fn current_pos(&self) -> u64 {
-        let bsl = Self::blocks_len() as u64;
-        self.counter*bsl + self.pos as u64
+        let bs = Self::block_size() as u64;
+        match self.pos {
+            Some(pos) => self.counter.wrapping_sub(1)*bs + pos as u64,
+            None => self.counter*bs,
+        }
     }
 
     fn seek(&mut self, pos: u64) {
-        let bsl = Self::blocks_len() as u64;
-        self.counter = pos / bsl;
-        self.pos = (pos % bsl) as u16;
-        if self.pos != 0 {
-            self.blocks = self.generate_blocks(self.counter);
+        let bs = Self::block_size() as u64;
+        let n = pos / bs;
+        let l = (pos % bs) as u16;
+        if l == 0 {
+            self.counter = n;
+            self.pos = None;
+        } else {
+            self.counter =  n.wrapping_add(1);
+            self.pos = Some(l as u8);
         }
     }
 }
@@ -150,7 +173,7 @@ impl<C> Ctr128<C>
         C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
 {
     #[inline(always)]
-    fn generate_blocks(&self, counter: u64) -> Blocks<C> {
+    fn generate_par_blocks(&self, counter: u64) -> Blocks<C> {
         let mut block = self.nonce;
         block[1] = block[1].wrapping_add(counter);
         let mut blocks: Blocks<C> = unsafe { mem::uninitialized() };
@@ -166,22 +189,35 @@ impl<C> Ctr128<C>
     }
 
     #[inline(always)]
-    fn blocks_slice(&self) -> &[u8] {
-        to_slice::<C>(&self.blocks)
+    fn generate_block(&self, counter: u64) -> Block<C> {
+        let mut block = self.nonce;
+        block[1] = block[1].wrapping_add(counter);
+        let mut block: Block<C> = unsafe { mem::transmute(conv_be(block)) };
+        self.cipher.encrypt_block(&mut block);
+        block
     }
 
     #[inline(always)]
-    fn leftover(&self) -> usize {
-        Self::blocks_len() - self.pos as usize
-    }
-
-    #[inline(always)]
-    fn blocks_len() -> usize {
+    fn par_blocks_size() -> usize {
         C::BlockSize::to_usize()*C::ParBlocks::to_usize()
+    }
+
+    #[inline(always)]
+    fn block_size() -> usize {
+        C::BlockSize::to_usize()
     }
 
     #[inline(always)]
     fn par_blocks() -> u64 {
         C::ParBlocks::to_u64()
+    }
+
+    fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
+        let data_blocks = data.len() / Self::block_size();
+        if self.counter.checked_add(data_blocks as u64).is_some() {
+            Ok(())
+        } else {
+            Err(LoopError)
+        }
     }
 }
