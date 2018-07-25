@@ -162,6 +162,7 @@ impl<C> StreamCipherSeek for Ctr128<C>
             self.pos = None;
         } else {
             self.counter =  n.wrapping_add(1);
+            self.block = self.generate_block(n);
             self.pos = Some(l as u8);
         }
     }
