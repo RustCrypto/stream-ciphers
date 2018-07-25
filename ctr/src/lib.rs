@@ -9,7 +9,7 @@ use stream_cipher::{
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray as GenArr};
 use block_cipher_trait::generic_array::typenum::{U16, Unsigned};
 use block_cipher_trait::BlockCipher;
-use core::mem;
+use core::{mem, cmp};
 
 #[inline(always)]
 pub fn xor(buf: &mut [u8], key: &[u8]) {
@@ -82,6 +82,7 @@ impl<C> StreamCipherCore for Ctr128<C>
     fn try_apply_keystream(&mut self, mut data: &mut [u8])
         -> Result<(), LoopError>
     {
+        self.check_data_len(data)?;
         // xor with leftover bytes from the last call if any
         if let Some(pos) = self.pos {
             let pos = pos as usize;
@@ -89,7 +90,6 @@ impl<C> StreamCipherCore for Ctr128<C>
                 let buf = &self.block[pos..];
                 let (r, l) = {data}.split_at_mut(buf.len());
                 data = l;
-                self.check_data_len(data)?;
                 xor(r, buf);
                 self.pos = None;
             } else {
@@ -98,8 +98,6 @@ impl<C> StreamCipherCore for Ctr128<C>
                 self.pos = Some((pos + data.len()) as u8);
                 return Ok(());
             }
-        } else {
-            self.check_data_len(data)?;
         }
 
         let mut counter = self.counter;
@@ -155,14 +153,13 @@ impl<C> StreamCipherSeek for Ctr128<C>
 
     fn seek(&mut self, pos: u64) {
         let bs = Self::block_size() as u64;
-        let n = pos / bs;
+        self.counter = pos / bs;
         let l = (pos % bs) as u16;
         if l == 0 {
-            self.counter = n;
             self.pos = None;
         } else {
-            self.counter =  n.wrapping_add(1);
-            self.block = self.generate_block(n);
+            self.block = self.generate_block(self.counter);
+            self.counter += 1;
             self.pos = Some(l as u8);
         }
     }
@@ -198,26 +195,25 @@ impl<C> Ctr128<C>
         block
     }
 
-    #[inline(always)]
     fn par_blocks_size() -> usize {
         C::BlockSize::to_usize()*C::ParBlocks::to_usize()
     }
 
-    #[inline(always)]
     fn block_size() -> usize {
         C::BlockSize::to_usize()
     }
 
-    #[inline(always)]
     fn par_blocks() -> u64 {
         C::ParBlocks::to_u64()
     }
 
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
-        debug_assert_eq!(self.pos, None);
         let bs = Self::block_size();
-        let mut data_blocks = data.len() / bs;
-        if data.len() % bs != 0 { data_blocks += 1; }
+        let dlen = data.len() - match self.pos {
+            Some(pos) => cmp::min(bs - pos as usize, data.len()),
+            None => 0,
+        };
+        let data_blocks = dlen/bs + if data.len() % bs != 0 { 1 } else { 0 };
         if self.counter.checked_add(data_blocks as u64).is_some() {
             Ok(())
         } else {
