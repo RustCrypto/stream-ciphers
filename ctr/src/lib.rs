@@ -215,7 +215,9 @@ impl<C> Ctr128<C>
 
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         debug_assert_eq!(self.pos, None);
-        let data_blocks = data.len() / Self::block_size();
+        let bs = Self::block_size();
+        let mut data_blocks = data.len() / bs;
+        if data.len() % bs != 0 { data_blocks += 1; }
         if self.counter.checked_add(data_blocks as u64).is_some() {
             Ok(())
         } else {
