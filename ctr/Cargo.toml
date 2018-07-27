@@ -10,8 +10,9 @@ keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
-stream-cipher = { path = "../../traits/stream-cipher"}
+stream-cipher = { path = "../../traits/stream-cipher" }
 block-cipher-trait = "0.5"
 
 [dev-dependencies]
 aes = "0.1"
+stream-cipher = { path = "../../traits/stream-cipher", features = ["dev"] }

@@ -18,3 +18,6 @@ aes-soft = "*"
 
 [target.'cfg(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
 aesni = { path = "../../block-ciphers/aesni" }
+
+[dev-dependencies]
+stream-cipher = { path = "../../traits/stream-cipher", features = ["dev"] }

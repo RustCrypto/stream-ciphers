@@ -1,3 +1,42 @@
+//! Generic implementation of CTR mode for block cipher with 128-bit block size.
+//!
+//! Mode functionality is accessed using traits from re-exported
+//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//!
+//! # Warning
+//! This crate does not provide any authentification! Thus ciphertext integrity
+//! is not verified, which can lead to serious vulnerabilities!
+//!
+//! # Usage example
+//! ```
+//! // `aes` crate provides AES block cipher implementation
+//! extern crate aes;
+//! extern crate ctr;
+//!
+//! use ctr::stream_cipher::generic_array::GenericArray;
+//! use ctr::stream_cipher::{
+//!     NewFixStreamCipher, StreamCipherCore, StreamCipherSeek
+//! };
+//!
+//! type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
+//!
+//! # fn main() {
+//! let mut data = [1, 2, 3, 4, 5, 6, 7];
+//!
+//! let key = GenericArray::from_slice(b"very secret key.");
+//! let nonce = GenericArray::from_slice(b"and secret nonce");
+//! // create cipher instance
+//! let mut cipher = Aes128Ctr::new(&key, &nonce);
+//! // apply keystream (encrypt)
+//! cipher.apply_keystream(&mut data);
+//! assert_eq!(data, [6, 245, 126, 124, 180, 146, 37]);
+//!
+//! // seek to the keystream beginning and apply it again to the `data` (decrypt)
+//! cipher.seek(0);
+//! cipher.apply_keystream(&mut data);
+//! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
+//! # }
+//! ```
 #![no_std]
 pub extern crate stream_cipher;
 extern crate block_cipher_trait;
@@ -9,10 +48,10 @@ use stream_cipher::{
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray as GenArr};
 use block_cipher_trait::generic_array::typenum::{U16, Unsigned};
 use block_cipher_trait::BlockCipher;
-use core::{mem, cmp};
+use core::{mem, cmp, fmt};
 
 #[inline(always)]
-pub fn xor(buf: &mut [u8], key: &[u8]) {
+fn xor(buf: &mut [u8], key: &[u8]) {
     debug_assert_eq!(buf.len(), key.len());
     for (a, b) in buf.iter_mut().zip(key) {
         *a ^= *b;
@@ -22,6 +61,7 @@ pub fn xor(buf: &mut [u8], key: &[u8]) {
 type Block<C> = GenArr<u8, <C as BlockCipher>::BlockSize>;
 type Blocks<C> = GenArr<Block<C>, <C as BlockCipher>::ParBlocks>;
 
+/// CTR mode of operation for 128-bit block ciphers
 pub struct Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
@@ -219,5 +259,15 @@ impl<C> Ctr128<C>
         } else {
             Err(LoopError)
         }
+    }
+}
+
+impl<C> fmt::Debug for Ctr128<C>
+    where
+        C: BlockCipher<BlockSize = U16>,
+        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "Ctr128 {{ .. }}")
     }
 }
