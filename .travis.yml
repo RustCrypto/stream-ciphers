@@ -1,0 +1,14 @@
+language: rust
+services: docker
+sudo: required
+
+matrix:
+  include:
+    - rust: 1.27.0
+    - rust: stable
+    - rust: nightly
+
+script:
+  - cargo test --all ; ./test_aesni.sh
+
+cache: cargo
