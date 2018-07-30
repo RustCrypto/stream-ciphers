@@ -10,9 +10,12 @@ keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
-stream-cipher = { path = "../../traits/stream-cipher" }
+stream-cipher = "0.1"
 block-cipher-trait = "0.5"
 
 [dev-dependencies]
 aes = "0.1"
-stream-cipher = { path = "../../traits/stream-cipher", features = ["dev"] }
+stream-cipher = { version = "0.1", features = ["dev"] }
+
+[badges]
+travis-ci = { repository = "RustCrypto/stream-ciphers" }

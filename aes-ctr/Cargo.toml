@@ -10,14 +10,17 @@ keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
-stream-cipher = { path = "../../traits/stream-cipher" }
+stream-cipher = "0.1"
 
 [target.'cfg(not(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86"))))'.dependencies]
 ctr = { path = "../ctr" }
-aes-soft = "*"
+aes-soft = "0.2"
 
 [target.'cfg(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
-aesni = { path = "../../block-ciphers/aesni" }
+aesni = "0.4"
 
 [dev-dependencies]
-stream-cipher = { path = "../../traits/stream-cipher", features = ["dev"] }
+stream-cipher = { version = "0.1", features = ["dev"] }
+
+[badges]
+travis-ci = { repository = "RustCrypto/stream-ciphers" }
