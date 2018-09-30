@@ -1,5 +1,5 @@
 # RustCrypto stream ciphers [![Build Status](https://travis-ci.org/RustCrypto/stream-ciphers.svg?branch=master)](https://travis-ci.org/RustCrypto/stream-ciphers)
-Collection of block cipher algorithms written in pure Rust.
+Collection of stream cipher algorithms written in pure Rust.
 
 ## Warnings
 
@@ -12,7 +12,9 @@ security reviews.
 | Name | Crates.io | Documentation |
 | ---- | :--------:| :------------:|
 | `aes-ctr` | [![crates.io](https://img.shields.io/crates/v/aes-ctr.svg)](https://crates.io/crates/aes-ctr) | [![Documentation](https://docs.rs/aes-ctr/badge.svg)](https://docs.rs/aes-ctr) |
+| `cfb-mode` | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) |
 | `ctr` | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) |
+
 
 ### Minimum Rust version
 All crates in this repository support Rust 1.27 or higher. In future minimum
