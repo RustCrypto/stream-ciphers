@@ -54,7 +54,7 @@ extern crate std;
 use block_cipher_trait::BlockCipher;
 use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
-use core::{mem, slice};
+use core::slice;
 
 mod errors;
 
@@ -138,7 +138,7 @@ impl<C: BlockCipher> Cfb<C> {
         let bss = bs * pb;
         if pb != 1 && buffer.len() >= bss {
             let mut iv_blocks: ParBlocks<C> = unsafe {
-                mem::transmute_copy(&*buffer.as_ptr())
+                (&*(buffer.as_ptr() as *const ParBlocks<C>)).clone()
             };
             self.cipher.encrypt_blocks(&mut iv_blocks);
             let (block, r) = { buffer }.split_at_mut(bs);
@@ -150,12 +150,13 @@ impl<C: BlockCipher> Cfb<C> {
                 buffer = r;
                 let mut next_iv_blocks: ParBlocks<C> = unsafe {
                     let ptr = buffer.as_ptr().offset(- (bs as isize));
-                    mem::transmute_copy(&*ptr)
+                    (&*(ptr as *const ParBlocks<C>)).clone()
                 };
                 self.cipher.encrypt_blocks(&mut next_iv_blocks);
 
                 xor(blocks, unsafe {
-                    slice::from_raw_parts(iv_blocks.as_ptr() as *mut u8, bss)
+                    let ptr = iv_blocks.as_mut_ptr() as *mut u8;
+                    slice::from_raw_parts(ptr, bss)
                 });
                 iv_blocks = next_iv_blocks;
             }
