@@ -3,6 +3,7 @@ use core::fmt;
 #[cfg(feature = "std")]
 use std::error;
 
+/// Error type used to indicate invalid length of key or IV.
 #[derive(Copy, Clone, Debug)]
 pub struct InvalidKeyIvLength;
 
