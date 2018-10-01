@@ -97,6 +97,7 @@ impl<C: BlockCipher> Cfb<C> {
     pub fn encrypt(&mut self, mut buffer: &mut [u8]) {
         let bs = C::BlockSize::to_usize();
 
+        let mut iv;
         if buffer.len() < bs - self.pos {
             xor_set1(buffer, &mut self.iv[self.pos..]);
             self.pos += buffer.len();
@@ -104,19 +105,21 @@ impl<C: BlockCipher> Cfb<C> {
         } else {
             let (left, right) = { buffer }.split_at_mut(bs - self.pos);
             buffer = right;
-            xor_set1(left, &mut self.iv[self.pos..]);
-            self.cipher.encrypt_block(&mut self.iv);
+            iv = self.iv.clone();
+            xor_set1(left, &mut iv[self.pos..]);
+            self.cipher.encrypt_block(&mut iv);
         }
 
         while buffer.len() >= bs {
             let (block, r) = { buffer }.split_at_mut(bs);
             buffer = r;
-            xor_set1(block, self.iv.as_mut_slice());
-            self.cipher.encrypt_block(&mut self.iv);
+            xor_set1(block, iv.as_mut_slice());
+            self.cipher.encrypt_block(&mut iv);
         }
 
-        xor_set1(buffer, self.iv.as_mut_slice());
+        xor_set1(buffer, iv.as_mut_slice());
         self.pos = buffer.len();
+        self.iv = iv;
     }
 
     /// Decrypt data.
@@ -124,6 +127,7 @@ impl<C: BlockCipher> Cfb<C> {
         let bs = C::BlockSize::to_usize();
         let pb = C::ParBlocks::to_usize();
 
+        let mut iv;
         if buffer.len() < bs - self.pos {
             xor_set2(buffer, &mut self.iv[self.pos..]);
             self.pos += buffer.len();
@@ -131,8 +135,9 @@ impl<C: BlockCipher> Cfb<C> {
         } else {
             let (left, right) = { buffer }.split_at_mut(bs - self.pos);
             buffer = right;
-            xor_set2(left, &mut self.iv[self.pos..]);
-            self.cipher.encrypt_block(&mut self.iv);
+            iv = self.iv.clone();
+            xor_set2(left, &mut iv[self.pos..]);
+            self.cipher.encrypt_block(&mut iv);
         }
 
         let bss = bs * pb;
@@ -143,7 +148,7 @@ impl<C: BlockCipher> Cfb<C> {
             self.cipher.encrypt_blocks(&mut iv_blocks);
             let (block, r) = { buffer }.split_at_mut(bs);
             buffer = r;
-            xor(block, self.iv.as_slice());
+            xor(block, iv.as_slice());
 
             while buffer.len() >= 2*bss - bs {
                 let (blocks, r) = { buffer }.split_at_mut(bss);
@@ -168,18 +173,19 @@ impl<C: BlockCipher> Cfb<C> {
             for (iv, block) in iv_blocks[..n].iter().zip(chunks) {
                 xor(block, iv.as_slice())
             }
-            self.iv = iv_blocks[n].clone();
+            iv = iv_blocks[n].clone();
         }
 
         while buffer.len() >= bs {
             let (block, r) = { buffer }.split_at_mut(bs);
             buffer = r;
-            xor_set2(block, self.iv.as_mut_slice());
-            self.cipher.encrypt_block(&mut self.iv);
+            xor_set2(block, iv.as_mut_slice());
+            self.cipher.encrypt_block(&mut iv);
         }
 
-        xor_set2(buffer, self.iv.as_mut_slice());
+        xor_set2(buffer, iv.as_mut_slice());
         self.pos = buffer.len();
+        self.iv = iv;
     }
 }
 
