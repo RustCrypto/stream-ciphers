@@ -19,18 +19,27 @@
 //! 
 //! let key = b"very secret key.";
 //! let iv = b"unique init vect";
-//! let plaintext = "The quick brown fox jumps over the lazy dog.";
-//! let mut buffer = plaintext.as_bytes().to_vec();
-//! // encrypt plaintext
-//! AesCfb::new_var(key, iv).unwrap().encrypt(&mut buffer);
-//! assert_eq!(buffer, &hex!("
+//! let plaintext = b"The quick brown fox jumps over the lazy dog.";
+//! let ciphertext = hex!("
 //!     8f0cb6e8 9286cd02 09c95da4 fa663269
 //!     bf7f286d 76820a4a f6cd3794 64cb6765
 //!     8c764fa2 ce107f96 e1cf1dcd
-//! ")[..]);
+//! ");
+//!
+//! let mut buffer = plaintext.to_vec();
+//! // encrypt plaintext
+//! AesCfb::new_var(key, iv).unwrap().encrypt(&mut buffer);
+//! assert_eq!(buffer, &ciphertext[..]);
 //! // and decrypt it back
 //! AesCfb::new_var(key, iv).unwrap().decrypt(&mut buffer);
-//! assert_eq!(buffer, plaintext.as_bytes());
+//! assert_eq!(buffer, &plaintext[..]);
+//!
+//! // CFB mode can be used with streaming messages
+//! let mut cipher = AesCfb::new_var(key, iv).unwrap();
+//! for chunk in buffer.chunks_mut(3) {
+//!     cipher.encrypt(chunk);
+//! }
+//! assert_eq!(buffer, &ciphertext[..]);
 //! ```
 //!
 //! [1]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#CFB
@@ -47,177 +56,153 @@ use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
 use core::{mem, slice};
 
-pub mod errors;
+mod errors;
 
-use errors::{InvalidKeyIvLength, InvalidMessageLength};
+pub use errors::InvalidKeyIvLength;
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb<C: BlockCipher> {
     cipher: C,
     iv: GenericArray<u8, C::BlockSize>,
+    pos: usize,
 }
 
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 type ParBlocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
 type Key<C> = GenericArray<u8, <C as BlockCipher>::KeySize>;
 
-static EXPECT_MSG: &'static str = "buffer length is guaranteed to be correct";
-
 impl<C: BlockCipher> Cfb<C> {
     /// Create a new CFB mode instance with generic array key and IV.
     pub fn new(key: &Key<C>, iv: &Block<C>) -> Self {
-        Self {
-            cipher: C::new(key),
-            iv: iv.clone(),
-        }
+        let cipher = C::new(key);
+        let mut iv = iv.clone();
+        cipher.encrypt_block(&mut iv);
+        Self { cipher, iv, pos: 0 }
     }
 
     /// Create a new CFB mode instance with sliced key and IV.
     ///
     /// Returns an `InvalidKeyIvLength` error if key or IV have incorrect size.
     pub fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyIvLength> {
-        let key_len = C::KeySize::to_usize();
-        let iv_len = C::BlockSize::to_usize();
-        if key.len() != key_len || iv.len() != iv_len {
+        if iv.len() != C::BlockSize::to_usize() {
             return Err(InvalidKeyIvLength);
         }
-        Ok(Self {
-            cipher: C::new(GenericArray::from_slice(key)),
-            iv: GenericArray::clone_from_slice(iv),
-        })
+        let cipher = C::new_varkey(key).map_err(|_| InvalidKeyIvLength)?;
+        let mut iv = GenericArray::clone_from_slice(iv);
+        cipher.encrypt_block(&mut iv);
+        Ok(Self { cipher, iv, pos: 0 })
     }
 
-    /// Encrypt message blocks.
-    ///
-    /// Length of the `buffer` must be multiple of the cipher block size. This
-    /// method can be called repeatadly.
-    pub fn encrypt_blocks(&mut self, mut buffer: &mut [u8])
-        -> Result<(), InvalidMessageLength>
-    {
+    /// Encrypt data.
+    pub fn encrypt(&mut self, mut buffer: &mut [u8]) {
         let bs = C::BlockSize::to_usize();
-        if buffer.len() % bs != 0 { return Err(InvalidMessageLength); }
+
+        if buffer.len() < bs - self.pos {
+            xor_set1(buffer, &mut self.iv[self.pos..]);
+            self.pos += buffer.len();
+            return;
+        } else {
+            let (left, right) = { buffer }.split_at_mut(bs - self.pos);
+            buffer = right;
+            xor_set1(left, &mut self.iv[self.pos..]);
+            self.cipher.encrypt_block(&mut self.iv);
+        }
 
         while buffer.len() >= bs {
             let (block, r) = { buffer }.split_at_mut(bs);
             buffer = r;
+            xor_set1(block, self.iv.as_mut_slice());
             self.cipher.encrypt_block(&mut self.iv);
-            xor(block, self.iv.as_slice());
-            self.iv.clone_from_slice(block);
         }
 
-        Ok(())
+        xor_set1(buffer, self.iv.as_mut_slice());
+        self.pos = buffer.len();
     }
 
-    /// Decrypt message blocks.
-    ///
-    /// Length of the `buffer` must be multiple of the cipher block size. This
-    /// method can be called repeatadly.
-    pub fn decrypt_blocks(&mut self, mut buffer: &mut [u8])
-        -> Result<(), InvalidMessageLength>
-    {
+    /// Decrypt data.
+    pub fn decrypt(&mut self, mut buffer: &mut [u8]) {
         let bs = C::BlockSize::to_usize();
         let pb = C::ParBlocks::to_usize();
 
-        if buffer.len() % bs != 0 { return Err(InvalidMessageLength); }
-        if buffer.len() == 0 { return Ok(()); }
+        if buffer.len() < bs - self.pos {
+            xor_set2(buffer, &mut self.iv[self.pos..]);
+            self.pos += buffer.len();
+            return;
+        } else {
+            let (left, right) = { buffer }.split_at_mut(bs - self.pos);
+            buffer = right;
+            xor_set2(left, &mut self.iv[self.pos..]);
+            self.cipher.encrypt_block(&mut self.iv);
+        }
 
         let bss = bs * pb;
-        if pb != 1 && buffer.len() > bss {
+        if pb != 1 && buffer.len() >= bss {
+            let mut iv_blocks: ParBlocks<C> = unsafe {
+                mem::transmute_copy(&*buffer.as_ptr())
+            };
+            self.cipher.encrypt_blocks(&mut iv_blocks);
             let (block, r) = { buffer }.split_at_mut(bs);
             buffer = r;
-            self.cipher.encrypt_block(&mut self.iv);
-            let mut ga_blocks: ParBlocks<C> = unsafe {
-                mem::transmute_copy(&*block.as_ptr())
-            };
             xor(block, self.iv.as_slice());
 
-            while buffer.len() >= bss {
-                let (mut blocks, r) = { buffer }.split_at_mut(bss);
+            while buffer.len() >= 2*bss - bs {
+                let (blocks, r) = { buffer }.split_at_mut(bss);
                 buffer = r;
-
-                self.cipher.encrypt_blocks(&mut ga_blocks);
-
-                let (next_ga, ga_slice) = unsafe {
-                    let p = blocks.as_ptr().offset((bss - bs) as isize);
-                    let s = slice::from_raw_parts(
-                        ga_blocks.as_ptr() as *mut u8,
-                        bss,
-                    );
-                    (mem::transmute_copy(&*p), s)
+                let mut next_iv_blocks: ParBlocks<C> = unsafe {
+                    let ptr = buffer.as_ptr().offset(- (bs as isize));
+                    mem::transmute_copy(&*ptr)
                 };
+                self.cipher.encrypt_blocks(&mut next_iv_blocks);
 
-                xor(&mut blocks, ga_slice);
-                ga_blocks = next_ga;
+                xor(blocks, unsafe {
+                    slice::from_raw_parts(iv_blocks.as_ptr() as *mut u8, bss)
+                });
+                iv_blocks = next_iv_blocks;
             }
 
-            self.iv = ga_blocks[0].clone();
+            let n = pb - 1;
+            let (blocks, r) = { buffer }.split_at_mut(n*bs);
+            buffer = r;
+            let chunks = blocks.chunks_mut(bs);
+            for (iv, block) in iv_blocks[..n].iter().zip(chunks) {
+                xor(block, iv.as_slice())
+            }
+            self.iv = iv_blocks[n].clone();
         }
 
         while buffer.len() >= bs {
             let (block, r) = { buffer }.split_at_mut(bs);
             buffer = r;
+            xor_set2(block, self.iv.as_mut_slice());
             self.cipher.encrypt_block(&mut self.iv);
-            let next_iv = GenericArray::clone_from_slice(block);
-            xor(block, self.iv.as_slice());
-            self.iv = next_iv;
         }
 
-        Ok(())
-    }
-
-    /// Encrypt last message block.
-    ///
-    /// Length of the `buffer` must be less or equal to the cipher block size.
-    pub fn encrypt_last(self, buffer: &mut [u8])
-        -> Result<(), InvalidMessageLength>
-    {
-        let bs = C::BlockSize::to_usize();
-        if buffer.len() > bs { return Err(InvalidMessageLength); }
-
-        let mut iv = self.iv.clone();
-        self.cipher.encrypt_block(&mut iv);
-        for (a, b) in buffer.iter_mut().zip(iv.as_slice()) { *a ^= *b; }
-
-        Ok(())
-    }
-
-    /// Decrypt last message block.
-    ///
-    /// Length of the `buffer` must be less or equal to the cipher block size.
-    pub fn decrypt_last(self, buffer: &mut [u8])
-        -> Result<(), InvalidMessageLength>
-    {
-        let bs = C::BlockSize::to_usize();
-        if buffer.len() > bs { return Err(InvalidMessageLength); }
-
-        let mut iv = self.iv.clone();
-        self.cipher.encrypt_block(&mut iv);
-        for (a, b) in buffer.iter_mut().zip(iv.as_slice()) { *a ^= *b; }
-
-        Ok(())
-    }
-
-    /// Encrypt message.
-    pub fn encrypt(mut self, buffer: &mut [u8]) {
-        let bs = C::BlockSize::to_usize();
-        let n = bs * (buffer.len() / bs);
-        let (blocks, last) = { buffer }.split_at_mut(n);
-        self.encrypt_blocks(blocks).expect(EXPECT_MSG);
-        self.encrypt_last(last).expect(EXPECT_MSG);
-    }
-
-    /// Decrypt message.
-    pub fn decrypt(mut self, buffer: &mut [u8]) {
-        let bs = C::BlockSize::to_usize();
-        let n = bs * (buffer.len() / bs);
-        let (blocks, last) = { buffer }.split_at_mut(n);
-        self.decrypt_blocks(blocks).expect(EXPECT_MSG);
-        self.decrypt_last(last).expect(EXPECT_MSG);
+        xor_set2(buffer, self.iv.as_mut_slice());
+        self.pos = buffer.len();
     }
 }
 
 #[inline(always)]
-fn xor(buf: &mut [u8], key: &[u8]) {
-    debug_assert_eq!(buf.len(), key.len());
-    for (a, b) in buf.iter_mut().zip(key) { *a ^= *b; }
+fn xor(buf1: &mut [u8], buf2: &[u8]) {
+    for (a, b) in buf1.iter_mut().zip(buf2) {
+        *a ^= *b;
+    }
+}
+
+#[inline(always)]
+fn xor_set1(buf1: &mut [u8], buf2: &mut [u8]) {
+    for (a, b) in buf1.iter_mut().zip(buf2) {
+        let t = *a ^ *b;
+        *a = t;
+        *b = t;
+    }
+}
+
+#[inline(always)]
+fn xor_set2(buf1: &mut [u8], buf2: &mut [u8]) {
+    for (a, b) in buf1.iter_mut().zip(buf2) {
+        let t = *a;
+        *a ^= *b;
+        *b = t;
+    }
 }
