@@ -1,37 +1,64 @@
 extern crate aes;
 extern crate cfb_mode;
+extern crate blobby;
 
-use cfb_mode::{Cfb};
-use aes::Aes128;
-use aes::block_cipher_trait::generic_array::GenericArray;
+use cfb_mode::Cfb;
 
-type AesCfb = Cfb<Aes128>;
+macro_rules! new_test_async {
+    ($name:ident, $test_name:expr, $cipher:ty) => {
+        #[test]
+        fn $name() {
+            use blobby::Blob4Iterator;
 
-#[test]
-fn cfb_aes128() {
-    let key = include_bytes!("data/aes128.key.bin");
-    let iv = include_bytes!("data/aes128.iv.bin");
-    let plaintext = include_bytes!("data/aes128.plaintext.bin");
-    let ciphertext = include_bytes!("data/aes128.ciphertext.bin");
+            fn run_test(key: &[u8], iv: &[u8], plaintext: &[u8], ciphertext: &[u8])
+                -> Option<&'static str>
+            {
+                for n in 1..=plaintext.len() {
+                    let mut mode = <$cipher>::new_var(key, iv).unwrap();
+                    let mut buf = plaintext.to_vec();
+                    for chunk in buf.chunks_mut(n) {
+                        mode.encrypt(chunk);
+                    }
+                    if buf != &ciphertext[..] { return Some("encrypt"); }
+                }
 
-    let key = GenericArray::from_slice(key);
-    let iv = GenericArray::from_slice(iv);
+                for n in 1..=plaintext.len() {
+                    let mut mode = <$cipher>::new_var(key, iv).unwrap();
+                    let mut buf = ciphertext.to_vec();
+                    for chunk in buf.chunks_mut(n) {
+                        mode.decrypt(chunk);
+                    }
+                    if buf != &plaintext[..] { return Some("decrypt"); }
+                }
 
-    for n in 1..=plaintext.len() {
-        let mut mode = AesCfb::new(key, iv);
-        let mut buf = plaintext.to_vec();
-        for chunk in buf.chunks_mut(n) {
-            mode.encrypt(chunk);
+                None
+            }
+
+            let data = include_bytes!(concat!("data/", $test_name, ".blb"));
+
+            for (i, row) in Blob4Iterator::new(data).unwrap().enumerate() {
+                let key = row[0];
+                let iv = row[1];
+                let plaintext = row[2];
+                let ciphertext = row[3];
+                if let Some(desc) = run_test(key, iv, plaintext, ciphertext) {
+                    panic!("\n\
+                        Failed test №{}: {}\n\
+                        key:\t{:?}\n\
+                        iv:\t{:?}\n\
+                        plaintext:\t{:?}\n\
+                        ciphertext:\t{:?}\n",
+                        i, desc, key, iv, plaintext, ciphertext,
+                    );
+                }
+            }
+
         }
-        assert_eq!(buf, &ciphertext[..], "encrypt: {}", n);
-    }
-
-    for n in 1..=plaintext.len() {
-        let mut mode = AesCfb::new(key, iv);
-        let mut buf = ciphertext.to_vec();
-        for chunk in buf.chunks_mut(n) {
-            mode.decrypt(chunk);
-        }
-        assert_eq!(buf, &plaintext[..], "decrypt: {}", n);
     }
 }
+
+// tests vectors are from:
+// https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf
+new_test_async!(cfb128_aes128, "cfb128-aes128", Cfb<aes::Aes128>);
+new_test_async!(cfb128_aes192, "cfb128-aes192", Cfb<aes::Aes192>);
+new_test_async!(cfb128_aes256, "cfb128-aes256", Cfb<aes::Aes256>);

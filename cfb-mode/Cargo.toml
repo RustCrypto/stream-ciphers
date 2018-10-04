@@ -15,6 +15,7 @@ block-cipher-trait = "0.5"
 [dev-dependencies]
 aes = "0.1"
 hex-literal = "0.1"
+blobby = "0.1"
 
 [features]
 std = []
