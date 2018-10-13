@@ -1,6 +1,6 @@
 [package]
 name = "aes-ctr"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["RustCrypto Developers"]
 license = "MIT/Apache-2.0"
 description = "AES-CTR stream ciphers"
@@ -10,17 +10,17 @@ keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
-stream-cipher = "0.1"
+stream-cipher = "0.2"
 
 [target.'cfg(not(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86"))))'.dependencies]
-ctr = "0.1"
-aes-soft = "0.2"
+ctr = "0.2"
+aes-soft = "0.3"
 
 [target.'cfg(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
-aesni = "0.4"
+aesni = "0.5"
 
 [dev-dependencies]
-stream-cipher = { version = "0.1", features = ["dev"] }
+stream-cipher = { version = "0.2", features = ["dev"] }
 
 [badges]
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
