@@ -48,7 +48,7 @@ use stream_cipher::{
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray as GenArr};
 use block_cipher_trait::generic_array::typenum::{U16, Unsigned};
 use block_cipher_trait::BlockCipher;
-use core::{mem, cmp, fmt};
+use core::{mem, cmp, fmt, ptr};
 
 #[inline(always)]
 fn xor(buf: &mut [u8], key: &[u8]) {
@@ -102,7 +102,12 @@ impl<C> NewFixStreamCipher for Ctr128<C>
         -> Self
     {
         assert!(Self::block_size() <= core::u8::MAX as usize);
-        let nonce = conv_be(unsafe { mem::transmute_copy(nonce) });
+        // see https://github.com/rust-lang/rust/issues/55044
+        let nonce = conv_be(unsafe {
+            ptr::read_unaligned(
+                nonce as *const GenArr<u8, Self::NonceSize> as *const [u64; 2]
+            )
+        });
 
         Self {
             cipher: C::new(key),
