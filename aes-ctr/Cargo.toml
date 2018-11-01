@@ -13,8 +13,7 @@ categories = ["cryptography", "no-std"]
 stream-cipher = "0.3"
 
 [target.'cfg(not(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86"))))'.dependencies]
-#ctr = "0.3"
-ctr = {path = "../ctr"}
+ctr = "0.3"
 aes-soft = "0.3"
 
 [target.'cfg(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
