@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "aes-ctr",
+    "cfb8",
     "cfb-mode",
     "ctr",
 ]
