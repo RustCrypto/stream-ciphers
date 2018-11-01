@@ -3,8 +3,10 @@ Collection of stream cipher algorithms written in pure Rust.
 
 ## Warnings
 
-Crates in this repository have not yet received any formal cryptographic and
-security reviews.
+Crates in this repository do not provide any authentification! Thus ciphertext
+integrity is not verified, which can lead to serious vulnerabilities!
+
+Crates have not yet received any formal cryptographic and security reviews.
 
 **USE AT YOUR OWN RISK.**
 
@@ -13,6 +15,7 @@ security reviews.
 | ---- | :--------:| :------------:|
 | `aes-ctr` | [![crates.io](https://img.shields.io/crates/v/aes-ctr.svg)](https://crates.io/crates/aes-ctr) | [![Documentation](https://docs.rs/aes-ctr/badge.svg)](https://docs.rs/aes-ctr) |
 | `cfb-mode` | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) |
+| `cfb8` | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) |
 | `ctr` | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) |
 
 
