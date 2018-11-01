@@ -1,7 +1,7 @@
 //! Generic [Cipher Feedback (CFB)][1] mode implementation.
 //!
 //! This crate implements CFB as a [self-synchronizing stream cipher][2].
-//! 
+//!
 //! # Warning
 //! This crate does not provide any authentification! Thus ciphertext integrity
 //! is not verified, which can lead to serious vulnerabilities!
@@ -11,12 +11,13 @@
 //! extern crate aes;
 //! extern crate cfb_mode;
 //! #[macro_use] extern crate hex_literal;
-//! 
+//!
 //! use aes::Aes128;
 //! use cfb_mode::Cfb;
-//! 
+//! use cfb_mode::stream_cipher::{NewStreamCipher, StreamCipher};
+//!
 //! type AesCfb = Cfb<Aes128>;
-//! 
+//!
 //! let key = b"very secret key.";
 //! let iv = b"unique init vect";
 //! let plaintext = b"The quick brown fox jumps over the lazy dog.";
@@ -47,18 +48,14 @@
 #![no_std]
 #![doc(html_logo_url =
     "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+pub extern crate stream_cipher;
 extern crate block_cipher_trait;
-#[cfg(feature = "std")]
-extern crate std;
 
+use stream_cipher::{StreamCipher, NewStreamCipher};
 use block_cipher_trait::BlockCipher;
 use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
 use core::slice;
-
-mod errors;
-
-pub use errors::InvalidKeyIvLength;
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb<C: BlockCipher> {
@@ -71,30 +68,20 @@ type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 type ParBlocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
 type Key<C> = GenericArray<u8, <C as BlockCipher>::KeySize>;
 
-impl<C: BlockCipher> Cfb<C> {
-    /// Create a new CFB mode instance with generic array key and IV.
-    pub fn new(key: &Key<C>, iv: &Block<C>) -> Self {
+impl<C: BlockCipher> NewStreamCipher for Cfb<C> {
+    type KeySize = C::KeySize;
+    type NonceSize = C::BlockSize;
+
+    fn new(key: &Key<C>, iv: &Block<C>) -> Self {
         let cipher = C::new(key);
         let mut iv = iv.clone();
         cipher.encrypt_block(&mut iv);
         Self { cipher, iv, pos: 0 }
     }
+}
 
-    /// Create a new CFB mode instance with sliced key and IV.
-    ///
-    /// Returns an `InvalidKeyIvLength` error if key or IV have incorrect size.
-    pub fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyIvLength> {
-        if iv.len() != C::BlockSize::to_usize() {
-            return Err(InvalidKeyIvLength);
-        }
-        let cipher = C::new_varkey(key).map_err(|_| InvalidKeyIvLength)?;
-        let mut iv = GenericArray::clone_from_slice(iv);
-        cipher.encrypt_block(&mut iv);
-        Ok(Self { cipher, iv, pos: 0 })
-    }
-
-    /// Encrypt data.
-    pub fn encrypt(&mut self, mut buffer: &mut [u8]) {
+impl<C: BlockCipher> StreamCipher for Cfb<C> {
+    fn encrypt(&mut self, mut buffer: &mut [u8]) {
         let bs = C::BlockSize::to_usize();
 
         let mut iv;
@@ -122,8 +109,7 @@ impl<C: BlockCipher> Cfb<C> {
         self.iv = iv;
     }
 
-    /// Decrypt data.
-    pub fn decrypt(&mut self, mut buffer: &mut [u8]) {
+    fn decrypt(&mut self, mut buffer: &mut [u8]) {
         let bs = C::BlockSize::to_usize();
         let pb = C::ParBlocks::to_usize();
 

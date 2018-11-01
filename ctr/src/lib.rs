@@ -15,7 +15,7 @@
 //!
 //! use ctr::stream_cipher::generic_array::GenericArray;
 //! use ctr::stream_cipher::{
-//!     NewFixStreamCipher, StreamCipherCore, StreamCipherSeek
+//!     NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek
 //! };
 //!
 //! type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
@@ -42,7 +42,7 @@ pub extern crate stream_cipher;
 extern crate block_cipher_trait;
 
 use stream_cipher::{
-    StreamCipherCore, NewFixStreamCipher, StreamCipherSeek, LoopError
+    SyncStreamCipher, SyncStreamCipherSeek, NewStreamCipher, LoopError
 };
 
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray as GenArr};
@@ -90,7 +90,7 @@ fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
     }
 }
 
-impl<C> NewFixStreamCipher for Ctr128<C>
+impl<C> NewStreamCipher for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
         C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
@@ -119,7 +119,7 @@ impl<C> NewFixStreamCipher for Ctr128<C>
     }
 }
 
-impl<C> StreamCipherCore for Ctr128<C>
+impl<C> SyncStreamCipher for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
         C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
@@ -183,7 +183,7 @@ impl<C> StreamCipherCore for Ctr128<C>
     }
 }
 
-impl<C> StreamCipherSeek for Ctr128<C>
+impl<C> SyncStreamCipherSeek for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
         C::ParBlocks: ArrayLength<GenArr<u8, U16>>,

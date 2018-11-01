@@ -18,7 +18,7 @@
 //! use aes_ctr::Aes128Ctr;
 //! use aes_ctr::stream_cipher::generic_array::GenericArray;
 //! use aes_ctr::stream_cipher::{
-//!     NewFixStreamCipher, StreamCipherCore, StreamCipherSeek
+//!     NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek
 //! };
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
