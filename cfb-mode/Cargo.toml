@@ -1,6 +1,6 @@
 [package]
 name = "cfb-mode"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Generic Cipher Feedback (CFB) mode implementation."
@@ -20,6 +20,3 @@ hex-literal = "0.1"
 
 [badges]
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
-
-[package.metadata.docs.rs]
-features = [ "std" ]
