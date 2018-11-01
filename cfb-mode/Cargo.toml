@@ -2,7 +2,7 @@
 name = "cfb-mode"
 version = "0.2.0"
 authors = ["RustCrypto Developers"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "Generic Cipher Feedback (CFB) mode implementation."
 documentation = "https://docs.rs/cfb-mode"
 repository = "https://github.com/RustCrypto/stream-ciphers"

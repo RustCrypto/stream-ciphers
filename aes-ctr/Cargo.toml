@@ -2,7 +2,7 @@
 name = "aes-ctr"
 version = "0.2.0"
 authors = ["RustCrypto Developers"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "AES-CTR stream ciphers"
 documentation = "https://docs.rs/aes-ctr"
 repository = "https://github.com/RustCrypto/stream-ciphers"
