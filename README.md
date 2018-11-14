@@ -1,5 +1,7 @@
-# RustCrypto stream ciphers [![Build Status](https://travis-ci.org/RustCrypto/stream-ciphers.svg?branch=master)](https://travis-ci.org/RustCrypto/stream-ciphers)
-Collection of stream cipher algorithms written in pure Rust.
+# RustCrypto: stream ciphers
+[![Build Status](https://travis-ci.org/RustCrypto/stream-ciphers.svg?branch=master)](https://travis-ci.org/RustCrypto/stream-ciphers) [![dependency status](https://deps.rs/repo/github/RustCrypto/stream-ciphers/status.svg)](https://deps.rs/repo/github/RustCrypto/stream-ciphers)
+
+Collection of [stream cipher][1] algorithms written in pure Rust.
 
 ## Warnings
 
@@ -38,3 +40,5 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
+
+[1]: https://en.wikipedia.org/wiki/Stream_cipher
