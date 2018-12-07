@@ -74,6 +74,32 @@ pub struct Ctr128<C>
     pos: Option<u8>,
 }
 
+impl<C> Ctr128<C>
+    where
+        C: BlockCipher<BlockSize = U16>,
+        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+{
+    pub fn with_cipher(cipher: C, nonce: &GenArr<u8, <Self as NewStreamCipher>::NonceSize>)
+        -> Self
+    {
+        assert!(Self::block_size() <= core::u8::MAX as usize);
+        // see https://github.com/rust-lang/rust/issues/55044
+        let nonce = conv_be(unsafe {
+            ptr::read_unaligned(
+                nonce as *const GenArr<u8, <Self as NewStreamCipher>::NonceSize> as *const [u64; 2]
+            )
+        });
+
+        Self {
+            cipher,
+            nonce,
+            counter: 0,
+            block: Default::default(),
+            pos: None,
+        }
+    }
+}
+
 #[inline(always)]
 fn conv_be(val: [u64; 2]) -> [u64; 2] {
     [val[0].to_be(), val[1].to_be()]
