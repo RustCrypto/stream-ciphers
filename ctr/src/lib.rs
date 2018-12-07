@@ -45,7 +45,7 @@ use stream_cipher::{
     SyncStreamCipher, SyncStreamCipherSeek, NewStreamCipher, LoopError
 };
 
-use block_cipher_trait::generic_array::{ArrayLength, GenericArray as GenArr};
+use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use block_cipher_trait::generic_array::typenum::{U16, Unsigned};
 use block_cipher_trait::BlockCipher;
 use core::{mem, cmp, fmt, ptr};
@@ -58,14 +58,15 @@ fn xor(buf: &mut [u8], key: &[u8]) {
     }
 }
 
-type Block<C> = GenArr<u8, <C as BlockCipher>::BlockSize>;
-type Blocks<C> = GenArr<Block<C>, <C as BlockCipher>::ParBlocks>;
+type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
+type Blocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
+type Nonce<C> = GenericArray<u8, <C as NewStreamCipher>::NonceSize>;
 
 /// CTR mode of operation for 128-bit block ciphers
 pub struct Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     cipher: C,
     nonce: [u64; 2],
@@ -77,16 +78,15 @@ pub struct Ctr128<C>
 impl<C> Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
-    pub fn with_cipher(cipher: C, nonce: &GenArr<u8, <Self as NewStreamCipher>::NonceSize>)
-        -> Self
-    {
+    /// Create new CTR mode instance using initialized block cipher.
+    pub fn from_cipher(cipher: C, nonce: &Nonce<Self>)-> Self {
         assert!(Self::block_size() <= core::u8::MAX as usize);
         // see https://github.com/rust-lang/rust/issues/55044
         let nonce = conv_be(unsafe {
             ptr::read_unaligned(
-                nonce as *const GenArr<u8, <Self as NewStreamCipher>::NonceSize> as *const [u64; 2]
+                nonce as *const Nonce<Self> as *const [u64; 2]
             )
         });
 
@@ -119,36 +119,21 @@ fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
 impl<C> NewStreamCipher for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     type KeySize = C::KeySize;
     type NonceSize = C::BlockSize;
 
-    fn new(key: &GenArr<u8, Self::KeySize>, nonce: &GenArr<u8, Self::NonceSize>)
-        -> Self
-    {
-        assert!(Self::block_size() <= core::u8::MAX as usize);
-        // see https://github.com/rust-lang/rust/issues/55044
-        let nonce = conv_be(unsafe {
-            ptr::read_unaligned(
-                nonce as *const GenArr<u8, Self::NonceSize> as *const [u64; 2]
-            )
-        });
-
-        Self {
-            cipher: C::new(key),
-            nonce,
-            counter: 0,
-            block: Default::default(),
-            pos: None,
-        }
+    fn new(key: &GenericArray<u8, Self::KeySize>, nonce: &Nonce<Self>) -> Self {
+        let cipher = C::new(key);
+        Self::from_cipher(cipher, nonce)
     }
 }
 
 impl<C> SyncStreamCipher for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn try_apply_keystream(&mut self, mut data: &mut [u8])
         -> Result<(), LoopError>
@@ -212,7 +197,7 @@ impl<C> SyncStreamCipher for Ctr128<C>
 impl<C> SyncStreamCipherSeek for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn current_pos(&self) -> u64 {
         let bs = Self::block_size() as u64;
@@ -239,7 +224,7 @@ impl<C> SyncStreamCipherSeek for Ctr128<C>
 impl<C> Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     #[inline(always)]
     fn generate_par_blocks(&self, counter: u64) -> Blocks<C> {
@@ -296,7 +281,7 @@ impl<C> Ctr128<C>
 impl<C> fmt::Debug for Ctr128<C>
     where
         C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenArr<u8, U16>>,
+        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "Ctr128 {{ .. }}")
