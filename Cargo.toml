@@ -4,4 +4,5 @@ members = [
     "cfb8",
     "cfb-mode",
     "ctr",
+    "ofb",
 ]

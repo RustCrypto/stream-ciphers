@@ -1,0 +1,22 @@
+[package]
+name = "ofb"
+version = "0.1.0"
+authors = ["RustCrypto Developers"]
+license = "MIT OR Apache-2.0"
+description = "Generic Output Feedback (OFB) mode implementation."
+documentation = "https://docs.rs/ofb"
+repository = "https://github.com/RustCrypto/stream-ciphers"
+keywords = ["crypto", "stream-cipher", "block-mode"]
+categories = ["cryptography", "no-std"]
+
+[dependencies]
+stream-cipher = "0.3"
+block-cipher-trait = "0.6"
+
+[dev-dependencies]
+aes = "0.3"
+stream-cipher = { version = "0.3", features = ["dev"] }
+hex-literal = "0.1"
+
+[badges]
+travis-ci = { repository = "RustCrypto/stream-ciphers" }
