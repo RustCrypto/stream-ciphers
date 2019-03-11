@@ -51,9 +51,10 @@
 extern crate block_cipher_trait;
 pub extern crate stream_cipher;
 
-use stream_cipher::{NewStreamCipher, StreamCipher};
+use stream_cipher::{NewStreamCipher, StreamCipher, InvalidKeyNonceLength};
 use block_cipher_trait::BlockCipher;
 use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::generic_array::typenum::Unsigned;
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb8<C: BlockCipher> {
@@ -70,6 +71,16 @@ impl<C: BlockCipher> NewStreamCipher for Cfb8<C> {
         iv: &GenericArray<u8, Self::NonceSize>,
     ) -> Self {
         Self { cipher: C::new(key), iv: iv.clone() }
+    }
+
+    fn new_var(key: &[u8], iv: &[u8] ) -> Result<Self, InvalidKeyNonceLength> {
+        if Self::NonceSize::to_usize() != iv.len() {
+            Err(InvalidKeyNonceLength)
+        } else {
+            let iv = GenericArray::clone_from_slice(iv);
+            let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
+            Ok(Self { cipher, iv })
+        }
     }
 }
 

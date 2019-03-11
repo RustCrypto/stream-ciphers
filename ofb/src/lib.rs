@@ -53,7 +53,9 @@
 pub extern crate stream_cipher;
 extern crate block_cipher_trait;
 
-use stream_cipher::{SyncStreamCipher, NewStreamCipher, LoopError};
+use stream_cipher::{
+    SyncStreamCipher, NewStreamCipher, LoopError, InvalidKeyNonceLength,
+};
 use block_cipher_trait::BlockCipher;
 use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
@@ -76,6 +78,17 @@ impl<C: BlockCipher> NewStreamCipher for Ofb<C> {
         let mut block = iv.clone();
         cipher.encrypt_block(&mut block);
         Self { cipher, block, pos: 0 }
+    }
+
+    fn new_var(key: &[u8], iv: &[u8] ) -> Result<Self, InvalidKeyNonceLength> {
+        if Self::NonceSize::to_usize() != iv.len() {
+            Err(InvalidKeyNonceLength)
+        } else {
+            let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
+            let mut block = GenericArray::clone_from_slice(iv);
+            cipher.encrypt_block(&mut block);
+            Ok(Self { cipher, block, pos: 0 })
+        }
     }
 }
 

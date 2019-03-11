@@ -1,6 +1,6 @@
 [package]
 name = "cfb8"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Generic 8-bit Cipher Feedback (CFB8) mode implementation."

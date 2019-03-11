@@ -42,7 +42,8 @@ pub extern crate stream_cipher;
 extern crate block_cipher_trait;
 
 use stream_cipher::{
-    SyncStreamCipher, SyncStreamCipherSeek, NewStreamCipher, LoopError
+    SyncStreamCipher, SyncStreamCipherSeek, NewStreamCipher,
+    LoopError, InvalidKeyNonceLength
 };
 
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
@@ -127,6 +128,16 @@ impl<C> NewStreamCipher for Ctr128<C>
     fn new(key: &GenericArray<u8, Self::KeySize>, nonce: &Nonce<Self>) -> Self {
         let cipher = C::new(key);
         Self::from_cipher(cipher, nonce)
+    }
+
+    fn new_var(key: &[u8], nonce: &[u8] ) -> Result<Self, InvalidKeyNonceLength> {
+        let nonce = if Self::NonceSize::to_usize() != nonce.len() {
+            Err(InvalidKeyNonceLength)?
+        } else {
+            GenericArray::from_slice(nonce)
+        };
+        let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
+        Ok(Self::from_cipher(cipher, nonce))
     }
 }
 
