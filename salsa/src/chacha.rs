@@ -1,4 +1,5 @@
 use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::generic_array::typenum::U8;
 use block_cipher_trait::generic_array::typenum::U32;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;
@@ -8,10 +9,12 @@ use zeroize::Zeroize;
 use salsa_family_state::SalsaFamilyState;
 use salsa_family_state::SalsaFamilyCipher;
 
-pub struct ChaChaState {
+/// Wrapper for state for ChaCha-type ciphers.
+struct ChaChaState {
     state: SalsaFamilyState
 }
 
+/// The ChaCha20 cipher.
 pub struct ChaCha20 {
     state: ChaChaState
 }
@@ -52,7 +55,7 @@ impl ChaChaState {
     }
 
     #[inline]
-    fn init_block(&mut self) {
+    fn add_block(&mut self) {
         let block = &mut self.state.block;
         let iv = self.state.iv;
         let key = self.state.key;
@@ -77,7 +80,7 @@ impl ChaChaState {
     }
 
     #[inline]
-    fn add_block(&mut self) {
+    fn init_block(&mut self) {
         let block = &mut self.state.block;
         let iv = self.state.iv;
         let key = self.state.key;
@@ -129,7 +132,7 @@ impl NewStreamCipher for ChaChaState {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
-    type NonceSize = U32;
+    type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>,
            iv: &GenericArray<u8, Self::NonceSize>) -> Self {
@@ -180,7 +183,7 @@ impl NewStreamCipher for ChaCha20 {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
-    type NonceSize = U32;
+    type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>,
            iv: &GenericArray<u8, Self::NonceSize>) -> Self {

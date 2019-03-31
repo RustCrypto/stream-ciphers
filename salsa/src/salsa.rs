@@ -1,4 +1,5 @@
 use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::generic_array::typenum::U8;
 use block_cipher_trait::generic_array::typenum::U32;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;
@@ -8,10 +9,12 @@ use zeroize::Zeroize;
 use salsa_family_state::SalsaFamilyState;
 use salsa_family_state::SalsaFamilyCipher;
 
-pub struct SalsaState {
+/// Wrapper state for Salsa-type ciphers
+struct SalsaState {
     state: SalsaFamilyState
 }
 
+/// The Salsa20 cipher.
 pub struct Salsa20 {
     state: SalsaState
 }
@@ -174,7 +177,7 @@ impl NewStreamCipher for SalsaState {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
-    type NonceSize = U32;
+    type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>,
            iv: &GenericArray<u8, Self::NonceSize>) -> Self {
@@ -225,7 +228,7 @@ impl NewStreamCipher for Salsa20 {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
-    type NonceSize = U32;
+    type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>,
            iv: &GenericArray<u8, Self::NonceSize>) -> Self {

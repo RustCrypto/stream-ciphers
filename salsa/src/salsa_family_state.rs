@@ -1,4 +1,5 @@
 use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::generic_array::typenum::U8;
 use block_cipher_trait::generic_array::typenum::U32;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
@@ -16,7 +17,9 @@ const IV_BYTES: usize = IV_BITS / 8;
 
 const IV_WORDS: usize = IV_BYTES / 4;
 
-const STATE_WORDS: usize = 16;
+const STATE_BYTES: usize = 64;
+
+const STATE_WORDS: usize = STATE_BYTES / 4;
 
 pub struct SalsaFamilyState {
     pub block: [u32; STATE_WORDS],
@@ -42,74 +45,146 @@ pub trait SalsaFamilyCipher {
     fn process(&mut self, data: &mut [u8]) {
         let datalen = data.len();
         let mut i = 0;
-        let word_offset = self.offset() % 4;
-        let mut word_idx = self.offset() / 4;
+        let initial_offset = self.offset();
+        let initial_word_offset = initial_offset % 4;
+        let initial_word_remaining = 4 - initial_word_offset;
+        let final_offset = initial_offset + datalen % STATE_BYTES;
 
-        // First, use the remaining part of the current word.
-        if word_offset % 4 != 0 {
-            let word = self.block_word(word_idx);
+        if datalen > initial_word_remaining {
+            // If the length of data is longer than remaining bytes in
+            // the current word.
+            let has_initial_words = initial_word_offset != 0;
+            let initial_word_idx = initial_offset / 4;
 
-            for j in word_offset .. 4  {
+            let mut word_idx = initial_offset / 4;
+
+            // First, use the remaining part of the current word.
+            if has_initial_words {
+                let word = self.block_word(initial_word_idx);
+
+                for j in initial_word_offset .. 4 {
+                    data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
+                    i += 1;
+                }
+
+                word_idx += 1;
+            }
+
+            // Check if the remaining data is longer than one block.
+            let (leftover_words, leftover_bytes) =
+                if (datalen - i) / 4 > STATE_WORDS - (word_idx % STATE_WORDS) {
+                    // If the length of the remaining data is longer
+                    // than the remaining words in the current block.
+
+                    // Use the remaining part of the current block
+                    if word_idx != STATE_WORDS {
+
+                        for j in word_idx .. STATE_WORDS {
+                            let word = self.block_word(j);
+
+                            for k in 0 .. 4  {
+                                data[i] = data[i] ^
+                                    ((word >> (k * 8)) & 0xff) as u8;
+                                i += 1;
+                            }
+                        }
+
+                        self.next_block();
+                    } else {
+                        word_idx = 0;
+                        self.next_block();
+                    }
+
+                    let nblocks = (datalen - i) / 64;
+                    let leftover = (datalen - i) % 64;
+
+                    // Process whole blocks.
+                    for _ in 0 .. nblocks {
+                        for j in 0 .. STATE_WORDS {
+                            let word = self.block_word(j);
+
+                            for k in 0 .. 4  {
+                                data[i] = data[i] ^
+                                    ((word >> (k * 8)) & 0xff) as u8;
+                                i += 1;
+                            }
+                        }
+
+                        self.next_block();
+                    }
+
+                    let leftover_words = leftover / 4;
+
+                    // Process the leftover part of a block
+                    for j in 0 .. leftover_words {
+                        let word = self.block_word(j);
+
+                        for k in 0 .. 4  {
+                            data[i] = data[i] ^
+                                ((word >> (k * 8)) & 0xff) as u8;
+                            i += 1;
+                        }
+                    }
+
+                    (leftover_words, leftover % 4)
+                } else {
+                    // If the remaining data is less than the length
+                    // of a block.
+                    let nwords = (datalen - i) / 4;
+                    let leftover_bytes = (datalen - i) % 4;
+
+                    // If we walked off the end of this block,
+                    // generate the next one.
+                    if has_initial_words && word_idx == STATE_WORDS {
+                        word_idx = 0;
+                        self.next_block();
+                    }
+
+                    // Use the remaining part of the current block
+                    for j in word_idx .. word_idx + nwords {
+                        let word = self.block_word(j);
+
+                        for k in 0 .. 4  {
+                            data[i] = data[i] ^
+                                ((word >> (k * 8)) & 0xff) as u8;
+                            i += 1;
+                        }
+                    }
+
+                    if word_idx + nwords == STATE_WORDS {
+                        self.next_block();
+                    }
+
+                    ((word_idx + nwords) % STATE_WORDS, leftover_bytes)
+                };
+
+            // Process the leftover part of a single word
+            let word = self.block_word(leftover_words);
+
+            for j in 0 .. leftover_bytes  {
                 data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
 
-            word_idx += 1;
-        }
+            self.set_offset((4 * leftover_words) + leftover_bytes);
+        } else {
+            // If the total length is less than the remaining bytes in
+            // a word.
+            let word_idx = self.offset() / 4 % STATE_WORDS;
+            let word = self.block_word(word_idx);
 
-        // Use the remaining part of the current block
-        if word_idx != 0 {
-            for j in word_idx .. 16 {
-                let word = self.block_word(j);
-
-                for k in 0 .. 4  {
-                    data[i] = data[i] ^ ((word >> (k * 8)) & 0xff) as u8;
-                    i += 1;
-                }
-            }
-
-            self.next_block();
-        }
-
-        let nblocks = (datalen - i) / 64;
-        let leftover = (datalen - i) % 64;
-
-        // Process the whole blocks
-        for _ in 0 .. nblocks {
-            for j in 0 .. 16 {
-                let word = self.block_word(j);
-
-                for k in 0 .. 4  {
-                    data[i] = data[i] ^ ((word >> (k * 8)) & 0xff) as u8;
-                    i += 1;
-                }
-            }
-
-            self.next_block();
-        }
-
-        let leftover_words = leftover / 4;
-        let leftover_bytes = leftover / 4;
-
-        // Process the leftover part of a block
-        for j in 0 .. leftover_words {
-            let word = self.block_word(j);
-
-            for k in 0 .. 4  {
-                data[i] = data[i] ^ ((word >> (k * 8)) & 0xff) as u8;
+            for j in initial_word_offset .. initial_word_offset + datalen {
+                data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
+
+            if final_offset == STATE_BYTES {
+                self.next_block();
+            }
         }
 
-        // Process the leftover part of a single word
-        let word = self.block_word(leftover_words);
-
-        for j in 0 .. leftover_bytes  {
-            data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
-            i += 1;
-        }
-
-        self.set_offset(leftover);
+        // Set the offset and generate the next block if we ran over.
+        self.set_offset(final_offset % STATE_BYTES);
     }
 }
 
@@ -147,7 +222,7 @@ impl NewStreamCipher for SalsaFamilyState {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
-    type NonceSize = U32;
+    type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>,
            iv: &GenericArray<u8, Self::NonceSize>) -> Self {

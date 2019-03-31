@@ -3,6 +3,7 @@ extern crate block_cipher_trait;
 extern crate zeroize;
 
 pub extern crate stream_cipher;
+pub extern crate std;
 
 mod salsa_family_state;
 mod salsa;
