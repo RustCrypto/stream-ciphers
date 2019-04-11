@@ -51,11 +51,19 @@
 pub extern crate stream_cipher;
 extern crate block_cipher_trait;
 
+#[cfg(cargo_feature = "zeroize")]
+extern crate zeroize;
+
 use stream_cipher::{StreamCipher, NewStreamCipher, InvalidKeyNonceLength};
 use block_cipher_trait::BlockCipher;
 use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
 use core::slice;
+
+#[cfg(cargo_feature = "zeroize")]
+use zeroize::Zeroize;
+#[cfg(cargo_feature = "zeroize")]
+use std::ops::Drop;
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb<C: BlockCipher> {
@@ -67,6 +75,22 @@ pub struct Cfb<C: BlockCipher> {
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 type ParBlocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
 type Key<C> = GenericArray<u8, <C as BlockCipher>::KeySize>;
+
+#[cfg(cargo_feature = "zeroize")]
+impl<C: Zeroize> Zeroize for Cfb<C> {
+    fn zeroize(&mut self) {
+        self.cipher.zeroize();
+        self.iv.zeroize();
+        self.pos.zeroize();
+    }
+}
+
+#[cfg(cargo_feature = "zeroize")]
+impl<C> Drop for Cfb<C> {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
 
 impl<C: BlockCipher> NewStreamCipher for Cfb<C> {
     type KeySize = C::KeySize;
