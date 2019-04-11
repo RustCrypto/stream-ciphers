@@ -4,6 +4,8 @@ use block_cipher_trait::generic_array::typenum::U32;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
+
+#[cfg(cargo_feature = "zeroize")]
 use zeroize::Zeroize;
 
 use salsa_family_state::SalsaFamilyState;
@@ -195,6 +197,7 @@ impl SyncStreamCipherSeek for SalsaState {
     }
 }
 
+#[cfg(cargo_feature = "zeroize")]
 impl Zeroize for SalsaState {
     fn zeroize(&mut self) {
         self.state.zeroize();
@@ -261,6 +264,7 @@ impl StreamCipher for Salsa20 {
     }
 }
 
+#[cfg(cargo_feature = "zeroize")]
 impl Zeroize for Salsa20 {
     fn zeroize(&mut self) {
         self.state.zeroize();
