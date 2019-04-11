@@ -6,6 +6,8 @@ use stream_cipher::SyncStreamCipherSeek;
 
 #[cfg(cargo_feature = "zeroize")]
 use zeroize::Zeroize;
+#[cfg(cargo_feature = "zeroize")]
+use std::ops::Drop;
 
 const KEY_BITS: usize = 256;
 
@@ -255,5 +257,12 @@ impl Zeroize for SalsaFamilyState {
         self.iv.zeroize();
         self.block_idx.zeroize();
         self.offset.zeroize();
+    }
+}
+
+#[cfg(cargo_feature = "zeroize")]
+impl Drop for SalsaFamilyState {
+    fn drop(&mut self) {
+        self.zeroize();
     }
 }
