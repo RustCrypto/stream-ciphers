@@ -1,8 +1,8 @@
 [package]
-name = "salsa"
+name = "salsa-family"
 version = "0.1.0"
 authors = ["Eric McCorkle <eric@metricspace.net>"]
-license = "BSD"
+license = "MIT OR Apache-2.0"
 description = "Salsa Family Stream Ciphers"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait"]

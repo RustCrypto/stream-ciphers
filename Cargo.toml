@@ -5,5 +5,5 @@ members = [
     "cfb-mode",
     "ctr",
     "ofb",
-    "salsa"
+    "salsa-family"
 ]
