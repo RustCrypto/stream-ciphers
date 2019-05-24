@@ -1,9 +1,9 @@
 extern crate stream_cipher;
 extern crate block_cipher_trait;
-extern crate salsa_ciphers;
+extern crate salsa20_family;
 
 use block_cipher_trait::generic_array::GenericArray;
-use salsa_ciphers::ChaCha20;
+use salsa20_family::ChaCha20;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
