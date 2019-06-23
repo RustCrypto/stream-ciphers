@@ -1,29 +1,32 @@
+#![no_std]
+extern crate block_cipher_trait;
+extern crate salsa20_core;
+extern crate stream_cipher;
+
+#[cfg(cargo_feature = "zeroize")]
+extern crate zeroize;
+
+use block_cipher_trait::generic_array::typenum::{U32, U8};
 use block_cipher_trait::generic_array::GenericArray;
-use block_cipher_trait::generic_array::typenum::U8;
-use block_cipher_trait::generic_array::typenum::U32;
-use stream_cipher::NewStreamCipher;
-use stream_cipher::StreamCipher;
-use stream_cipher::SyncStreamCipherSeek;
+use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
 #[cfg(cargo_feature = "zeroize")]
 use zeroize::Zeroize;
 
-use salsa_family_state::SalsaFamilyState;
-use salsa_family_state::SalsaFamilyCipher;
+use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
 
 /// Wrapper for state for ChaCha-type ciphers.
 struct ChaChaState {
-    state: SalsaFamilyState
+    state: SalsaFamilyState,
 }
 
 /// The ChaCha20 cipher.
 pub struct ChaCha20 {
-    state: ChaChaState
+    state: ChaChaState,
 }
 
 #[inline]
-fn quarter_round(a: usize, b: usize, c: usize, d: usize,
-                 block: &mut [u32; 16]) {
+fn quarter_round(a: usize, b: usize, c: usize, d: usize, block: &mut [u32; 16]) {
     block[a] = block[a].wrapping_add(block[b]);
     block[d] ^= block[a];
     block[d] = block[d].rotate_left(16);
@@ -136,9 +139,10 @@ impl NewStreamCipher for ChaChaState {
     /// Nonce size in bytes
     type NonceSize = U8;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>,
-           iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        ChaChaState { state: SalsaFamilyState::new(key, iv) }
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        ChaChaState {
+            state: SalsaFamilyState::new(key, iv),
+        }
     }
 }
 
@@ -188,9 +192,10 @@ impl NewStreamCipher for ChaCha20 {
     /// Nonce size in bytes
     type NonceSize = U8;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>,
-           iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = ChaCha20 { state: ChaChaState::new(key, iv) };
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        let mut out = ChaCha20 {
+            state: ChaChaState::new(key, iv),
+        };
 
         out.gen_block();
 

@@ -1,24 +1,27 @@
+extern crate block_cipher_trait;
+extern crate salsa20_core;
+extern crate stream_cipher;
+
+#[cfg(cargo_feature = "zeroize")]
+extern crate zeroize;
+
+use block_cipher_trait::generic_array::typenum::{U32, U8};
 use block_cipher_trait::generic_array::GenericArray;
-use block_cipher_trait::generic_array::typenum::U8;
-use block_cipher_trait::generic_array::typenum::U32;
-use stream_cipher::NewStreamCipher;
-use stream_cipher::StreamCipher;
-use stream_cipher::SyncStreamCipherSeek;
+use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
 #[cfg(cargo_feature = "zeroize")]
 use zeroize::Zeroize;
 
-use salsa_family_state::SalsaFamilyState;
-use salsa_family_state::SalsaFamilyCipher;
+use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
 
 /// Wrapper state for Salsa-type ciphers
 struct SalsaState {
-    state: SalsaFamilyState
+    state: SalsaFamilyState,
 }
 
 /// The Salsa20 cipher.
 pub struct Salsa20 {
-    state: SalsaState
+    state: SalsaState,
 }
 
 impl SalsaState {
@@ -172,7 +175,6 @@ impl Salsa20 {
         self.rounds();
         self.state.add_block();
     }
-
 }
 
 impl NewStreamCipher for SalsaState {
@@ -181,9 +183,10 @@ impl NewStreamCipher for SalsaState {
     /// Nonce size in bytes
     type NonceSize = U8;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>,
-           iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        SalsaState { state: SalsaFamilyState::new(key, iv) }
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        SalsaState {
+            state: SalsaFamilyState::new(key, iv),
+        }
     }
 }
 
@@ -233,9 +236,10 @@ impl NewStreamCipher for Salsa20 {
     /// Nonce size in bytes
     type NonceSize = U8;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>,
-           iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = Salsa20 { state: SalsaState::new(key, iv) };
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        let mut out = Salsa20 {
+            state: SalsaState::new(key, iv),
+        };
 
         out.gen_block();
 

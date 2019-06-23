@@ -7,5 +7,5 @@ members = [
     "ctr",
     "ofb",
     "salsa20",
-    "salsa20-family",
+    "salsa20-core",
 ]
