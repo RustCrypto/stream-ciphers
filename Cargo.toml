@@ -3,7 +3,9 @@ members = [
     "aes-ctr",
     "cfb8",
     "cfb-mode",
+    "chacha20",
     "ctr",
     "ofb",
-    "salsa20-family"
+    "salsa20",
+    "salsa20-family",
 ]

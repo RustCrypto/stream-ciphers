@@ -1,0 +1,15 @@
+[package]
+name = "chacha20"
+version = "0.1.0"
+authors = ["RustCrypto Developers"]
+license = "MIT OR Apache-2.0"
+description = "Chacha20 Stream Cipher"
+repository = "https://github.com/RustCrypto/stream-ciphers"
+keywords = ["crypto", "stream-cipher", "trait"]
+categories = ["cryptography", "no-std"]
+
+[dependencies]
+salsa20-core = "0.1"
+
+[badges]
+travis-ci = { repository = "RustCrypto/stream-ciphers" }
