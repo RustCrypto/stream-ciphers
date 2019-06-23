@@ -89,7 +89,7 @@ const EXPECTED_LONG: [u8; 256] = [
 ];
 
 #[test]
-fn salsa20_KEY1_IV0() {
+fn salsa20_key1_iv0() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY1), &GenericArray::from(IV0));
     let mut buf = [0; 64];
 
@@ -101,7 +101,7 @@ fn salsa20_KEY1_IV0() {
 }
 
 #[test]
-fn salsa20_KEY0_IV1() {
+fn salsa20_key0_iv1() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY0), &GenericArray::from(IV1));
     let mut buf = [0; 64];
 
@@ -113,7 +113,7 @@ fn salsa20_KEY0_IV1() {
 }
 
 #[test]
-fn salsa20_KEY0_IVHI() {
+fn salsa20_key0_ivhi() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY0), &GenericArray::from(IVHI));
     let mut buf = [0; 64];
 
@@ -125,7 +125,7 @@ fn salsa20_KEY0_IVHI() {
 }
 
 #[test]
-fn salsa20_LONG() {
+fn salsa20_long() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
     let mut buf = [0; 256];
 

@@ -94,7 +94,7 @@ const EXPECTED_LONG: [u8; 256] = [
 ];
 
 #[test]
-fn chacha20_IETF_KEY0_IV0() {
+fn chacha20_ietf_key0_iv0() {
     let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV0),
@@ -109,7 +109,7 @@ fn chacha20_IETF_KEY0_IV0() {
 }
 
 #[test]
-fn chacha20_IETF_KEY1_IV0() {
+fn chacha20_ietf_key1_iv0() {
     let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY1),
         &GenericArray::from(IETF_IV0),
@@ -124,7 +124,7 @@ fn chacha20_IETF_KEY1_IV0() {
 }
 
 #[test]
-fn chacha20_IETF_KEY0_IV1() {
+fn chacha20_ietf_key0_iv1() {
     let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV1),
@@ -139,7 +139,7 @@ fn chacha20_IETF_KEY0_IV1() {
 }
 
 #[test]
-fn chacha20_IETF_KEY0_IVHI() {
+fn chacha20_ietf_key0_ivhi() {
     let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IVHI),
@@ -154,7 +154,7 @@ fn chacha20_IETF_KEY0_IVHI() {
 }
 
 #[test]
-fn chacha20_LONG() {
+fn chacha20_long() {
     let mut cipher = ChaCha20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
     let mut buf = [0; 256];
 
