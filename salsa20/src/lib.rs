@@ -1,3 +1,5 @@
+#![no_std]
+
 extern crate block_cipher_trait;
 extern crate salsa20_core;
 extern crate stream_cipher;
