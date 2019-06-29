@@ -7,7 +7,7 @@ extern crate stream_cipher;
 extern crate zeroize;
 
 use block_cipher_trait::generic_array::typenum::{U32, U8};
-use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
 #[cfg(cargo_feature = "zeroize")]
@@ -16,13 +16,14 @@ use zeroize::Zeroize;
 use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
 
 /// Wrapper for state for ChaCha-type ciphers.
-struct ChaChaState {
+struct ChaChaState<N: ArrayLength<u8>> {
     state: SalsaFamilyState,
+    phantom: core::marker::PhantomData<N>,
 }
 
 /// The ChaCha20 cipher.
-pub struct ChaCha20 {
-    state: ChaChaState,
+pub struct ChaCha20<N: ArrayLength<u8>> {
+    state: ChaChaState<N>,
 }
 
 #[inline]
@@ -44,7 +45,7 @@ fn quarter_round(a: usize, b: usize, c: usize, d: usize, block: &mut [u32; 16]) 
     block[b] = block[b].rotate_left(7);
 }
 
-impl ChaChaState {
+impl<N: ArrayLength<u8>> ChaChaState<N> {
     #[inline]
     fn double_round(&mut self) {
         let block = &mut self.state.block;
@@ -110,7 +111,7 @@ impl ChaChaState {
     }
 }
 
-impl ChaCha20 {
+impl<N: ArrayLength<u8>> ChaCha20<N> {
     #[inline]
     fn rounds(&mut self) {
         self.state.double_round();
@@ -133,7 +134,7 @@ impl ChaCha20 {
     }
 }
 
-impl NewStreamCipher for ChaChaState {
+impl NewStreamCipher for ChaChaState<U8> {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
@@ -142,11 +143,12 @@ impl NewStreamCipher for ChaChaState {
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         ChaChaState {
             state: SalsaFamilyState::new(key, iv),
+            phantom: core::marker::PhantomData,
         }
     }
 }
 
-impl SyncStreamCipherSeek for ChaChaState {
+impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaChaState<N> {
     fn current_pos(&self) -> u64 {
         self.state.current_pos()
     }
@@ -163,7 +165,7 @@ impl Zeroize for ChaChaState {
     }
 }
 
-impl SalsaFamilyCipher for ChaCha20 {
+impl<N: ArrayLength<u8>> SalsaFamilyCipher for ChaCha20<N> {
     #[inline]
     fn next_block(&mut self) {
         self.state.state.block_idx += 1;
@@ -186,7 +188,7 @@ impl SalsaFamilyCipher for ChaCha20 {
     }
 }
 
-impl NewStreamCipher for ChaCha20 {
+impl NewStreamCipher for ChaCha20<U8> {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
@@ -203,7 +205,7 @@ impl NewStreamCipher for ChaCha20 {
     }
 }
 
-impl SyncStreamCipherSeek for ChaCha20 {
+impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaCha20<N> {
     fn current_pos(&self) -> u64 {
         self.state.current_pos()
     }
@@ -214,7 +216,7 @@ impl SyncStreamCipherSeek for ChaCha20 {
     }
 }
 
-impl StreamCipher for ChaCha20 {
+impl<N: ArrayLength<u8>> StreamCipher for ChaCha20<N> {
     fn encrypt(&mut self, data: &mut [u8]) {
         self.process(data);
     }

@@ -2,7 +2,7 @@ extern crate block_cipher_trait;
 extern crate chacha20;
 extern crate stream_cipher;
 
-use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::generic_array::{typenum::U8, GenericArray};
 use chacha20::ChaCha20;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;
@@ -95,7 +95,7 @@ const EXPECTED_LONG: [u8; 256] = [
 
 #[test]
 fn chacha20_ietf_key0_iv0() {
-    let mut cipher = ChaCha20::new(
+    let mut cipher: ChaCha20<U8> = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV0),
     );
@@ -110,7 +110,7 @@ fn chacha20_ietf_key0_iv0() {
 
 #[test]
 fn chacha20_ietf_key1_iv0() {
-    let mut cipher = ChaCha20::new(
+    let mut cipher: ChaCha20<U8> = ChaCha20::new(
         &GenericArray::from(IETF_KEY1),
         &GenericArray::from(IETF_IV0),
     );
@@ -125,7 +125,7 @@ fn chacha20_ietf_key1_iv0() {
 
 #[test]
 fn chacha20_ietf_key0_iv1() {
-    let mut cipher = ChaCha20::new(
+    let mut cipher: ChaCha20<U8> = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV1),
     );
@@ -140,7 +140,7 @@ fn chacha20_ietf_key0_iv1() {
 
 #[test]
 fn chacha20_ietf_key0_ivhi() {
-    let mut cipher = ChaCha20::new(
+    let mut cipher: ChaCha20<U8> = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IVHI),
     );
@@ -155,7 +155,8 @@ fn chacha20_ietf_key0_ivhi() {
 
 #[test]
 fn chacha20_long() {
-    let mut cipher = ChaCha20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
+    let mut cipher: ChaCha20<U8> =
+        ChaCha20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
     let mut buf = [0; 256];
 
     cipher.encrypt(&mut buf);
@@ -170,7 +171,7 @@ fn chacha20_offsets() {
     for idx in 0..256 {
         for middle in idx..256 {
             for last in middle..256 {
-                let mut cipher =
+                let mut cipher: ChaCha20<U8> =
                     ChaCha20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
                 let mut buf = [0; 256];
 
