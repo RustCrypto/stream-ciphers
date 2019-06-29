@@ -6,7 +6,7 @@ extern crate stream_cipher;
 #[cfg(cargo_feature = "zeroize")]
 extern crate zeroize;
 
-use block_cipher_trait::generic_array::typenum::{U32, U8};
+use block_cipher_trait::generic_array::typenum::{U12, U32, U8};
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
@@ -148,6 +148,30 @@ impl NewStreamCipher for ChaChaState<U8> {
     }
 }
 
+impl NewStreamCipher for ChaChaState<U12> {
+    /// Key size in bytes
+    type KeySize = U32;
+    /// Nonce size in bytes
+    type NonceSize = U12;
+
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        let exp_iv = &iv[0..4];
+        let base_iv = &iv[4..12];
+
+        let mut ccs = ChaChaState {
+            state: SalsaFamilyState::new(key, GenericArray::from_slice(base_iv)),
+            phantom: core::marker::PhantomData,
+        };
+
+        ccs.state.block_idx = (exp_iv[0] as u64 & 0xff) << 32
+            | (exp_iv[1] as u64 & 0xff) << 40
+            | (exp_iv[2] as u64 & 0xff) << 48
+            | (exp_iv[3] as u64 & 0xff) << 56;
+
+        ccs
+    }
+}
+
 impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaChaState<N> {
     fn current_pos(&self) -> u64 {
         self.state.current_pos()
@@ -193,6 +217,23 @@ impl NewStreamCipher for ChaCha20<U8> {
     type KeySize = U32;
     /// Nonce size in bytes
     type NonceSize = U8;
+
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        let mut out = ChaCha20 {
+            state: ChaChaState::new(key, iv),
+        };
+
+        out.gen_block();
+
+        out
+    }
+}
+
+impl NewStreamCipher for ChaCha20<U12> {
+    /// Key size in bytes
+    type KeySize = U32;
+    /// Nonce size in bytes
+    type NonceSize = U12;
 
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let mut out = ChaCha20 {
