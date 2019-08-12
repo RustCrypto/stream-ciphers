@@ -18,7 +18,10 @@ script:
 
 matrix:
   allow_failures:
+    - name: rustfmt
+    - name: clippy
     - rust: nightly
+  fast_finish: true
   include:
     - name: "Rust: stable (thumbv7em-none-eabihf)"
       rust: stable
