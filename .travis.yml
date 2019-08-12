@@ -22,6 +22,7 @@ matrix:
   include:
     - name: "Rust: 1.27.0"
       rust: 1.27.0
+      env: {} # clear `-D warnings` above; allow warnings
       script:
         - cargo test --all --release
         - ./test_aesni.sh
