@@ -36,9 +36,6 @@ matrix:
         - rustup component add clippy
       script:
         - cargo clippy --all
-    - name: docs
-      script:
-        - cargo doc --all --no-deps
 
 branches:
   only:
