@@ -5,7 +5,7 @@ use stream_cipher::NewStreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
 
 #[cfg(feature = "zeroize")]
-use std::ops::Drop;
+use core::ops::Drop;
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
