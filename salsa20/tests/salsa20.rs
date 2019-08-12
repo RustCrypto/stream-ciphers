@@ -137,6 +137,7 @@ fn salsa20_long() {
 }
 
 #[test]
+#[ignore]
 fn salsa20_offsets() {
     for idx in 0..256 {
         for middle in idx..256 {
