@@ -1,14 +1,49 @@
 language: rust
-services: docker
-sudo: required
+cache: cargo
 
-matrix:
-  include:
-    - rust: 1.27.0
-    - rust: stable
-    - rust: nightly
+rust:
+  - 1.27.0
+  - stable
+  - nightly
+
+install:
+  - rustup component add rustfmt
+  - rustup component add clippy
+  - rustup target add thumbv7em-none-eabihf
+  - rustup target add wasm32-unknown-unknown
 
 script:
-  - cargo test --all ; ./test_aesni.sh
+  - cargo test --all --release
+  - cargo test --all --all-features --release
 
-cache: cargo
+matrix:
+  allow_failures:
+    - rust: nightly
+  include:
+    - name: "Rust: stable (thumbv7em-none-eabihf)"
+      rust: stable
+      script:
+        - cargo build --all --target thumbv7em-none-eabihf --release
+    - name: "Rust: stable (wasm32-unknown-unknown)"
+      rust: stable
+      script:
+        - cargo build --all --target wasm32-unknown-unknown --release
+    - name: "./test_aesni.sh"
+      rust: stable
+      script:
+        - ./test_aesni.sh
+    - name: rustfmt
+      rust: stable
+      script:
+        - cargo fmt --all -- --check
+    - name: clippy
+      rust: stable
+      script:
+        - cargo clippy --all
+    - name: docs
+      script:
+        - cargo doc --all --no-deps
+
+branches:
+  only:
+    - master
