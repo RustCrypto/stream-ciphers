@@ -10,6 +10,9 @@ script:
   - cargo test --all --all-features --release
   - ./test_aesni.sh
 
+env:
+  - RUSTFLAGS="-D warnings"
+
 matrix:
   allow_failures:
     - name: rustfmt
