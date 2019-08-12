@@ -24,12 +24,6 @@ matrix:
         - rustup target add thumbv7em-none-eabihf
       script:
         - cargo build --all --target thumbv7em-none-eabihf --release
-    - name: "Rust: stable (wasm32-unknown-unknown)"
-      rust: stable
-      install:
-        - rustup target add wasm32-unknown-unknown
-      script:
-        - cargo build --all --target wasm32-unknown-unknown --release
     - name: rustfmt
       rust: stable
       install:
