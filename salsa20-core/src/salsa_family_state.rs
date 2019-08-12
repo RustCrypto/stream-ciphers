@@ -4,9 +4,9 @@ use block_cipher_trait::generic_array::GenericArray;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 use std::ops::Drop;
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
 const KEY_BITS: usize = 256;
@@ -244,7 +244,7 @@ impl SyncStreamCipherSeek for SalsaFamilyState {
     }
 }
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 impl Zeroize for SalsaFamilyState {
     fn zeroize(&mut self) {
         self.block.zeroize();
@@ -255,7 +255,7 @@ impl Zeroize for SalsaFamilyState {
     }
 }
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 impl Drop for SalsaFamilyState {
     fn drop(&mut self) {
         self.zeroize();

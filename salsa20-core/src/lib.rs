@@ -2,7 +2,7 @@
 
 extern crate block_cipher_trait;
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 extern crate zeroize;
 
 pub extern crate stream_cipher;
