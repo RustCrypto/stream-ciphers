@@ -6,15 +6,10 @@ rust:
   - stable
   - nightly
 
-install:
-  - rustup component add rustfmt
-  - rustup component add clippy
-  - rustup target add thumbv7em-none-eabihf
-  - rustup target add wasm32-unknown-unknown
-
 script:
   - cargo test --all --release
   - cargo test --all --all-features --release
+  - ./test_aesni.sh
 
 matrix:
   allow_failures:
@@ -25,22 +20,26 @@ matrix:
   include:
     - name: "Rust: stable (thumbv7em-none-eabihf)"
       rust: stable
+      install:
+        - rustup target add thumbv7em-none-eabihf
       script:
         - cargo build --all --target thumbv7em-none-eabihf --release
     - name: "Rust: stable (wasm32-unknown-unknown)"
       rust: stable
+      install:
+        - rustup target add wasm32-unknown-unknown
       script:
         - cargo build --all --target wasm32-unknown-unknown --release
-    - name: "./test_aesni.sh"
-      rust: stable
-      script:
-        - ./test_aesni.sh
     - name: rustfmt
       rust: stable
+      install:
+        - rustup component add rustfmt
       script:
         - cargo fmt --all -- --check
     - name: clippy
       rust: stable
+      install:
+        - rustup component add clippy
       script:
         - cargo clippy --all
     - name: docs
