@@ -2,7 +2,6 @@ language: rust
 cache: cargo
 
 rust:
-  - 1.27.0
   - stable
   - nightly
 
@@ -18,6 +17,11 @@ matrix:
     - rust: nightly
   fast_finish: true
   include:
+    - name: "Rust: 1.27.0"
+      rust: 1.27.0
+      script:
+        - cargo test --all --release
+        - ./test_aesni.sh
     - name: "Rust: stable (thumbv7em-none-eabihf)"
       rust: stable
       install:
