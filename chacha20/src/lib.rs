@@ -183,7 +183,7 @@ impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaChaState<N> {
 }
 
 #[cfg(feature = "zeroize")]
-impl Zeroize for ChaChaState {
+impl<N: ArrayLength<u8>> Zeroize for ChaChaState<N> {
     fn zeroize(&mut self) {
         self.state.zeroize();
     }
@@ -268,7 +268,7 @@ impl<N: ArrayLength<u8>> StreamCipher for ChaCha20<N> {
 }
 
 #[cfg(feature = "zeroize")]
-impl Zeroize for ChaCha20 {
+impl<N: ArrayLength<u8>> Zeroize for ChaCha20<N> {
     fn zeroize(&mut self) {
         self.state.zeroize();
     }
