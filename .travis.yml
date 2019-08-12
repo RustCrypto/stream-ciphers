@@ -1,14 +1,50 @@
 language: rust
-services: docker
-sudo: required
+cache: cargo
 
-matrix:
-  include:
-    - rust: 1.27.0
-    - rust: stable
-    - rust: nightly
+rust:
+  - stable
+  - nightly
 
 script:
-  - cargo test --all ; ./test_aesni.sh
+  - cargo test --all --release
+  - cargo test --all --all-features --release
+  - ./test_aesni.sh
 
-cache: cargo
+env:
+  - RUSTFLAGS="-D warnings"
+
+matrix:
+  allow_failures:
+    - name: rustfmt
+    - name: clippy
+    - rust: nightly
+  fast_finish: true
+  include:
+    - name: "Rust: 1.27.0"
+      rust: 1.27.0
+      env: {} # clear `-D warnings` above; allow warnings
+      script:
+        - cargo test --all --release
+        - ./test_aesni.sh
+    - name: "Rust: stable (thumbv7em-none-eabihf)"
+      rust: stable
+      install:
+        - rustup target add thumbv7em-none-eabihf
+      script:
+        - cargo build --all --target thumbv7em-none-eabihf --release
+    - name: rustfmt
+      rust: stable
+      install:
+        - rustup component add rustfmt
+      script:
+        - cargo fmt --all -- --check
+    - name: clippy
+      rust: stable
+      install:
+        - rustup component add clippy
+      script:
+        - cargo clippy --all
+
+branches:
+  only:
+    - master

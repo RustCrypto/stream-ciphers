@@ -3,14 +3,14 @@ extern crate block_cipher_trait;
 extern crate salsa20_core;
 extern crate stream_cipher;
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 extern crate zeroize;
 
 use block_cipher_trait::generic_array::typenum::{U12, U32, U8};
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
 use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
@@ -182,8 +182,8 @@ impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaChaState<N> {
     }
 }
 
-#[cfg(cargo_feature = "zeroize")]
-impl Zeroize for ChaChaState {
+#[cfg(feature = "zeroize")]
+impl<N: ArrayLength<u8>> Zeroize for ChaChaState<N> {
     fn zeroize(&mut self) {
         self.state.zeroize();
     }
@@ -267,8 +267,8 @@ impl<N: ArrayLength<u8>> StreamCipher for ChaCha20<N> {
     }
 }
 
-#[cfg(cargo_feature = "zeroize")]
-impl Zeroize for ChaCha20 {
+#[cfg(feature = "zeroize")]
+impl<N: ArrayLength<u8>> Zeroize for ChaCha20<N> {
     fn zeroize(&mut self) {
         self.state.zeroize();
     }

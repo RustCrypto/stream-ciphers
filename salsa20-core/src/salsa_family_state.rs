@@ -4,9 +4,9 @@ use block_cipher_trait::generic_array::GenericArray;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
 
-#[cfg(cargo_feature = "zeroize")]
-use std::ops::Drop;
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
+use core::ops::Drop;
+#[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
 const KEY_BITS: usize = 256;
@@ -93,8 +93,13 @@ pub trait SalsaFamilyCipher {
 
                         self.next_block();
                     } else {
-                        word_idx = 0;
-                        self.next_block();
+                        // TODO(tarcieri): is this else clause unnecessary or is there a bug?
+                        // See: <https://github.com/RustCrypto/stream-ciphers/issues/23>
+                        #[allow(unused_assignments)]
+                        {
+                            word_idx = 0;
+                            self.next_block();
+                        }
                     }
 
                     let nblocks = (datalen - i) / 64;
@@ -244,7 +249,7 @@ impl SyncStreamCipherSeek for SalsaFamilyState {
     }
 }
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 impl Zeroize for SalsaFamilyState {
     fn zeroize(&mut self) {
         self.block.zeroize();
@@ -255,7 +260,7 @@ impl Zeroize for SalsaFamilyState {
     }
 }
 
-#[cfg(cargo_feature = "zeroize")]
+#[cfg(feature = "zeroize")]
 impl Drop for SalsaFamilyState {
     fn drop(&mut self) {
         self.zeroize();
