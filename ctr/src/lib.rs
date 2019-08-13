@@ -191,7 +191,7 @@ impl<C> SyncStreamCipher for Ctr128<C>
             counter += 1;
         }
 
-        if data.len() != 0 {
+        if !data.is_empty() {
             self.block = self.generate_block(counter);
             counter += 1;
             let n = data.len();
@@ -213,7 +213,7 @@ impl<C> SyncStreamCipherSeek for Ctr128<C>
     fn current_pos(&self) -> u64 {
         let bs = Self::block_size() as u64;
         match self.pos {
-            Some(pos) => self.counter.wrapping_sub(1)*bs + pos as u64,
+            Some(pos) => self.counter.wrapping_sub(1)*bs + u64::from(pos),
             None => self.counter*bs,
         }
     }

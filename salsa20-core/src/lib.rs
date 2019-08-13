@@ -42,16 +42,12 @@ pub struct SalsaFamilyState {
 }
 
 pub trait SalsaFamilyCipher {
-    #[inline]
     fn next_block(&mut self);
 
-    #[inline]
     fn offset(&self) -> usize;
 
-    #[inline]
     fn set_offset(&mut self, offset: usize);
 
-    #[inline]
     fn block_word(&self, idx: usize) -> u32;
 
     fn process(&mut self, data: &mut [u8]) {
@@ -75,7 +71,7 @@ pub trait SalsaFamilyCipher {
                 let word = self.block_word(initial_word_idx);
 
                 for j in initial_word_offset..4 {
-                    data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
+                    data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
                     i += 1;
                 }
 
@@ -94,7 +90,7 @@ pub trait SalsaFamilyCipher {
                             let word = self.block_word(j);
 
                             for k in 0..4 {
-                                data[i] = data[i] ^ ((word >> (k * 8)) & 0xff) as u8;
+                                data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
                                 i += 1;
                             }
                         }
@@ -111,7 +107,7 @@ pub trait SalsaFamilyCipher {
                             let word = self.block_word(j);
 
                             for k in 0..4 {
-                                data[i] = data[i] ^ ((word >> (k * 8)) & 0xff) as u8;
+                                data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
                                 i += 1;
                             }
                         }
@@ -126,7 +122,7 @@ pub trait SalsaFamilyCipher {
                         let word = self.block_word(j);
 
                         for k in 0..4 {
-                            data[i] = data[i] ^ ((word >> (k * 8)) & 0xff) as u8;
+                            data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
                             i += 1;
                         }
                     }
@@ -150,7 +146,7 @@ pub trait SalsaFamilyCipher {
                         let word = self.block_word(j);
 
                         for k in 0..4 {
-                            data[i] = data[i] ^ ((word >> (k * 8)) & 0xff) as u8;
+                            data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
                             i += 1;
                         }
                     }
@@ -166,7 +162,7 @@ pub trait SalsaFamilyCipher {
             let word = self.block_word(leftover_words);
 
             for j in 0..leftover_bytes {
-                data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
+                data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
 
@@ -178,7 +174,7 @@ pub trait SalsaFamilyCipher {
             let word = self.block_word(word_idx);
 
             for j in initial_word_offset..initial_word_offset + datalen {
-                data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
+                data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
 
@@ -205,17 +201,17 @@ impl SalsaFamilyState {
 
     pub fn init(&mut self, key: &[u8], iv: &[u8], block_idx: u64, offset: usize) {
         for i in 0..KEY_WORDS {
-            self.key[i] = key[4 * i] as u32 & 0xff
-                | (key[(4 * i) + 1] as u32 & 0xff) << 8
-                | (key[(4 * i) + 2] as u32 & 0xff) << 16
-                | (key[(4 * i) + 3] as u32 & 0xff) << 24;
+            self.key[i] = u32::from(key[4 * i]) & 0xff
+                | (u32::from(key[(4 * i) + 1]) & 0xff) << 8
+                | (u32::from(key[(4 * i) + 2]) & 0xff) << 16
+                | (u32::from(key[(4 * i) + 3]) & 0xff) << 24;
         }
 
         for i in 0..IV_WORDS {
-            self.iv[i] = iv[4 * i] as u32 & 0xff
-                | (iv[(4 * i) + 1] as u32 & 0xff) << 8
-                | (iv[(4 * i) + 2] as u32 & 0xff) << 16
-                | (iv[(4 * i) + 3] as u32 & 0xff) << 24;
+            self.iv[i] = u32::from(iv[4 * i]) & 0xff
+                | (u32::from(iv[(4 * i) + 1]) & 0xff) << 8
+                | (u32::from(iv[(4 * i) + 2]) & 0xff) << 16
+                | (u32::from(iv[(4 * i) + 3]) & 0xff) << 24;
         }
 
         self.block_idx = block_idx;

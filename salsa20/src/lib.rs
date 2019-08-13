@@ -112,22 +112,22 @@ impl SalsaState {
         let key = self.state.key;
         let block_idx = self.state.block_idx;
 
-        block[0] = 0x61707865;
+        block[0] = 0x6170_7865;
         block[1] = key[0];
         block[2] = key[1];
         block[3] = key[2];
         block[4] = key[3];
-        block[5] = 0x3320646e;
+        block[5] = 0x3320_646e;
         block[6] = iv[0];
         block[7] = iv[1];
-        block[8] = (block_idx & 0xffffffff) as u32;
-        block[9] = ((block_idx >> 32) & 0xffffffff) as u32;
-        block[10] = 0x79622d32;
+        block[8] = (block_idx & 0xffff_ffff) as u32;
+        block[9] = ((block_idx >> 32) & 0xffff_ffff) as u32;
+        block[10] = 0x7962_2d32;
         block[11] = key[4];
         block[12] = key[5];
         block[13] = key[6];
         block[14] = key[7];
-        block[15] = 0x6b206574;
+        block[15] = 0x6b20_6574;
     }
 
     #[inline]
@@ -137,22 +137,22 @@ impl SalsaState {
         let key = self.state.key;
         let block_idx = self.state.block_idx;
 
-        block[0] = block[0].wrapping_add(0x61707865);
+        block[0] = block[0].wrapping_add(0x6170_7865);
         block[1] = block[1].wrapping_add(key[0]);
         block[2] = block[2].wrapping_add(key[1]);
         block[3] = block[3].wrapping_add(key[2]);
         block[4] = block[4].wrapping_add(key[3]);
-        block[5] = block[5].wrapping_add(0x3320646e);
+        block[5] = block[5].wrapping_add(0x3320_646e);
         block[6] = block[6].wrapping_add(iv[0]);
         block[7] = block[7].wrapping_add(iv[1]);
-        block[8] = block[8].wrapping_add((block_idx & 0xffffffff) as u32);
-        block[9] = block[9].wrapping_add(((block_idx >> 32) & 0xffffffff) as u32);
-        block[10] = block[10].wrapping_add(0x79622d32);
+        block[8] = block[8].wrapping_add((block_idx & 0xffff_ffff) as u32);
+        block[9] = block[9].wrapping_add(((block_idx >> 32) & 0xffff_ffff) as u32);
+        block[10] = block[10].wrapping_add(0x7962_2d32);
         block[11] = block[11].wrapping_add(key[4]);
         block[12] = block[12].wrapping_add(key[5]);
         block[13] = block[13].wrapping_add(key[6]);
         block[14] = block[14].wrapping_add(key[7]);
-        block[15] = block[15].wrapping_add(0x6b206574);
+        block[15] = block[15].wrapping_add(0x6b20_6574);
     }
 }
 
