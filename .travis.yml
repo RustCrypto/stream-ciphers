@@ -8,6 +8,7 @@ rust:
 script:
   - cargo test --all --release
   - cargo test --all --all-features --release
+  - cargo test --all --all-features --release -- --ignored
   - ./test_aesni.sh
 
 env:
