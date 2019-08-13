@@ -90,17 +90,9 @@ pub trait SalsaFamilyCipher {
                                 i += 1;
                             }
                         }
-
-                        self.next_block();
-                    } else {
-                        // TODO(tarcieri): is this else clause unnecessary or is there a bug?
-                        // See: <https://github.com/RustCrypto/stream-ciphers/issues/23>
-                        #[allow(unused_assignments)]
-                        {
-                            word_idx = 0;
-                            self.next_block();
-                        }
                     }
+
+                    self.next_block();
 
                     let nblocks = (datalen - i) / 64;
                     let leftover = (datalen - i) % 64;
