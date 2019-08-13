@@ -3,49 +3,91 @@ extern crate block_cipher_trait;
 extern crate salsa20_core;
 extern crate stream_cipher;
 
-#[cfg(feature = "zeroize")]
-extern crate zeroize;
-
 use block_cipher_trait::generic_array::typenum::{U12, U32, U8};
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
+use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
 use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
+/// The ChaCha20 stream cipher (RFC 7539 version with 96-bit nonce)
+///
+/// Use `ChaCha20Legacy` for the legacy (a.k.a. "djb") construction with a
+/// 64-bit nonce.
+pub struct ChaCha20(ChaChaState<U12>);
 
-use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
+/// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
+///
+/// The `legacy` Cargo feature must be enabled to use this.
+#[cfg(feature = "legacy")]
+pub struct ChaCha20Legacy(ChaChaState<U8>);
+
+macro_rules! impl_chacha20 {
+    ($type:path, $noncesize:ty) => {
+        impl NewStreamCipher for $type {
+            /// Key size in bytes
+            type KeySize = U32;
+
+            /// Nonce size in bytes
+            type NonceSize = $noncesize;
+
+            fn new(
+                key: &GenericArray<u8, Self::KeySize>,
+                iv: &GenericArray<u8, Self::NonceSize>,
+            ) -> Self {
+                let mut out = $type(ChaChaState::new(key, iv));
+                out.0.gen_block();
+                out
+            }
+        }
+
+        impl core::ops::Deref for $type {
+            type Target = ChaChaState<$noncesize>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl core::ops::DerefMut for $type {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+    };
+}
+
+impl_chacha20!(ChaCha20, U12);
+
+#[cfg(feature = "legacy")]
+impl_chacha20!(ChaCha20Legacy, U8);
 
 /// Wrapper for state for ChaCha-type ciphers.
-struct ChaChaState<N: ArrayLength<u8>> {
+pub struct ChaChaState<N: ArrayLength<u8>> {
     state: SalsaFamilyState,
     phantom: core::marker::PhantomData<N>,
 }
 
-/// The ChaCha20 cipher.
-pub struct ChaCha20<N: ArrayLength<u8>> {
-    state: ChaChaState<N>,
-}
-
-#[inline]
-fn quarter_round(a: usize, b: usize, c: usize, d: usize, block: &mut [u32; 16]) {
-    block[a] = block[a].wrapping_add(block[b]);
-    block[d] ^= block[a];
-    block[d] = block[d].rotate_left(16);
-
-    block[c] = block[c].wrapping_add(block[d]);
-    block[b] ^= block[c];
-    block[b] = block[b].rotate_left(12);
-
-    block[a] = block[a].wrapping_add(block[b]);
-    block[d] ^= block[a];
-    block[d] = block[d].rotate_left(8);
-
-    block[c] = block[c].wrapping_add(block[d]);
-    block[b] ^= block[c];
-    block[b] = block[b].rotate_left(7);
-}
-
 impl<N: ArrayLength<u8>> ChaChaState<N> {
+    pub(crate) fn gen_block(&mut self) {
+        self.init_block();
+        self.rounds();
+        self.add_block();
+    }
+
+    #[inline]
+    fn rounds(&mut self) {
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+    }
+
     #[inline]
     fn double_round(&mut self) {
         let block = &mut self.state.block;
@@ -111,32 +153,10 @@ impl<N: ArrayLength<u8>> ChaChaState<N> {
     }
 }
 
-impl<N: ArrayLength<u8>> ChaCha20<N> {
-    #[inline]
-    fn rounds(&mut self) {
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-    }
-
-    fn gen_block(&mut self) {
-        self.state.init_block();
-        self.rounds();
-        self.state.add_block();
-    }
-}
-
 impl NewStreamCipher for ChaChaState<U8> {
     /// Key size in bytes
     type KeySize = U32;
+
     /// Nonce size in bytes
     type NonceSize = U8;
 
@@ -151,6 +171,7 @@ impl NewStreamCipher for ChaChaState<U8> {
 impl NewStreamCipher for ChaChaState<U12> {
     /// Key size in bytes
     type KeySize = U32;
+
     /// Nonce size in bytes
     type NonceSize = U12;
 
@@ -172,6 +193,29 @@ impl NewStreamCipher for ChaChaState<U12> {
     }
 }
 
+impl<N: ArrayLength<u8>> SalsaFamilyCipher for ChaChaState<N> {
+    #[inline]
+    fn next_block(&mut self) {
+        self.state.block_idx += 1;
+        self.gen_block();
+    }
+
+    #[inline]
+    fn offset(&self) -> usize {
+        self.state.offset
+    }
+
+    #[inline]
+    fn set_offset(&mut self, offset: usize) {
+        self.state.offset = offset;
+    }
+
+    #[inline]
+    fn block_word(&self, idx: usize) -> u32 {
+        self.state.block[idx]
+    }
+}
+
 impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaChaState<N> {
     fn current_pos(&self) -> u64 {
         self.state.current_pos()
@@ -179,85 +223,11 @@ impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaChaState<N> {
 
     fn seek(&mut self, pos: u64) {
         self.state.seek(pos);
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl<N: ArrayLength<u8>> Zeroize for ChaChaState<N> {
-    fn zeroize(&mut self) {
-        self.state.zeroize();
-    }
-}
-
-impl<N: ArrayLength<u8>> SalsaFamilyCipher for ChaCha20<N> {
-    #[inline]
-    fn next_block(&mut self) {
-        self.state.state.block_idx += 1;
-        self.gen_block();
-    }
-
-    #[inline]
-    fn offset(&self) -> usize {
-        self.state.state.offset
-    }
-
-    #[inline]
-    fn set_offset(&mut self, offset: usize) {
-        self.state.state.offset = offset;
-    }
-
-    #[inline]
-    fn block_word(&self, idx: usize) -> u32 {
-        self.state.state.block[idx]
-    }
-}
-
-impl NewStreamCipher for ChaCha20<U8> {
-    /// Key size in bytes
-    type KeySize = U32;
-    /// Nonce size in bytes
-    type NonceSize = U8;
-
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = ChaCha20 {
-            state: ChaChaState::new(key, iv),
-        };
-
-        out.gen_block();
-
-        out
-    }
-}
-
-impl NewStreamCipher for ChaCha20<U12> {
-    /// Key size in bytes
-    type KeySize = U32;
-    /// Nonce size in bytes
-    type NonceSize = U12;
-
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = ChaCha20 {
-            state: ChaChaState::new(key, iv),
-        };
-
-        out.gen_block();
-
-        out
-    }
-}
-
-impl<N: ArrayLength<u8>> SyncStreamCipherSeek for ChaCha20<N> {
-    fn current_pos(&self) -> u64 {
-        self.state.current_pos()
-    }
-
-    fn seek(&mut self, pos: u64) {
-        self.state.seek(pos);
         self.gen_block();
     }
 }
 
-impl<N: ArrayLength<u8>> StreamCipher for ChaCha20<N> {
+impl<N: ArrayLength<u8>> StreamCipher for ChaChaState<N> {
     fn encrypt(&mut self, data: &mut [u8]) {
         self.process(data);
     }
@@ -267,9 +237,21 @@ impl<N: ArrayLength<u8>> StreamCipher for ChaCha20<N> {
     }
 }
 
-#[cfg(feature = "zeroize")]
-impl<N: ArrayLength<u8>> Zeroize for ChaCha20<N> {
-    fn zeroize(&mut self) {
-        self.state.zeroize();
-    }
+#[inline]
+fn quarter_round(a: usize, b: usize, c: usize, d: usize, block: &mut [u32; 16]) {
+    block[a] = block[a].wrapping_add(block[b]);
+    block[d] ^= block[a];
+    block[d] = block[d].rotate_left(16);
+
+    block[c] = block[c].wrapping_add(block[d]);
+    block[b] ^= block[c];
+    block[b] = block[b].rotate_left(12);
+
+    block[a] = block[a].wrapping_add(block[b]);
+    block[d] ^= block[a];
+    block[d] = block[d].rotate_left(8);
+
+    block[c] = block[c].wrapping_add(block[d]);
+    block[b] ^= block[c];
+    block[b] = block[b].rotate_left(7);
 }

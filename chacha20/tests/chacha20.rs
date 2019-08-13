@@ -2,11 +2,10 @@ extern crate block_cipher_trait;
 extern crate chacha20;
 extern crate stream_cipher;
 
-use block_cipher_trait::generic_array::{
-    typenum::{U12, U8},
-    GenericArray,
-};
+use block_cipher_trait::generic_array::GenericArray;
 use chacha20::ChaCha20;
+#[cfg(feature = "legacy")]
+use chacha20::ChaCha20Legacy;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
@@ -15,7 +14,8 @@ use stream_cipher::SyncStreamCipherSeek;
 const KEY_BYTES: usize = 32;
 
 #[cfg(test)]
-const IV_BYTES: usize = 8;
+#[cfg(feature = "legacy")]
+const LEGACY_IV_BYTES: usize = 8;
 
 #[cfg(test)]
 const LONG_IV_BYTES: usize = 12;
@@ -36,16 +36,19 @@ const IETF_KEY2: [u8; KEY_BYTES] = [
 ];
 
 #[cfg(test)]
+#[cfg(feature = "legacy")]
 const KEY_LONG: [u8; KEY_BYTES] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
     27, 28, 29, 30, 31, 32,
 ];
 
 #[cfg(test)]
-const IETF_IV0: [u8; IV_BYTES] = [0; IV_BYTES];
+#[cfg(feature = "legacy")]
+const IETF_IV0: [u8; LEGACY_IV_BYTES] = [0; LEGACY_IV_BYTES];
 
 #[cfg(test)]
-const IETF_IV1: [u8; IV_BYTES] = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+#[cfg(feature = "legacy")]
+const IETF_IV1: [u8; LEGACY_IV_BYTES] = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
 #[cfg(test)]
 const IETF_IV2: [u8; LONG_IV_BYTES] = [0; LONG_IV_BYTES];
@@ -56,10 +59,12 @@ const IETF_IV3: [u8; LONG_IV_BYTES] = [
 ];
 
 #[cfg(test)]
-const IETF_IVHI: [u8; IV_BYTES] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01];
+#[cfg(feature = "legacy")]
+const IETF_IVHI: [u8; LEGACY_IV_BYTES] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01];
 
 #[cfg(test)]
-const IV_LONG: [u8; IV_BYTES] = [3, 1, 4, 1, 5, 9, 2, 6];
+#[cfg(feature = "legacy")]
+const IV_LONG: [u8; LEGACY_IV_BYTES] = [3, 1, 4, 1, 5, 9, 2, 6];
 
 #[cfg(test)]
 const IETF_PLAINTEXT0: [u8; 127] = [
@@ -74,6 +79,7 @@ const IETF_PLAINTEXT0: [u8; 127] = [
 ];
 
 #[cfg(test)]
+#[cfg(feature = "legacy")]
 const EXPECTED_IETF_KEY0_IV0: [u8; 64] = [
     0x76, 0xb8, 0xe0, 0xad, 0xa0, 0xf1, 0x3d, 0x90, 0x40, 0x5d, 0x6a, 0xe5, 0x53, 0x86, 0xbd, 0x28,
     0xbd, 0xd2, 0x19, 0xb8, 0xa0, 0x8d, 0xed, 0x1a, 0xa8, 0x36, 0xef, 0xcc, 0x8b, 0x77, 0x0d, 0xc7,
@@ -82,6 +88,7 @@ const EXPECTED_IETF_KEY0_IV0: [u8; 64] = [
 ];
 
 #[cfg(test)]
+#[cfg(feature = "legacy")]
 const EXPECTED_IETF_KEY1_IV0: [u8; 64] = [
     0x45, 0x40, 0xf0, 0x5a, 0x9f, 0x1f, 0xb2, 0x96, 0xd7, 0x73, 0x6e, 0x7b, 0x20, 0x8e, 0x3c, 0x96,
     0xeb, 0x4f, 0xe1, 0x83, 0x46, 0x88, 0xd2, 0x60, 0x4f, 0x45, 0x09, 0x52, 0xed, 0x43, 0x2d, 0x41,
@@ -90,6 +97,7 @@ const EXPECTED_IETF_KEY1_IV0: [u8; 64] = [
 ];
 
 #[cfg(test)]
+#[cfg(feature = "legacy")]
 const EXPECTED_IETF_KEY0_IV1: [u8; 64] = [
     0xef, 0x3f, 0xdf, 0xd6, 0xc6, 0x15, 0x78, 0xfb, 0xf5, 0xcf, 0x35, 0xbd, 0x3d, 0xd3, 0x3b, 0x80,
     0x09, 0x63, 0x16, 0x34, 0xd2, 0x1e, 0x42, 0xac, 0x33, 0x96, 0x0b, 0xd1, 0x38, 0xe5, 0x0d, 0x32,
@@ -98,6 +106,7 @@ const EXPECTED_IETF_KEY0_IV1: [u8; 64] = [
 ];
 
 #[cfg(test)]
+#[cfg(feature = "legacy")]
 const EXPECTED_IETF_KEY0_IVHI: [u8; 60] = [
     0xde, 0x9c, 0xba, 0x7b, 0xf3, 0xd6, 0x9e, 0xf5, 0xe7, 0x86, 0xdc, 0x63, 0x97, 0x3f, 0x65, 0x3a,
     0x0b, 0x49, 0xe0, 0x15, 0xad, 0xbf, 0xf7, 0x13, 0x4f, 0xcb, 0x7d, 0xf1, 0x37, 0x82, 0x10, 0x31,
@@ -142,6 +151,7 @@ const EXPECTED_IETF_KEY2_IV3_COUNTER42: [u8; 127] = [
 ];
 
 #[cfg(test)]
+#[cfg(feature = "legacy")]
 const EXPECTED_LONG: [u8; 256] = [
     0xde, 0xeb, 0x6b, 0x9d, 0x06, 0xdf, 0xf3, 0xe0, 0x91, 0xbf, 0x3a, 0xd4, 0xf4, 0xd4, 0x92, 0xb6,
     0xdd, 0x98, 0x24, 0x6f, 0x69, 0x69, 0x18, 0x02, 0xe4, 0x66, 0xe0, 0x3b, 0xad, 0x23, 0x57, 0x87,
@@ -162,8 +172,9 @@ const EXPECTED_LONG: [u8; 256] = [
 ];
 
 #[test]
+#[cfg(feature = "legacy")]
 fn chacha20_ietf_key0_iv0() {
-    let mut cipher: ChaCha20<U8> = ChaCha20::new(
+    let mut cipher = ChaCha20Legacy::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV0),
     );
@@ -177,8 +188,9 @@ fn chacha20_ietf_key0_iv0() {
 }
 
 #[test]
+#[cfg(feature = "legacy")]
 fn chacha20_ietf_key1_iv0() {
-    let mut cipher: ChaCha20<U8> = ChaCha20::new(
+    let mut cipher = ChaCha20Legacy::new(
         &GenericArray::from(IETF_KEY1),
         &GenericArray::from(IETF_IV0),
     );
@@ -192,8 +204,9 @@ fn chacha20_ietf_key1_iv0() {
 }
 
 #[test]
+#[cfg(feature = "legacy")]
 fn chacha20_ietf_key0_iv1() {
-    let mut cipher: ChaCha20<U8> = ChaCha20::new(
+    let mut cipher = ChaCha20Legacy::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV1),
     );
@@ -207,8 +220,9 @@ fn chacha20_ietf_key0_iv1() {
 }
 
 #[test]
+#[cfg(feature = "legacy")]
 fn chacha20_ietf_key0_ivhi() {
-    let mut cipher: ChaCha20<U8> = ChaCha20::new(
+    let mut cipher = ChaCha20Legacy::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IVHI),
     );
@@ -225,7 +239,7 @@ fn chacha20_ietf_key0_ivhi() {
 
 #[test]
 fn chacha20_ietf_key0_iv2() {
-    let mut cipher: ChaCha20<U12> = ChaCha20::new(
+    let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV2),
     );
@@ -246,7 +260,7 @@ fn chacha20_ietf_key0_iv2() {
 
 #[test]
 fn chacha20_ietf_key0_iv2_counter1() {
-    let mut cipher: ChaCha20<U12> = ChaCha20::new(
+    let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY0),
         &GenericArray::from(IETF_IV2),
     );
@@ -268,7 +282,7 @@ fn chacha20_ietf_key0_iv2_counter1() {
 
 #[test]
 fn chacha20_ietf_key1_iv2_counter1() {
-    let mut cipher: ChaCha20<U12> = ChaCha20::new(
+    let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY1),
         &GenericArray::from(IETF_IV2),
     );
@@ -285,7 +299,7 @@ fn chacha20_ietf_key1_iv2_counter1() {
 
 #[test]
 fn chacha20_ietf_key2_iv3_counter42() {
-    let mut cipher: ChaCha20<U12> = ChaCha20::new(
+    let mut cipher = ChaCha20::new(
         &GenericArray::from(IETF_KEY2),
         &GenericArray::from(IETF_IV3),
     );
@@ -300,9 +314,10 @@ fn chacha20_ietf_key2_iv3_counter42() {
 }
 
 #[test]
+#[cfg(feature = "legacy")]
 fn chacha20_long() {
-    let mut cipher: ChaCha20<U8> =
-        ChaCha20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
+    let mut cipher =
+        ChaCha20Legacy::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
     let mut buf = [0; 256];
 
     cipher.encrypt(&mut buf);
@@ -314,12 +329,15 @@ fn chacha20_long() {
 
 #[test]
 #[ignore]
+#[cfg(feature = "legacy")]
 fn chacha20_offsets() {
     for idx in 0..256 {
         for middle in idx..256 {
             for last in middle..256 {
-                let mut cipher: ChaCha20<U8> =
-                    ChaCha20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
+                let mut cipher = ChaCha20Legacy::new(
+                    &GenericArray::from(KEY_LONG),
+                    &GenericArray::from(IV_LONG),
+                );
                 let mut buf = [0; 256];
 
                 cipher.seek(idx as u64);
