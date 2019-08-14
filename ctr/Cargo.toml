@@ -10,6 +10,7 @@ keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
+byteorder = { version = "1", default-features = false }
 stream-cipher = "0.3"
 block-cipher-trait = "0.6"
 

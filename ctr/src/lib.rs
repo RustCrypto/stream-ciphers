@@ -40,6 +40,7 @@
 #![no_std]
 pub extern crate stream_cipher;
 extern crate block_cipher_trait;
+extern crate byteorder;
 
 use stream_cipher::{
     SyncStreamCipher, SyncStreamCipherSeek, NewStreamCipher,
@@ -49,7 +50,8 @@ use stream_cipher::{
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use block_cipher_trait::generic_array::typenum::{U16, Unsigned};
 use block_cipher_trait::BlockCipher;
-use core::{mem, cmp, fmt, ptr};
+use byteorder::{ByteOrder, BE};
+use core::{mem, cmp, fmt};
 
 #[inline(always)]
 fn xor(buf: &mut [u8], key: &[u8]) {
@@ -82,14 +84,12 @@ impl<C> Ctr128<C>
         C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     /// Create new CTR mode instance using initialized block cipher.
-    pub fn from_cipher(cipher: C, nonce: &Nonce<Self>)-> Self {
-        assert!(Self::block_size() <= core::u8::MAX as usize);
-        // see https://github.com/rust-lang/rust/issues/55044
-        let nonce = conv_be(unsafe {
-            ptr::read_unaligned(
-                nonce as *const Nonce<Self> as *const [u64; 2]
-            )
-        });
+    pub fn from_cipher(cipher: C, nonce: &GenericArray<u8, U16>)-> Self {
+        // TODO: replace with `u64::from_be_bytes` in libcore (1.32+)
+        let nonce = [
+            BE::read_u64(&nonce.as_slice()[..8]),
+            BE::read_u64(&nonce.as_slice()[8..])
+        ];
 
         Self {
             cipher,
