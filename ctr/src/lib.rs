@@ -82,18 +82,17 @@ impl<C> Ctr128<C>
         C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     /// Create new CTR mode instance using initialized block cipher.
-    pub fn from_cipher(cipher: C, nonce: &Nonce<Self>)-> Self {
-        assert!(Self::block_size() <= core::u8::MAX as usize);
-        // see https://github.com/rust-lang/rust/issues/55044
-        let nonce = conv_be(unsafe {
-            ptr::read_unaligned(
-                nonce as *const Nonce<Self> as *const [u64; 2]
-            )
-        });
+    pub fn from_cipher(cipher: C, nonce: &GenericArray<u8, U16>) -> Self {
+        let mut n = [0u64; 2];
+
+        // TODO: replace with `u64::from_be_bytes` in libcore (1.32+)
+        unsafe {
+            ptr::copy_nonoverlapping(nonce.as_ptr(), n.as_mut_ptr() as *mut u8, 16);
+        }
 
         Self {
             cipher,
-            nonce,
+            nonce: conv_be(n),
             counter: 0,
             block: Default::default(),
             pos: None,
