@@ -109,10 +109,10 @@ impl<N: ArrayLength<u8>> ChaChaState<N> {
         let key = self.state.key;
         let block_idx = self.state.block_idx;
 
-        block[0] = block[0].wrapping_add(0x61707865);
-        block[1] = block[1].wrapping_add(0x3320646e);
-        block[2] = block[2].wrapping_add(0x79622d32);
-        block[3] = block[3].wrapping_add(0x6b206574);
+        block[0] = block[0].wrapping_add(0x6170_7865);
+        block[1] = block[1].wrapping_add(0x3320_646e);
+        block[2] = block[2].wrapping_add(0x7962_2d32);
+        block[3] = block[3].wrapping_add(0x6b20_6574);
         block[4] = block[4].wrapping_add(key[0]);
         block[5] = block[5].wrapping_add(key[1]);
         block[6] = block[6].wrapping_add(key[2]);
@@ -121,8 +121,8 @@ impl<N: ArrayLength<u8>> ChaChaState<N> {
         block[9] = block[9].wrapping_add(key[5]);
         block[10] = block[10].wrapping_add(key[6]);
         block[11] = block[11].wrapping_add(key[7]);
-        block[12] = block[12].wrapping_add((block_idx & 0xffffffff) as u32);
-        block[13] = block[13].wrapping_add(((block_idx >> 32) & 0xffffffff) as u32);
+        block[12] = block[12].wrapping_add((block_idx & 0xffff_ffff) as u32);
+        block[13] = block[13].wrapping_add(((block_idx >> 32) & 0xffff_ffff) as u32);
         block[14] = block[14].wrapping_add(iv[0]);
         block[15] = block[15].wrapping_add(iv[1]);
     }
@@ -134,10 +134,10 @@ impl<N: ArrayLength<u8>> ChaChaState<N> {
         let key = self.state.key;
         let block_idx = self.state.block_idx;
 
-        block[0] = 0x61707865;
-        block[1] = 0x3320646e;
-        block[2] = 0x79622d32;
-        block[3] = 0x6b206574;
+        block[0] = 0x6170_7865;
+        block[1] = 0x3320_646e;
+        block[2] = 0x7962_2d32;
+        block[3] = 0x6b20_6574;
         block[4] = key[0];
         block[5] = key[1];
         block[6] = key[2];
@@ -146,8 +146,8 @@ impl<N: ArrayLength<u8>> ChaChaState<N> {
         block[9] = key[5];
         block[10] = key[6];
         block[11] = key[7];
-        block[12] = (block_idx & 0xffffffff) as u32;
-        block[13] = ((block_idx >> 32) & 0xffffffff) as u32;
+        block[12] = (block_idx & 0xffff_ffff) as u32;
+        block[13] = ((block_idx >> 32) & 0xffff_ffff) as u32;
         block[14] = iv[0];
         block[15] = iv[1];
     }
@@ -184,10 +184,10 @@ impl NewStreamCipher for ChaChaState<U12> {
             phantom: core::marker::PhantomData,
         };
 
-        ccs.state.block_idx = (exp_iv[0] as u64 & 0xff) << 32
-            | (exp_iv[1] as u64 & 0xff) << 40
-            | (exp_iv[2] as u64 & 0xff) << 48
-            | (exp_iv[3] as u64 & 0xff) << 56;
+        ccs.state.block_idx = (u64::from(exp_iv[0]) & 0xff) << 32
+            | (u64::from(exp_iv[1]) & 0xff) << 40
+            | (u64::from(exp_iv[2]) & 0xff) << 48
+            | (u64::from(exp_iv[3]) & 0xff) << 56;
 
         ccs
     }
