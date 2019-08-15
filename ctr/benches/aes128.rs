@@ -1,5 +1,6 @@
 #![feature(test)]
-#[macro_use] extern crate stream_cipher;
+#[macro_use]
+extern crate stream_cipher;
 extern crate aes;
 extern crate ctr;
 

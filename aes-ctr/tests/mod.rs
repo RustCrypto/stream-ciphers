@@ -1,6 +1,7 @@
 #![no_std]
 extern crate aes_ctr;
-#[macro_use] extern crate stream_cipher;
+#[macro_use]
+extern crate stream_cipher;
 
 use aes_ctr::{Aes128Ctr, Aes256Ctr};
 

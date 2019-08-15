@@ -1,10 +1,11 @@
 extern crate aes;
-extern crate ctr;
 extern crate blobby;
-#[macro_use] extern crate stream_cipher;
+extern crate ctr;
+#[macro_use]
+extern crate stream_cipher;
 
-use aes::block_cipher_trait::BlockCipher;
 use aes::block_cipher_trait::generic_array::GenericArray;
+use aes::block_cipher_trait::BlockCipher;
 use stream_cipher::SyncStreamCipher;
 
 type Aes128Ctr = ctr::Ctr128<aes::Aes128>;

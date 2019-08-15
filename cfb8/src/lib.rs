@@ -46,15 +46,14 @@
 //! [1]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#CFB
 //! [2]: https://en.wikipedia.org/wiki/Stream_cipher#Self-synchronizing_stream_ciphers
 #![no_std]
-#![doc(html_logo_url =
-    "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 extern crate block_cipher_trait;
 pub extern crate stream_cipher;
 
-use stream_cipher::{NewStreamCipher, StreamCipher, InvalidKeyNonceLength};
-use block_cipher_trait::BlockCipher;
-use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
+use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::BlockCipher;
+use stream_cipher::{InvalidKeyNonceLength, NewStreamCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb8<C: BlockCipher> {
@@ -66,14 +65,14 @@ impl<C: BlockCipher> NewStreamCipher for Cfb8<C> {
     type KeySize = C::KeySize;
     type NonceSize = C::BlockSize;
 
-    fn new(
-        key: &GenericArray<u8, Self::KeySize>,
-        iv: &GenericArray<u8, Self::NonceSize>,
-    ) -> Self {
-        Self { cipher: C::new(key), iv: iv.clone() }
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        Self {
+            cipher: C::new(key),
+            iv: iv.clone(),
+        }
     }
 
-    fn new_var(key: &[u8], iv: &[u8] ) -> Result<Self, InvalidKeyNonceLength> {
+    fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
         if Self::NonceSize::to_usize() != iv.len() {
             Err(InvalidKeyNonceLength)
         } else {
@@ -92,8 +91,8 @@ impl<C: BlockCipher> StreamCipher for Cfb8<C> {
             let iv_copy = iv.clone();
             self.cipher.encrypt_block(&mut iv);
             *b ^= iv[0];
-            iv[..n-1].clone_from_slice(&iv_copy[1..]);
-            iv[n-1] = *b;
+            iv[..n - 1].clone_from_slice(&iv_copy[1..]);
+            iv[n - 1] = *b;
         }
         self.iv = iv;
     }
@@ -106,8 +105,8 @@ impl<C: BlockCipher> StreamCipher for Cfb8<C> {
             self.cipher.encrypt_block(&mut iv);
             let t = *b;
             *b ^= iv[0];
-            iv[..n-1].clone_from_slice(&iv_copy[1..]);
-            iv[n-1] = t;
+            iv[..n - 1].clone_from_slice(&iv_copy[1..]);
+            iv[n - 1] = t;
         }
         self.iv = iv;
     }

@@ -1,6 +1,7 @@
 extern crate aes;
 extern crate cfb8;
-#[macro_use] extern crate stream_cipher;
+#[macro_use]
+extern crate stream_cipher;
 
 use cfb8::Cfb8;
 

@@ -38,18 +38,17 @@
 //! # }
 //! ```
 #![no_std]
-pub extern crate stream_cipher;
 extern crate block_cipher_trait;
+pub extern crate stream_cipher;
 
 use stream_cipher::{
-    SyncStreamCipher, SyncStreamCipherSeek, NewStreamCipher,
-    LoopError, InvalidKeyNonceLength
+    InvalidKeyNonceLength, LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek,
 };
 
+use block_cipher_trait::generic_array::typenum::{Unsigned, U16};
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
-use block_cipher_trait::generic_array::typenum::{U16, Unsigned};
 use block_cipher_trait::BlockCipher;
-use core::{mem, cmp, fmt, ptr};
+use core::{cmp, fmt, mem, ptr};
 
 #[inline(always)]
 fn xor(buf: &mut [u8], key: &[u8]) {
@@ -65,9 +64,9 @@ type Nonce<C> = GenericArray<u8, <C as NewStreamCipher>::NonceSize>;
 
 /// CTR mode of operation for 128-bit block ciphers
 pub struct Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
+where
+    C: BlockCipher<BlockSize = U16>,
+    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     cipher: C,
     nonce: [u64; 2],
@@ -77,9 +76,9 @@ pub struct Ctr128<C>
 }
 
 impl<C> Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
+where
+    C: BlockCipher<BlockSize = U16>,
+    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     /// Create new CTR mode instance using initialized block cipher.
     pub fn from_cipher(cipher: C, nonce: &GenericArray<u8, U16>) -> Self {
@@ -107,19 +106,14 @@ fn conv_be(val: [u64; 2]) -> [u64; 2] {
 
 #[inline(always)]
 fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
-    let blocks_len = C::BlockSize::to_usize()*C::ParBlocks::to_usize();
-    unsafe {
-        core::slice::from_raw_parts(
-            blocks.as_ptr() as *const u8,
-            blocks_len,
-        )
-    }
+    let blocks_len = C::BlockSize::to_usize() * C::ParBlocks::to_usize();
+    unsafe { core::slice::from_raw_parts(blocks.as_ptr() as *const u8, blocks_len) }
 }
 
 impl<C> NewStreamCipher for Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
+where
+    C: BlockCipher<BlockSize = U16>,
+    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     type KeySize = C::KeySize;
     type NonceSize = C::BlockSize;
@@ -129,7 +123,7 @@ impl<C> NewStreamCipher for Ctr128<C>
         Self::from_cipher(cipher, nonce)
     }
 
-    fn new_var(key: &[u8], nonce: &[u8] ) -> Result<Self, InvalidKeyNonceLength> {
+    fn new_var(key: &[u8], nonce: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
         let nonce = if Self::NonceSize::to_usize() != nonce.len() {
             Err(InvalidKeyNonceLength)?
         } else {
@@ -141,20 +135,18 @@ impl<C> NewStreamCipher for Ctr128<C>
 }
 
 impl<C> SyncStreamCipher for Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
+where
+    C: BlockCipher<BlockSize = U16>,
+    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
-    fn try_apply_keystream(&mut self, mut data: &mut [u8])
-        -> Result<(), LoopError>
-    {
+    fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
         // xor with leftover bytes from the last call if any
         if let Some(pos) = self.pos {
             let pos = pos as usize;
             if data.len() >= Self::block_size() - pos {
                 let buf = &self.block[pos..];
-                let (r, l) = {data}.split_at_mut(buf.len());
+                let (r, l) = { data }.split_at_mut(buf.len());
                 data = l;
                 xor(r, buf);
                 self.pos = None;
@@ -172,7 +164,7 @@ impl<C> SyncStreamCipher for Ctr128<C>
         if C::ParBlocks::to_usize() != 1 {
             let pbs = Self::par_blocks_size();
             while data.len() >= pbs {
-                let (l, r) = {data}.split_at_mut(pbs);
+                let (l, r) = { data }.split_at_mut(pbs);
                 data = r;
                 let blocks = self.generate_par_blocks(counter);
                 counter += Self::par_blocks();
@@ -184,7 +176,7 @@ impl<C> SyncStreamCipher for Ctr128<C>
         // Process one block at a type
         let bs = Self::block_size();
         while data.len() >= bs {
-            let (l, r) = {data}.split_at_mut(bs);
+            let (l, r) = { data }.split_at_mut(bs);
             data = r;
             xor(l, &self.generate_block(counter));
             counter += 1;
@@ -205,15 +197,15 @@ impl<C> SyncStreamCipher for Ctr128<C>
 }
 
 impl<C> SyncStreamCipherSeek for Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
+where
+    C: BlockCipher<BlockSize = U16>,
+    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn current_pos(&self) -> u64 {
         let bs = Self::block_size() as u64;
         match self.pos {
-            Some(pos) => self.counter.wrapping_sub(1)*bs + u64::from(pos),
-            None => self.counter*bs,
+            Some(pos) => self.counter.wrapping_sub(1) * bs + u64::from(pos),
+            None => self.counter * bs,
         }
     }
 
@@ -232,9 +224,9 @@ impl<C> SyncStreamCipherSeek for Ctr128<C>
 }
 
 impl<C> Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
+where
+    C: BlockCipher<BlockSize = U16>,
+    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     #[inline(always)]
     fn generate_par_blocks(&self, counter: u64) -> Blocks<C> {
@@ -262,7 +254,7 @@ impl<C> Ctr128<C>
     }
 
     fn par_blocks_size() -> usize {
-        C::BlockSize::to_usize()*C::ParBlocks::to_usize()
+        C::BlockSize::to_usize() * C::ParBlocks::to_usize()
     }
 
     fn block_size() -> usize {
@@ -275,11 +267,12 @@ impl<C> Ctr128<C>
 
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         let bs = Self::block_size();
-        let dlen = data.len() - match self.pos {
-            Some(pos) => cmp::min(bs - pos as usize, data.len()),
-            None => 0,
-        };
-        let data_blocks = dlen/bs + if data.len() % bs != 0 { 1 } else { 0 };
+        let dlen = data.len()
+            - match self.pos {
+                Some(pos) => cmp::min(bs - pos as usize, data.len()),
+                None => 0,
+            };
+        let data_blocks = dlen / bs + if data.len() % bs != 0 { 1 } else { 0 };
         if self.counter.checked_add(data_blocks as u64).is_some() {
             Ok(())
         } else {
@@ -289,9 +282,9 @@ impl<C> Ctr128<C>
 }
 
 impl<C> fmt::Debug for Ctr128<C>
-    where
-        C: BlockCipher<BlockSize = U16>,
-        C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
+where
+    C: BlockCipher<BlockSize = U16>,
+    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "Ctr128 {{ .. }}")
