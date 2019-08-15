@@ -37,6 +37,7 @@
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
 //! ```
 #![no_std]
+#![deny(missing_docs)]
 #[cfg(not(all(
     target_feature = "aes",
     target_feature = "sse2",

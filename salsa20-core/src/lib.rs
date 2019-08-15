@@ -1,4 +1,8 @@
+//! Shared functionality common to ciphers in the Salsa20 Family, i.e.
+//! Salsa20 and ChaCha20
+
 #![no_std]
+#![deny(missing_docs)]
 extern crate block_cipher_trait;
 
 #[cfg(feature = "zeroize")]
@@ -33,23 +37,21 @@ const STATE_BYTES: usize = 64;
 
 const STATE_WORDS: usize = STATE_BYTES / 4;
 
-pub struct SalsaFamilyState {
-    pub block: [u32; STATE_WORDS],
-    pub key: [u32; KEY_WORDS],
-    pub iv: [u32; IV_WORDS],
-    pub block_idx: u64,
-    pub offset: usize,
-}
-
+/// Trait to be impl'd by all Salsa20 family ciphers
 pub trait SalsaFamilyCipher {
+    /// Compute the next block
     fn next_block(&mut self);
 
+    /// Get the offset
     fn offset(&self) -> usize;
 
+    /// Set the offset
     fn set_offset(&mut self, offset: usize);
 
+    /// Get the word for the current block
     fn block_word(&self, idx: usize) -> u32;
 
+    /// Process incoming data
     fn process(&mut self, data: &mut [u8]) {
         let datalen = data.len();
         let mut i = 0;
@@ -188,9 +190,27 @@ pub trait SalsaFamilyCipher {
     }
 }
 
-impl SalsaFamilyState {
-    pub fn create() -> SalsaFamilyState {
-        SalsaFamilyState {
+/// Internal state of a Salsa20 family cipher
+pub struct SalsaFamilyState {
+    /// Internal block state
+    pub block: [u32; STATE_WORDS],
+
+    /// Secret key
+    pub key: [u32; KEY_WORDS],
+
+    /// Initialization vector
+    pub iv: [u32; IV_WORDS],
+
+    /// Block index
+    pub block_idx: u64,
+
+    /// Offset
+    pub offset: usize,
+}
+
+impl Default for SalsaFamilyState {
+    fn default() -> Self {
+        Self {
             block: [0; STATE_WORDS],
             key: [0; KEY_WORDS],
             iv: [0; IV_WORDS],
@@ -198,8 +218,11 @@ impl SalsaFamilyState {
             offset: 0,
         }
     }
+}
 
-    pub fn init(&mut self, key: &[u8], iv: &[u8], block_idx: u64, offset: usize) {
+impl SalsaFamilyState {
+    /// Initialize the internal cipher state
+    fn init(&mut self, key: &[u8], iv: &[u8], block_idx: u64, offset: usize) {
         for i in 0..KEY_WORDS {
             self.key[i] = u32::from(key[4 * i]) & 0xff
                 | (u32::from(key[(4 * i) + 1]) & 0xff) << 8
@@ -222,15 +245,14 @@ impl SalsaFamilyState {
 impl NewStreamCipher for SalsaFamilyState {
     /// Key size in bytes
     type KeySize = U32;
+
     /// Nonce size in bytes
     type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = SalsaFamilyState::create();
-
-        out.init(key.as_slice(), iv.as_slice(), 0, 0);
-
-        out
+        let mut state = SalsaFamilyState::default();
+        state.init(key.as_slice(), iv.as_slice(), 0, 0);
+        state
     }
 }
 
