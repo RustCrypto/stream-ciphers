@@ -1,4 +1,7 @@
+//! The Salsa20 stream cipher
+
 #![no_std]
+#![deny(missing_docs)]
 
 extern crate block_cipher_trait;
 extern crate salsa20_core;

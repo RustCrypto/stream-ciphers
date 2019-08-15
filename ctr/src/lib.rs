@@ -38,6 +38,7 @@
 //! # }
 //! ```
 #![no_std]
+#![deny(missing_docs)]
 extern crate block_cipher_trait;
 pub extern crate stream_cipher;
 

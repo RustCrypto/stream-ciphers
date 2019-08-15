@@ -48,6 +48,7 @@
 //! [1]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#OFB
 //! [2]: https://en.wikipedia.org/wiki/Stream_cipher#Synchronous_stream_ciphers
 #![no_std]
+#![deny(missing_docs)]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 extern crate block_cipher_trait;
 pub extern crate stream_cipher;
