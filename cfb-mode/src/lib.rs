@@ -46,16 +46,15 @@
 //! [1]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#CFB
 //! [2]: https://en.wikipedia.org/wiki/Stream_cipher#Self-synchronizing_stream_ciphers
 #![no_std]
-#![doc(html_logo_url =
-    "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
-pub extern crate stream_cipher;
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 extern crate block_cipher_trait;
+pub extern crate stream_cipher;
 
-use stream_cipher::{StreamCipher, NewStreamCipher, InvalidKeyNonceLength};
-use block_cipher_trait::BlockCipher;
-use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
+use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::BlockCipher;
 use core::slice;
+use stream_cipher::{InvalidKeyNonceLength, NewStreamCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb<C: BlockCipher> {
@@ -79,7 +78,7 @@ impl<C: BlockCipher> NewStreamCipher for Cfb<C> {
         Self { cipher, iv, pos: 0 }
     }
 
-    fn new_var(key: &[u8], iv: &[u8] ) -> Result<Self, InvalidKeyNonceLength> {
+    fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
         if Self::NonceSize::to_usize() != iv.len() {
             Err(InvalidKeyNonceLength)
         } else {
@@ -139,19 +138,18 @@ impl<C: BlockCipher> StreamCipher for Cfb<C> {
 
         let bss = bs * pb;
         if pb != 1 && buffer.len() >= bss {
-            let mut iv_blocks: ParBlocks<C> = unsafe {
-                (&*(buffer.as_ptr() as *const ParBlocks<C>)).clone()
-            };
+            let mut iv_blocks: ParBlocks<C> =
+                unsafe { (&*(buffer.as_ptr() as *const ParBlocks<C>)).clone() };
             self.cipher.encrypt_blocks(&mut iv_blocks);
             let (block, r) = { buffer }.split_at_mut(bs);
             buffer = r;
             xor(block, iv.as_slice());
 
-            while buffer.len() >= 2*bss - bs {
+            while buffer.len() >= 2 * bss - bs {
                 let (blocks, r) = { buffer }.split_at_mut(bss);
                 buffer = r;
                 let mut next_iv_blocks: ParBlocks<C> = unsafe {
-                    let ptr = buffer.as_ptr().offset(- (bs as isize));
+                    let ptr = buffer.as_ptr().offset(-(bs as isize));
                     (&*(ptr as *const ParBlocks<C>)).clone()
                 };
                 self.cipher.encrypt_blocks(&mut next_iv_blocks);
@@ -164,7 +162,7 @@ impl<C: BlockCipher> StreamCipher for Cfb<C> {
             }
 
             let n = pb - 1;
-            let (blocks, r) = { buffer }.split_at_mut(n*bs);
+            let (blocks, r) = { buffer }.split_at_mut(n * bs);
             buffer = r;
             let chunks = blocks.chunks_mut(bs);
             for (iv, block) in iv_blocks[..n].iter().zip(chunks) {

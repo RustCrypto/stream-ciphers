@@ -48,17 +48,14 @@
 //! [1]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#OFB
 //! [2]: https://en.wikipedia.org/wiki/Stream_cipher#Synchronous_stream_ciphers
 #![no_std]
-#![doc(html_logo_url =
-    "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
-pub extern crate stream_cipher;
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 extern crate block_cipher_trait;
+pub extern crate stream_cipher;
 
-use stream_cipher::{
-    SyncStreamCipher, NewStreamCipher, LoopError, InvalidKeyNonceLength,
-};
-use block_cipher_trait::BlockCipher;
-use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::Unsigned;
+use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::BlockCipher;
+use stream_cipher::{InvalidKeyNonceLength, LoopError, NewStreamCipher, SyncStreamCipher};
 
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 
@@ -77,28 +74,34 @@ impl<C: BlockCipher> NewStreamCipher for Ofb<C> {
         let cipher = C::new(key);
         let mut block = iv.clone();
         cipher.encrypt_block(&mut block);
-        Self { cipher, block, pos: 0 }
+        Self {
+            cipher,
+            block,
+            pos: 0,
+        }
     }
 
-    fn new_var(key: &[u8], iv: &[u8] ) -> Result<Self, InvalidKeyNonceLength> {
+    fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
         if Self::NonceSize::to_usize() != iv.len() {
             Err(InvalidKeyNonceLength)
         } else {
             let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
             let mut block = GenericArray::clone_from_slice(iv);
             cipher.encrypt_block(&mut block);
-            Ok(Self { cipher, block, pos: 0 })
+            Ok(Self {
+                cipher,
+                block,
+                pos: 0,
+            })
         }
     }
 }
 
 impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
-    fn try_apply_keystream(&mut self, mut data: &mut [u8])
-        -> Result<(), LoopError>
-    {
+    fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         let bs = C::BlockSize::to_usize();
         if data.len() >= bs - self.pos {
-            let (l, r) = {data}.split_at_mut(bs - self.pos);
+            let (l, r) = { data }.split_at_mut(bs - self.pos);
             data = r;
             xor(l, &self.block[self.pos..]);
             self.cipher.encrypt_block(&mut self.block);
@@ -111,7 +114,7 @@ impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
 
         let mut block = self.block.clone();
         while data.len() >= bs {
-            let (l, r) = {data}.split_at_mut(bs);
+            let (l, r) = { data }.split_at_mut(bs);
             data = r;
             xor(l, &block);
             self.cipher.encrypt_block(&mut block);
@@ -131,4 +134,3 @@ fn xor(buf1: &mut [u8], buf2: &[u8]) {
         *a ^= *b;
     }
 }
-
