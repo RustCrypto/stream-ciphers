@@ -13,11 +13,13 @@ readme = "README.md"
 block-cipher-trait = "0.6"
 stream-cipher = "0.3"
 salsa20-core = { version = "0.1", path = "../salsa20-core"}
-zeroize = { version = "0.9", optional = true }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
 block-cipher-trait = { version = "0.6", features = ["dev"] }
+
+[features]
+zeroize = ["salsa20-core/zeroize"]
 
 [badges]
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
