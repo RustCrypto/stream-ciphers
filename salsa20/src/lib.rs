@@ -1,11 +1,47 @@
-//! The Salsa20 stream cipher
+//! The Salsa20 stream cipher.
+//!
+//! Cipher functionality is accessed using traits from re-exported
+//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//!
+//! # Security Warning
+//!
+//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
+//! is not verified, which can lead to serious vulnerabilities!
+//!
+//! # Usage
+//!
+//! ```
+//! use salsa20::Salsa20;
+//! use salsa20::stream_cipher::generic_array::GenericArray;
+//! use salsa20::stream_cipher::{NewStreamCipher, StreamCipher};
+//!
+//! let mut data = [1, 2, 3, 4, 5, 6, 7];
+//!
+//! let key = GenericArray::from_slice(b"an example very very secret key.");
+//! let nonce = GenericArray::from_slice(b"a nonce.");
+//!
+//! // create cipher instance
+//! let mut cipher = Salsa20::new(&key, &nonce);
+//!
+//! // encrypt data
+//! cipher.encrypt(&mut data);
+//! assert_eq!(data, [182, 14, 133, 113, 210, 25, 165]);
+//!
+//! // (re)create cipher instance
+//! let mut cipher = Salsa20::new(&key, &nonce);
+//!
+//! // decrypt data
+//! cipher.decrypt(&mut data);
+//! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
+//! ```
 
 #![no_std]
 #![deny(missing_docs)]
 
+pub extern crate stream_cipher;
+
 extern crate block_cipher_trait;
 extern crate salsa20_core;
-extern crate stream_cipher;
 
 #[cfg(feature = "zeroize")]
 extern crate zeroize;
