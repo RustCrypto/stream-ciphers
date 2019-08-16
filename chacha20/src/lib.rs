@@ -1,12 +1,58 @@
-//! The ChaCha20 stream cipher
+//! The ChaCha20 stream cipher.
+//!
+//! ChaCha20 is an improvement upon the previous [Salsa20] stream cipher,
+//! with increased per-round diffusion at no cost to performance.
+//!
+//! Cipher functionality is accessed using traits from re-exported
+//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//!
+//! This crate contains three variants of ChaCha20:
+//!
+//! - `ChaCha20`: standard IETF variant with 96-bit nonce
+//! - `ChaCha20Legacy`: (gated under the `legacy` feature) "djb" variant iwth 64-bit nonce
+//! - `XChaCha20`: (gated under the `xchacha20` feature) 192-bit extended nonce variant
+//!
+//! # Security Warning
+//!
+//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
+//! is not verified, which can lead to serious vulnerabilities!
+//!
+//! # Usage
+//!
+//! ```
+//! use chacha20::ChaCha20;
+//! use chacha20::stream_cipher::generic_array::GenericArray;
+//! use chacha20::stream_cipher::{NewStreamCipher, StreamCipher};
+//!
+//! let mut data = [1, 2, 3, 4, 5, 6, 7];
+//!
+//! let key = GenericArray::from_slice(b"an example very very secret key.");
+//! let nonce = GenericArray::from_slice(b"secret nonce");
+//!
+//! // create cipher instance
+//! let mut cipher = ChaCha20::new(&key, &nonce);
+//!
+//! // encrypt data
+//! cipher.encrypt(&mut data);
+//! assert_eq!(data, [73, 98, 234, 202, 73, 143, 0]);
+//!
+//! // (re)create cipher instance
+//! let mut cipher = ChaCha20::new(&key, &nonce);
+//!
+//! // decrypt data
+//! cipher.decrypt(&mut data);
+//! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
+//! ```
+//!
+//! [Salsa20]: https://docs.rs/salsa20
 
 #![no_std]
 #![deny(missing_docs)]
 
+pub extern crate stream_cipher;
+
 extern crate block_cipher_trait;
 extern crate salsa20_core;
-extern crate stream_cipher;
-
 // TODO: replace with `u32::from_le_bytes`/`to_le_bytes` in libcore (1.32+)
 #[cfg(feature = "xchacha20")]
 extern crate byteorder;

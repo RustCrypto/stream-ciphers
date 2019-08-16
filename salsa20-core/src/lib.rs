@@ -1,5 +1,8 @@
-//! Shared functionality common to ciphers in the Salsa20 Family, i.e.
-//! Salsa20 and ChaCha20
+//! Shared functionality common to ciphers in the Salsa20 Family
+//! (i.e. Salsa20 and ChaCha20)
+//!
+//! This crate isn't designed to be used directly, but is instead an
+//! implementation detail fo the `salsa20` and `chacha20` crates.
 
 #![no_std]
 #![deny(missing_docs)]

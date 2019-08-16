@@ -3,8 +3,8 @@
 //! Mode functionality is accessed using traits from re-exported
 //! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
 //!
-//! # Warning
-//! This crate does not provide any authentification! Thus ciphertext integrity
+//! # Security Warning
+//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
 //! is not verified, which can lead to serious vulnerabilities!
 //!
 //! # Usage example

@@ -9,8 +9,8 @@
 //! it either by using `RUSTFLAGS="-C target-feature=+aes,+ssse3"` or by editing
 //! your `.cargo/config`. (`sse2` target feature is usually enabled by default)
 //!
-//! # Warning
-//! This crate does not provide any authentification! Thus ciphertext integrity
+//! # Security Warning
+//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
 //! is not verified, which can lead to serious vulnerabilities!
 //!
 //! # Usage example

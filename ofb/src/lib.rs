@@ -2,8 +2,8 @@
 //!
 //! This crate implements OFB as a [synchronous stream cipher][2].
 //!
-//! # Warning
-//! This crate does not provide any authentification! Thus ciphertext integrity
+//! # Security Warning
+//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
 //! is not verified, which can lead to serious vulnerabilities!
 //!
 //! # Examples
