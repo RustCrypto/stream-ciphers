@@ -7,10 +7,20 @@ extern crate block_cipher_trait;
 extern crate salsa20_core;
 extern crate stream_cipher;
 
+// TODO: replace with `u32::from_le_bytes`/`to_le_bytes` in libcore (1.32+)
+#[cfg(feature = "xchacha20")]
+extern crate byteorder;
+
+#[cfg(feature = "xchacha20")]
+mod xchacha20;
+
 use block_cipher_trait::generic_array::typenum::{U12, U32, U8};
 use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
 use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
+
+#[cfg(feature = "xchacha20")]
+pub use self::xchacha20::XChaCha20;
 
 /// The ChaCha20 stream cipher (RFC 7539 version with 96-bit nonce)
 ///

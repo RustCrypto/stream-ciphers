@@ -5,11 +5,12 @@ authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Chacha20 Stream Cipher"
 repository = "https://github.com/RustCrypto/stream-ciphers"
-keywords = ["crypto", "stream-cipher", "trait"]
+keywords = ["crypto", "stream-cipher", "xchacha20"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
 block-cipher-trait = "0.6"
+byteorder = { version = "1", optional = true, default-features = false }
 stream-cipher = "0.3"
 salsa20-core = { version = "0.1", path = "../salsa20-core" }
 
@@ -21,7 +22,9 @@ block-cipher-trait = { version = "0.6", features = ["dev"] }
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
 
 [features]
+default = ["xchacha20"]
 legacy = []
+xchacha20 = ["byteorder"]
 zeroize = ["salsa20-core/zeroize"]
 
 [package.metadata.docs.rs]

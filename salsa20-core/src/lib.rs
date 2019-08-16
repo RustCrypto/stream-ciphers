@@ -3,16 +3,20 @@
 
 #![no_std]
 #![deny(missing_docs)]
+
 extern crate block_cipher_trait;
+pub extern crate stream_cipher;
+
+// TODO: replace with `u32::from_le_bytes`/`to_le_bytes` in libcore (1.32+)
+extern crate byteorder;
 
 #[cfg(feature = "zeroize")]
-extern crate zeroize;
-
-pub extern crate stream_cipher;
+pub extern crate zeroize;
 
 use block_cipher_trait::generic_array::typenum::U32;
 use block_cipher_trait::generic_array::typenum::U8;
 use block_cipher_trait::generic_array::GenericArray;
+use byteorder::{ByteOrder, LE};
 use stream_cipher::NewStreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
 
@@ -223,18 +227,12 @@ impl Default for SalsaFamilyState {
 impl SalsaFamilyState {
     /// Initialize the internal cipher state
     fn init(&mut self, key: &[u8], iv: &[u8], block_idx: u64, offset: usize) {
-        for i in 0..KEY_WORDS {
-            self.key[i] = u32::from(key[4 * i]) & 0xff
-                | (u32::from(key[(4 * i) + 1]) & 0xff) << 8
-                | (u32::from(key[(4 * i) + 2]) & 0xff) << 16
-                | (u32::from(key[(4 * i) + 3]) & 0xff) << 24;
+        for (i, chunk) in key.chunks(4).enumerate() {
+            self.key[i] = LE::read_u32(chunk);
         }
 
-        for i in 0..IV_WORDS {
-            self.iv[i] = u32::from(iv[4 * i]) & 0xff
-                | (u32::from(iv[(4 * i) + 1]) & 0xff) << 8
-                | (u32::from(iv[(4 * i) + 2]) & 0xff) << 16
-                | (u32::from(iv[(4 * i) + 3]) & 0xff) << 24;
+        for (i, chunk) in iv.chunks(4).enumerate() {
+            self.iv[i] = LE::read_u32(chunk);
         }
 
         self.block_idx = block_idx;
