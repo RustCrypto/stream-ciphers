@@ -43,32 +43,19 @@ pub extern crate stream_cipher;
 extern crate block_cipher_trait;
 extern crate salsa20_core;
 
-#[cfg(feature = "zeroize")]
-extern crate zeroize;
-
 use block_cipher_trait::generic_array::typenum::{U32, U8};
 use block_cipher_trait::generic_array::GenericArray;
 use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
-
 use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
 
-/// Wrapper state for Salsa-type ciphers
-struct SalsaState {
-    state: SalsaFamilyState,
-}
-
 /// The Salsa20 cipher.
-pub struct Salsa20 {
-    state: SalsaState,
-}
+pub struct Salsa20(SalsaFamilyState);
 
-impl SalsaState {
+impl Salsa20 {
     #[inline]
     fn double_round(&mut self) {
-        let block = &mut self.state.block;
+        let block = &mut self.0.block;
         let mut t: u32;
 
         t = block[0].wrapping_add(block[12]);
@@ -146,10 +133,10 @@ impl SalsaState {
 
     #[inline]
     fn init_block(&mut self) {
-        let block = &mut self.state.block;
-        let iv = self.state.iv;
-        let key = self.state.key;
-        let block_idx = self.state.block_idx;
+        let block = &mut self.0.block;
+        let iv = self.0.iv;
+        let key = self.0.key;
+        let block_idx = self.0.block_idx;
 
         block[0] = 0x6170_7865;
         block[1] = key[0];
@@ -171,10 +158,10 @@ impl SalsaState {
 
     #[inline]
     fn add_block(&mut self) {
-        let block = &mut self.state.block;
-        let iv = self.state.iv;
-        let key = self.state.key;
-        let block_idx = self.state.block_idx;
+        let block = &mut self.0.block;
+        let iv = self.0.iv;
+        let key = self.0.key;
+        let block_idx = self.0.block_idx;
 
         block[0] = block[0].wrapping_add(0x6170_7865);
         block[1] = block[1].wrapping_add(key[0]);
@@ -198,103 +185,47 @@ impl SalsaState {
 impl Salsa20 {
     #[inline]
     fn rounds(&mut self) {
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
 
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
-        self.state.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
+        self.double_round();
     }
 
     fn gen_block(&mut self) {
-        self.state.init_block();
+        self.init_block();
         self.rounds();
-        self.state.add_block();
-    }
-}
-
-impl NewStreamCipher for SalsaState {
-    /// Key size in bytes
-    type KeySize = U32;
-    /// Nonce size in bytes
-    type NonceSize = U8;
-
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        SalsaState {
-            state: SalsaFamilyState::new(key, iv),
-        }
-    }
-}
-
-impl SyncStreamCipherSeek for SalsaState {
-    fn current_pos(&self) -> u64 {
-        self.state.current_pos()
-    }
-
-    fn seek(&mut self, pos: u64) {
-        self.state.seek(pos);
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for SalsaState {
-    fn zeroize(&mut self) {
-        self.state.zeroize();
-    }
-}
-
-impl SalsaFamilyCipher for Salsa20 {
-    #[inline]
-    fn next_block(&mut self) {
-        self.state.state.block_idx += 1;
-        self.gen_block();
-    }
-
-    #[inline]
-    fn offset(&self) -> usize {
-        self.state.state.offset
-    }
-
-    #[inline]
-    fn set_offset(&mut self, offset: usize) {
-        self.state.state.offset = offset;
-    }
-
-    #[inline]
-    fn block_word(&self, idx: usize) -> u32 {
-        self.state.state.block[idx]
+        self.add_block();
     }
 }
 
 impl NewStreamCipher for Salsa20 {
     /// Key size in bytes
     type KeySize = U32;
+
     /// Nonce size in bytes
     type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = Salsa20 {
-            state: SalsaState::new(key, iv),
-        };
-
+        let mut out = Salsa20(SalsaFamilyState::new(key, iv));
         out.gen_block();
-
         out
     }
 }
 
 impl SyncStreamCipherSeek for Salsa20 {
     fn current_pos(&self) -> u64 {
-        self.state.current_pos()
+        self.0.current_pos()
     }
 
     fn seek(&mut self, pos: u64) {
-        self.state.seek(pos);
+        self.0.seek(pos);
         self.gen_block();
     }
 }
@@ -309,9 +240,25 @@ impl StreamCipher for Salsa20 {
     }
 }
 
-#[cfg(feature = "zeroize")]
-impl Zeroize for Salsa20 {
-    fn zeroize(&mut self) {
-        self.state.zeroize();
+impl SalsaFamilyCipher for Salsa20 {
+    #[inline]
+    fn next_block(&mut self) {
+        self.0.block_idx += 1;
+        self.gen_block();
+    }
+
+    #[inline]
+    fn offset(&self) -> usize {
+        self.0.offset
+    }
+
+    #[inline]
+    fn set_offset(&mut self, offset: usize) {
+        self.0.offset = offset;
+    }
+
+    #[inline]
+    fn block_word(&self, idx: usize) -> u32 {
+        self.0.block[idx]
     }
 }
