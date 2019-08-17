@@ -20,13 +20,14 @@ use block_cipher_trait::generic_array::typenum::U32;
 use block_cipher_trait::generic_array::typenum::U8;
 use block_cipher_trait::generic_array::GenericArray;
 use byteorder::{ByteOrder, LE};
+use core::fmt;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::SyncStreamCipherSeek;
 
 #[cfg(feature = "zeroize")]
 use core::ops::Drop;
 #[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 const KEY_BITS: usize = 256;
 
@@ -198,36 +199,45 @@ pub trait SalsaFamilyCipher {
 }
 
 /// Internal state of a Salsa20 family cipher
+#[derive(Default)]
 pub struct SalsaFamilyState {
     /// Internal block state
-    pub block: [u32; STATE_WORDS],
+    block: [u32; STATE_WORDS],
 
     /// Secret key
-    pub key: [u32; KEY_WORDS],
+    key: [u32; KEY_WORDS],
 
     /// Initialization vector
-    pub iv: [u32; IV_WORDS],
+    iv: [u32; IV_WORDS],
+
+    /// Base index of block (for ChaCha20)
+    base_idx: u64,
 
     /// Block index
-    pub block_idx: u64,
+    block_idx: u64,
 
     /// Offset
-    pub offset: usize,
+    offset: usize,
 }
 
-impl Default for SalsaFamilyState {
-    fn default() -> Self {
-        Self {
-            block: [0; STATE_WORDS],
-            key: [0; KEY_WORDS],
-            iv: [0; IV_WORDS],
-            block_idx: 0,
-            offset: 0,
-        }
+impl fmt::Debug for SalsaFamilyState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "SalsaFamilyState {{ block_idx: {}, offset: {}, ... }}",
+            self.block_idx, self.offset
+        )
     }
 }
 
 impl SalsaFamilyState {
+    /// Create a new `SalsaFamilyState` with the given block index
+    pub fn new_with_idx(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U8>, idx: u64) -> Self {
+        let mut result = Self::new(key, iv);
+        result.base_idx = idx;
+        result
+    }
+
     /// Initialize the internal cipher state
     fn init(&mut self, key: &[u8], iv: &[u8], block_idx: u64, offset: usize) {
         for (i, chunk) in key.chunks(4).enumerate() {
@@ -240,6 +250,40 @@ impl SalsaFamilyState {
 
         self.block_idx = block_idx;
         self.offset = offset;
+    }
+
+    /// Borrow the block data as mutable
+    pub fn block_mut(&mut self) -> &mut [u32; STATE_WORDS] {
+        &mut self.block
+    }
+
+    /// Get the key
+    #[cfg(not(feature = "zeroize"))]
+    pub fn key(&self) -> [u32; KEY_WORDS] {
+        self.key
+    }
+
+    /// Get the key
+    #[cfg(feature = "zeroize")]
+    pub fn key(&self) -> Zeroizing<[u32; KEY_WORDS]> {
+        Zeroizing::new(self.key)
+    }
+
+    /// Get the initialization vector
+    #[cfg(not(feature = "zeroize"))]
+    pub fn iv(&self) -> [u32; IV_WORDS] {
+        self.iv
+    }
+
+    /// Get the initialization vector
+    #[cfg(feature = "zeroize")]
+    pub fn iv(&self) -> Zeroizing<[u32; IV_WORDS]> {
+        Zeroizing::new(self.iv)
+    }
+
+    /// Get the current block index
+    pub fn block_idx(&self) -> u64 {
+        self.base_idx + self.block_idx
     }
 }
 
@@ -254,6 +298,28 @@ impl NewStreamCipher for SalsaFamilyState {
         let mut state = SalsaFamilyState::default();
         state.init(key.as_slice(), iv.as_slice(), 0, 0);
         state
+    }
+}
+
+impl SalsaFamilyCipher for SalsaFamilyState {
+    #[inline]
+    fn next_block(&mut self) {
+        self.block_idx += 1;
+    }
+
+    #[inline]
+    fn offset(&self) -> usize {
+        self.offset
+    }
+
+    #[inline]
+    fn set_offset(&mut self, offset: usize) {
+        self.offset = offset;
+    }
+
+    #[inline]
+    fn block_word(&self, idx: usize) -> u32 {
+        self.block[idx]
     }
 }
 

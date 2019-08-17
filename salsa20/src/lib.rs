@@ -13,7 +13,7 @@
 //! ```
 //! use salsa20::Salsa20;
 //! use salsa20::stream_cipher::generic_array::GenericArray;
-//! use salsa20::stream_cipher::{NewStreamCipher, StreamCipher};
+//! use salsa20::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
@@ -23,15 +23,13 @@
 //! // create cipher instance
 //! let mut cipher = Salsa20::new(&key, &nonce);
 //!
-//! // encrypt data
-//! cipher.encrypt(&mut data);
+//! // apply keystream (encrypt)
+//! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [182, 14, 133, 113, 210, 25, 165]);
 //!
-//! // (re)create cipher instance
-//! let mut cipher = Salsa20::new(&key, &nonce);
-//!
-//! // decrypt data
-//! cipher.decrypt(&mut data);
+//! // seek to the keystream beginning and apply it again to the `data` (decrypt)
+//! cipher.seek(0);
+//! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
 //! ```
 
@@ -45,17 +43,18 @@ extern crate salsa20_core;
 
 use block_cipher_trait::generic_array::typenum::{U32, U8};
 use block_cipher_trait::generic_array::GenericArray;
-use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
+use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 use salsa20_core::{SalsaFamilyCipher, SalsaFamilyState};
 
 /// The Salsa20 cipher.
+#[derive(Debug)]
 pub struct Salsa20(SalsaFamilyState);
 
 impl Salsa20 {
     #[inline]
     fn double_round(&mut self) {
-        let block = &mut self.0.block;
+        let block = self.0.block_mut();
         let mut t: u32;
 
         t = block[0].wrapping_add(block[12]);
@@ -133,10 +132,11 @@ impl Salsa20 {
 
     #[inline]
     fn init_block(&mut self) {
-        let block = &mut self.0.block;
-        let iv = self.0.iv;
-        let key = self.0.key;
-        let block_idx = self.0.block_idx;
+        // TODO(tarcieri): zeroize key/iv
+        let iv = self.0.iv();
+        let key = self.0.key();
+        let block_idx = self.0.block_idx();
+        let block = self.0.block_mut();
 
         block[0] = 0x6170_7865;
         block[1] = key[0];
@@ -158,10 +158,10 @@ impl Salsa20 {
 
     #[inline]
     fn add_block(&mut self) {
-        let block = &mut self.0.block;
-        let iv = self.0.iv;
-        let key = self.0.key;
-        let block_idx = self.0.block_idx;
+        let iv = self.0.iv();
+        let key = self.0.key();
+        let block_idx = self.0.block_idx();
+        let block = self.0.block_mut();
 
         block[0] = block[0].wrapping_add(0x6170_7865);
         block[1] = block[1].wrapping_add(key[0]);
@@ -230,35 +230,32 @@ impl SyncStreamCipherSeek for Salsa20 {
     }
 }
 
-impl StreamCipher for Salsa20 {
-    fn encrypt(&mut self, data: &mut [u8]) {
+impl SyncStreamCipher for Salsa20 {
+    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.process(data);
-    }
-
-    fn decrypt(&mut self, data: &mut [u8]) {
-        self.process(data);
+        Ok(())
     }
 }
 
 impl SalsaFamilyCipher for Salsa20 {
     #[inline]
     fn next_block(&mut self) {
-        self.0.block_idx += 1;
+        self.0.next_block();
         self.gen_block();
     }
 
     #[inline]
     fn offset(&self) -> usize {
-        self.0.offset
+        self.0.offset()
     }
 
     #[inline]
     fn set_offset(&mut self, offset: usize) {
-        self.0.offset = offset;
+        self.0.set_offset(offset)
     }
 
     #[inline]
     fn block_word(&self, idx: usize) -> u32 {
-        self.0.block[idx]
+        self.0.block_word(idx)
     }
 }
