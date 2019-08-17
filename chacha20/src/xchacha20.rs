@@ -12,7 +12,7 @@
 //!
 //! <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
 
-use super::{quarter_round, ChaCha20};
+use super::{ChaCha20, cipher::quarter_round};
 use block_cipher_trait::generic_array::typenum::{U16, U24, U32};
 use block_cipher_trait::generic_array::GenericArray;
 use byteorder::{ByteOrder, LE};
