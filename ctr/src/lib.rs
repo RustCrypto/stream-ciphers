@@ -161,7 +161,7 @@ where
 
         let mut counter = self.counter;
 
-        // Process blocks in parallel if cipher cupports it
+        // Process blocks in parallel if cipher supports it
         if C::ParBlocks::to_usize() != 1 {
             let pbs = Self::par_blocks_size();
             while data.len() >= pbs {
