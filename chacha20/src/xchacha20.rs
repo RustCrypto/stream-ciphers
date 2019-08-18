@@ -12,14 +12,17 @@
 //!
 //! <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
 
-use super::{ChaCha20, cipher::quarter_round};
-use block_cipher_trait::generic_array::typenum::{U16, U24, U32};
-use block_cipher_trait::generic_array::GenericArray;
+use super::ChaCha20;
+use block::quarter_round;
 use byteorder::{ByteOrder, LE};
-use core::ops::{Deref, DerefMut};
 #[cfg(feature = "zeroize")]
 use salsa20_core::zeroize::Zeroize;
-use stream_cipher::NewStreamCipher;
+use salsa20_core::CONSTANTS;
+use stream_cipher::generic_array::{
+    typenum::{U16, U24, U32},
+    GenericArray,
+};
+use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// XChaCha20 is an extended nonce variant of ChaCha20
 pub struct XChaCha20(ChaCha20);
@@ -48,17 +51,19 @@ impl NewStreamCipher for XChaCha20 {
     }
 }
 
-impl Deref for XChaCha20 {
-    type Target = ChaCha20;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl SyncStreamCipher for XChaCha20 {
+    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
+        self.0.try_apply_keystream(data)
     }
 }
 
-impl DerefMut for XChaCha20 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+impl SyncStreamCipherSeek for XChaCha20 {
+    fn current_pos(&self) -> u64 {
+        self.0.current_pos()
+    }
+
+    fn seek(&mut self, pos: u64) {
+        self.0.seek(pos);
     }
 }
 
@@ -79,10 +84,10 @@ impl DerefMut for XChaCha20 {
 fn hchacha20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
 
-    state[0] = 0x6170_7865;
-    state[1] = 0x3320_646e;
-    state[2] = 0x7962_2d32;
-    state[3] = 0x6b20_6574;
+    state[0] = CONSTANTS[0];
+    state[1] = CONSTANTS[1];
+    state[2] = CONSTANTS[2];
+    state[3] = CONSTANTS[3];
 
     for (i, chunk) in key.chunks(4).take(8).enumerate() {
         state[4 + i] = LE::read_u32(chunk);

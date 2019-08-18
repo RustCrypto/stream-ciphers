@@ -10,13 +10,12 @@ categories = ["cryptography", "no-std"]
 readme = "README.md"
 
 [dependencies]
-block-cipher-trait = "0.6"
+byteorder = { version = "1", default-features = false }
 stream-cipher = "0.3"
 salsa20-core = { version = "0.1", path = "../salsa20-core"}
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
-block-cipher-trait = { version = "0.6", features = ["dev"] }
 
 [features]
 zeroize = ["salsa20-core/zeroize"]

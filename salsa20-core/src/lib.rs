@@ -7,66 +7,97 @@
 #![no_std]
 #![deny(missing_docs)]
 
-extern crate block_cipher_trait;
 pub extern crate stream_cipher;
-
-// TODO: replace with `u32::from_le_bytes`/`to_le_bytes` in libcore (1.32+)
-extern crate byteorder;
 
 #[cfg(feature = "zeroize")]
 pub extern crate zeroize;
 
-use block_cipher_trait::generic_array::typenum::U32;
-use block_cipher_trait::generic_array::typenum::U8;
-use block_cipher_trait::generic_array::GenericArray;
-use byteorder::{ByteOrder, LE};
 use core::fmt;
-use stream_cipher::NewStreamCipher;
-use stream_cipher::SyncStreamCipherSeek;
+use stream_cipher::{LoopError, SyncStreamCipher, SyncStreamCipherSeek};
 
 #[cfg(feature = "zeroize")]
 use core::ops::Drop;
 #[cfg(feature = "zeroize")]
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroize;
 
-const KEY_BITS: usize = 256;
+/// Number of bits in a Salsa20 family cipher key
+pub const KEY_BITS: usize = 256;
 
-const KEY_BYTES: usize = KEY_BITS / 8;
+/// Number of bytes in a Salsa20 family cipher key
+pub const KEY_BYTES: usize = KEY_BITS / 8;
 
-const KEY_WORDS: usize = KEY_BYTES / 4;
+/// Number of 32-bit words in a Salsa20 family cipher key
+pub const KEY_WORDS: usize = KEY_BYTES / 4;
 
-const IV_BITS: usize = 64;
+/// Number of bits in a Salsa20 family cipher initialization vector
+pub const IV_BITS: usize = 64;
 
-const IV_BYTES: usize = IV_BITS / 8;
+/// Number of bytes in a Salsa20 family cipher initialization vector
+pub const IV_BYTES: usize = IV_BITS / 8;
 
-const IV_WORDS: usize = IV_BYTES / 4;
+/// Number of 32-bit words in a Salsa20 family cipher initialization vector
+pub const IV_WORDS: usize = IV_BYTES / 4;
 
-const STATE_BYTES: usize = 64;
+/// Number of bytes in a Salsa20 family cipher internal state
+pub const STATE_BYTES: usize = 64;
 
-const STATE_WORDS: usize = STATE_BYTES / 4;
+/// Number of 32-bit words in a Salsa20 family cipher internal state
+pub const STATE_WORDS: usize = STATE_BYTES / 4;
+
+/// Initialization constants used by the Salsa20 family
+pub const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// Trait to be impl'd by all Salsa20 family ciphers
 pub trait SalsaFamilyCipher {
-    /// Compute the next block
-    fn next_block(&mut self);
+    /// Generate a block with a particular counter value
+    fn block(&self, counter: u64) -> [u32; STATE_WORDS];
+}
 
-    /// Get the offset
-    fn offset(&self) -> usize;
+/// Counter mode for the block functions of Salsa20 family ciphers
+#[derive(Default)]
+pub struct Ctr<C: SalsaFamilyCipher> {
+    /// Cipher
+    cipher: C,
 
-    /// Set the offset
-    fn set_offset(&mut self, offset: usize);
+    /// Counter
+    counter: u64,
 
-    /// Get the word for the current block
-    fn block_word(&self, idx: usize) -> u32;
+    /// Offset within the current block
+    offset: usize,
 
-    /// Process incoming data
-    fn process(&mut self, data: &mut [u8]) {
+    /// Internal block state
+    block: [u32; STATE_WORDS],
+}
+
+impl<C> Ctr<C>
+where
+    C: SalsaFamilyCipher,
+{
+    /// Initialize counter mode Salsa family stream cipher
+    pub fn new(cipher: C) -> Self {
+        let block = cipher.block(0);
+
+        Self {
+            cipher,
+            counter: 0,
+            offset: 0,
+            block,
+        }
+    }
+}
+
+impl<C> SyncStreamCipher for Ctr<C>
+where
+    C: SalsaFamilyCipher,
+{
+    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         let datalen = data.len();
-        let mut i = 0;
-        let initial_offset = self.offset();
+        let initial_offset = self.offset;
         let initial_word_offset = initial_offset % 4;
         let initial_word_remaining = 4 - initial_word_offset;
         let final_offset = initial_offset + datalen % STATE_BYTES;
+
+        let mut i = 0;
 
         if datalen > initial_word_remaining {
             // If the length of data is longer than remaining bytes in
@@ -78,7 +109,7 @@ pub trait SalsaFamilyCipher {
 
             // First, use the remaining part of the current word.
             if has_initial_words {
-                let word = self.block_word(initial_word_idx);
+                let word = self.block[initial_word_idx];
 
                 for j in initial_word_offset..4 {
                     data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
@@ -97,7 +128,7 @@ pub trait SalsaFamilyCipher {
                     // Use the remaining part of the current block
                     if word_idx != STATE_WORDS {
                         for j in word_idx..STATE_WORDS {
-                            let word = self.block_word(j);
+                            let word = self.block[j];
 
                             for k in 0..4 {
                                 data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
@@ -114,7 +145,7 @@ pub trait SalsaFamilyCipher {
                     // Process whole blocks.
                     for _ in 0..nblocks {
                         for j in 0..STATE_WORDS {
-                            let word = self.block_word(j);
+                            let word = self.block[j];
 
                             for k in 0..4 {
                                 data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
@@ -129,7 +160,7 @@ pub trait SalsaFamilyCipher {
 
                     // Process the leftover part of a block
                     for j in 0..leftover_words {
-                        let word = self.block_word(j);
+                        let word = self.block[j];
 
                         for k in 0..4 {
                             data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
@@ -153,7 +184,7 @@ pub trait SalsaFamilyCipher {
 
                     // Use the remaining part of the current block
                     for j in word_idx..word_idx + nwords {
-                        let word = self.block_word(j);
+                        let word = self.block[j];
 
                         for k in 0..4 {
                             data[i] ^= ((word >> (k * 8)) & 0xff) as u8;
@@ -169,19 +200,19 @@ pub trait SalsaFamilyCipher {
                 };
 
             // Process the leftover part of a single word
-            let word = self.block_word(leftover_words);
+            let word = self.block[leftover_words];
 
             for j in 0..leftover_bytes {
                 data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
 
-            self.set_offset((4 * leftover_words) + leftover_bytes);
+            self.offset = (4 * leftover_words) + leftover_bytes;
         } else {
             // If the total length is less than the remaining bytes in
             // a word.
-            let word_idx = self.offset() / 4 % STATE_WORDS;
-            let word = self.block_word(word_idx);
+            let word_idx = self.offset / 4 % STATE_WORDS;
+            let word = self.block[word_idx];
 
             for j in initial_word_offset..initial_word_offset + datalen {
                 data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
@@ -194,159 +225,64 @@ pub trait SalsaFamilyCipher {
         }
 
         // Set the offset and generate the next block if we ran over.
-        self.set_offset(final_offset % STATE_BYTES);
+        self.offset = final_offset % STATE_BYTES;
+        Ok(())
     }
 }
 
-/// Internal state of a Salsa20 family cipher
-#[derive(Default)]
-pub struct SalsaFamilyState {
-    /// Internal block state
-    block: [u32; STATE_WORDS],
-
-    /// Secret key
-    key: [u32; KEY_WORDS],
-
-    /// Initialization vector
-    iv: [u32; IV_WORDS],
-
-    /// Base index of block (for ChaCha20)
-    base_idx: u64,
-
-    /// Block index
-    block_idx: u64,
-
-    /// Offset
-    offset: usize,
-}
-
-impl fmt::Debug for SalsaFamilyState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "SalsaFamilyState {{ block_idx: {}, offset: {}, ... }}",
-            self.block_idx, self.offset
-        )
-    }
-}
-
-impl SalsaFamilyState {
-    /// Create a new `SalsaFamilyState` with the given block index
-    pub fn new_with_idx(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U8>, idx: u64) -> Self {
-        let mut result = Self::new(key, iv);
-        result.base_idx = idx;
-        result
-    }
-
-    /// Initialize the internal cipher state
-    fn init(&mut self, key: &[u8], iv: &[u8], block_idx: u64, offset: usize) {
-        for (i, chunk) in key.chunks(4).enumerate() {
-            self.key[i] = LE::read_u32(chunk);
-        }
-
-        for (i, chunk) in iv.chunks(4).enumerate() {
-            self.iv[i] = LE::read_u32(chunk);
-        }
-
-        self.block_idx = block_idx;
-        self.offset = offset;
-    }
-
-    /// Borrow the block data as mutable
-    pub fn block_mut(&mut self) -> &mut [u32; STATE_WORDS] {
-        &mut self.block
-    }
-
-    /// Get the key
-    #[cfg(not(feature = "zeroize"))]
-    pub fn key(&self) -> [u32; KEY_WORDS] {
-        self.key
-    }
-
-    /// Get the key
-    #[cfg(feature = "zeroize")]
-    pub fn key(&self) -> Zeroizing<[u32; KEY_WORDS]> {
-        Zeroizing::new(self.key)
-    }
-
-    /// Get the initialization vector
-    #[cfg(not(feature = "zeroize"))]
-    pub fn iv(&self) -> [u32; IV_WORDS] {
-        self.iv
-    }
-
-    /// Get the initialization vector
-    #[cfg(feature = "zeroize")]
-    pub fn iv(&self) -> Zeroizing<[u32; IV_WORDS]> {
-        Zeroizing::new(self.iv)
-    }
-
-    /// Get the current block index
-    pub fn block_idx(&self) -> u64 {
-        self.base_idx + self.block_idx
-    }
-}
-
-impl NewStreamCipher for SalsaFamilyState {
-    /// Key size in bytes
-    type KeySize = U32;
-
-    /// Nonce size in bytes
-    type NonceSize = U8;
-
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut state = SalsaFamilyState::default();
-        state.init(key.as_slice(), iv.as_slice(), 0, 0);
-        state
-    }
-}
-
-impl SalsaFamilyCipher for SalsaFamilyState {
-    #[inline]
-    fn next_block(&mut self) {
-        self.block_idx += 1;
-    }
-
-    #[inline]
-    fn offset(&self) -> usize {
-        self.offset
-    }
-
-    #[inline]
-    fn set_offset(&mut self, offset: usize) {
-        self.offset = offset;
-    }
-
-    #[inline]
-    fn block_word(&self, idx: usize) -> u32 {
-        self.block[idx]
-    }
-}
-
-impl SyncStreamCipherSeek for SalsaFamilyState {
+impl<C> SyncStreamCipherSeek for Ctr<C>
+where
+    C: SalsaFamilyCipher,
+{
     fn current_pos(&self) -> u64 {
-        self.block_idx << 6 | self.offset as u64
+        self.counter << 6 | self.offset as u64
     }
 
     fn seek(&mut self, pos: u64) {
         self.offset = (pos & 0x3f) as usize;
-        self.block_idx = pos >> 6;
+        self.counter = pos >> 6;
+        self.block = self.cipher.block(self.counter);
+    }
+}
+
+impl<C> Ctr<C>
+where
+    C: SalsaFamilyCipher,
+{
+    fn next_block(&mut self) {
+        self.counter = self.counter.checked_add(1).expect("overflow");
+        self.block = self.cipher.block(self.counter);
+    }
+}
+
+impl<C> fmt::Debug for Ctr<C>
+where
+    C: SalsaFamilyCipher,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "SalsaFamilyState {{ block_idx: {}, offset: {}, ... }}",
+            self.counter, self.offset
+        )
     }
 }
 
 #[cfg(feature = "zeroize")]
-impl Zeroize for SalsaFamilyState {
+impl<C> Zeroize for Ctr<C>
+where
+    C: SalsaFamilyCipher,
+{
     fn zeroize(&mut self) {
         self.block.zeroize();
-        self.key.zeroize();
-        self.iv.zeroize();
-        self.block_idx.zeroize();
-        self.offset.zeroize();
     }
 }
 
 #[cfg(feature = "zeroize")]
-impl Drop for SalsaFamilyState {
+impl<C> Drop for Ctr<C>
+where
+    C: SalsaFamilyCipher,
+{
     fn drop(&mut self) {
         self.zeroize();
     }

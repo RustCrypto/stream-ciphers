@@ -1,7 +1,9 @@
-//! The ChaCha20 stream cipher.
+//! The ChaCha20 stream cipher ([RFC 7539])
 //!
-//! ChaCha20 is an improvement upon the previous [Salsa20] stream cipher,
-//! with increased per-round diffusion at no cost to performance.
+//! ChaCha20 is a lightweight stream cipher which is amenable to fast,
+//! constant-time implementations in software. It improves upon the previous
+//! [Salsa20] stream cipher, providing increased per-round diffusion
+//! with no cost to performance.
 //!
 //! Cipher functionality is accessed using traits from re-exported
 //! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
@@ -14,8 +16,10 @@
 //!
 //! # Security Warning
 //!
-//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
-//! is not verified, which can lead to serious vulnerabilities!
+//! This crate does not ensure ciphertexts are authentic, which can lead to
+//! serious vulnerabilities if used incorrectly!
+//!
+//! USE AT YOUR OWN RISK!
 //!
 //! # Usage
 //!
@@ -42,19 +46,22 @@
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
 //! ```
 //!
+//! [RFC 7539]: https://tools.ietf.org/html/rfc7539
 //! [Salsa20]: https://docs.rs/salsa20
 
 #![no_std]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![deny(missing_docs)]
 
 pub extern crate stream_cipher;
 
-extern crate block_cipher_trait;
 extern crate salsa20_core;
+
 // TODO: replace with `u32::from_le_bytes`/`to_le_bytes` in libcore (1.32+)
 #[cfg(feature = "xchacha20")]
 extern crate byteorder;
 
+mod block;
 pub(crate) mod cipher;
 #[cfg(feature = "legacy")]
 mod legacy;
@@ -62,9 +69,11 @@ mod legacy;
 mod xchacha20;
 
 use self::cipher::Cipher;
-use block_cipher_trait::generic_array::typenum::{U12, U32};
-use block_cipher_trait::generic_array::GenericArray;
-use salsa20_core::SalsaFamilyState;
+use salsa20_core::Ctr;
+use stream_cipher::generic_array::{
+    typenum::{U12, U32},
+    GenericArray,
+};
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 #[cfg(feature = "legacy")]
@@ -76,7 +85,7 @@ pub use self::xchacha20::XChaCha20;
 ///
 /// Use `ChaCha20Legacy` for the legacy (a.k.a. "djb") construction with a
 /// 64-bit nonce.
-pub struct ChaCha20(Cipher);
+pub struct ChaCha20(Ctr<Cipher>);
 
 impl NewStreamCipher for ChaCha20 {
     /// Key size in bytes
@@ -88,15 +97,13 @@ impl NewStreamCipher for ChaCha20 {
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let exp_iv = &iv[0..4];
         let base_iv = &iv[4..12];
-        let block_idx = (u64::from(exp_iv[0]) & 0xff) << 32
+        let counter = (u64::from(exp_iv[0]) & 0xff) << 32
             | (u64::from(exp_iv[1]) & 0xff) << 40
             | (u64::from(exp_iv[2]) & 0xff) << 48
             | (u64::from(exp_iv[3]) & 0xff) << 56;
+        let cipher = Cipher::new(key, base_iv, counter);
 
-        let state =
-            SalsaFamilyState::new_with_idx(key, GenericArray::from_slice(base_iv), block_idx);
-
-        ChaCha20(Cipher::new(state))
+        ChaCha20(Ctr::new(cipher))
     }
 }
 
