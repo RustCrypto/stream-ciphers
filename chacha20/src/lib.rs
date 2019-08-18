@@ -11,7 +11,7 @@
 //! This crate contains three variants of ChaCha20:
 //!
 //! - `ChaCha20`: standard IETF variant with 96-bit nonce
-//! - `ChaCha20Legacy`: (gated under the `legacy` feature) "djb" variant iwth 64-bit nonce
+//! - `ChaCha20Legacy`: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
 //! - `XChaCha20`: (gated under the `xchacha20` feature) 192-bit extended nonce variant
 //!
 //! # Security Warning
