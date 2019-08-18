@@ -1,15 +1,17 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
 use crate::cipher::Cipher;
-use block_cipher_trait::generic_array::typenum::{U32, U8};
-use block_cipher_trait::generic_array::GenericArray;
-use salsa20_core::SalsaFamilyState;
+use salsa20_core::Ctr;
+use stream_cipher::generic_array::{
+    typenum::{U32, U8},
+    GenericArray,
+};
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 ///
 /// The `legacy` Cargo feature must be enabled to use this.
-pub struct ChaCha20Legacy(Cipher);
+pub struct ChaCha20Legacy(Ctr<Cipher>);
 
 impl NewStreamCipher for ChaCha20Legacy {
     /// Key size in bytes
@@ -19,8 +21,8 @@ impl NewStreamCipher for ChaCha20Legacy {
     type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let cipher = Cipher::new(SalsaFamilyState::new(key, iv));
-        ChaCha20Legacy(cipher)
+        let cipher = Cipher::new(key, iv, 0);
+        ChaCha20Legacy(Ctr::new(cipher))
     }
 }
 

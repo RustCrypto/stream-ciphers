@@ -1,12 +1,11 @@
-extern crate block_cipher_trait;
+//! Salsa20 tests
+
 extern crate salsa20;
 extern crate stream_cipher;
 
-use block_cipher_trait::generic_array::GenericArray;
 use salsa20::Salsa20;
-use stream_cipher::NewStreamCipher;
-use stream_cipher::StreamCipher;
-use stream_cipher::SyncStreamCipherSeek;
+use stream_cipher::generic_array::GenericArray;
+use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
 #[cfg(test)]
 const KEY_BYTES: usize = 32;
