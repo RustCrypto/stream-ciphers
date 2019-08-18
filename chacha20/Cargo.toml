@@ -1,6 +1,6 @@
 [package]
 name = "chacha20"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Chacha20 Stream Cipher"
@@ -12,7 +12,7 @@ readme = "README.md"
 [dependencies]
 byteorder = { version = "1", default-features = false }
 stream-cipher = "0.3"
-salsa20-core = { version = "0.1", path = "../salsa20-core" }
+salsa20-core = { version = "0.2", path = "../salsa20-core" }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }

@@ -1,16 +1,4 @@
-//! XChaCha20 is an adaptation of the XSalsa20 extended nonce construction
-//! described in the paper "Extending the Salsa20 Nonce", but using the
-//! 96-bit nonce variant of ChaCha20 rather than Salsa20 as the underlying
-//! cipher, deriving a shorter key/nonce from an extended nonce:
-//!
-//! <https://cr.yp.to/snuffle/xsalsa-20081128.pdf>
-//!
-//! No authoritative specification exists for XChaCha20, however the
-//! construction has "rough consensus and running code" in the form of
-//! several interoperable libraries and protocols (e.g. libsodium, WireGuard)
-//! and is documented in an (expired) IETF draft:
-//!
-//! <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
+//! XChaCha20 is an extended nonce variant of ChaCha20
 
 use super::ChaCha20;
 use block::quarter_round;
@@ -24,7 +12,24 @@ use stream_cipher::generic_array::{
 };
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
-/// XChaCha20 is an extended nonce variant of ChaCha20
+/// XChaCha20 is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
+///
+/// The construction is an adaptation of the same techniques used by
+/// XSalsa20 as described in the paper "Extending the Salsa20 Nonce",
+/// applied to the 96-bit nonce variant of ChaCha20, and derive a
+/// separate subkey/nonce for each extended nonce:
+///
+/// <https://cr.yp.to/snuffle/xsalsa-20081128.pdf>
+///
+/// No authoritative specification exists for XChaCha20, however the
+/// construction has "rough consensus and running code" in the form of
+/// several interoperable libraries and protocols (e.g. libsodium, WireGuard)
+/// and is documented in an (expired) IETF draft:
+///
+/// <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
+///
+/// The `xchacha20` Cargo feature must be enabled in order to use this
+/// (which it is by default).
 pub struct XChaCha20(ChaCha20);
 
 impl NewStreamCipher for XChaCha20 {
