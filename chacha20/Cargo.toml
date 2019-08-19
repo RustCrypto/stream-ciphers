@@ -1,9 +1,12 @@
 [package]
 name = "chacha20"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
-description = "Chacha20 Stream Cipher"
+description = """
+The ChaCha20 stream cipher (RFC 8439) implemented using traits from the
+RustCrypto stream-cipher crate.
+"""
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "xchacha20"]
 categories = ["cryptography", "no-std"]
