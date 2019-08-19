@@ -81,6 +81,13 @@ pub use self::legacy::ChaCha20Legacy;
 #[cfg(feature = "xchacha20")]
 pub use self::xchacha20::XChaCha20;
 
+/// Maximum number of blocks that can be encrypted with ChaCha20 before the
+/// counter overflows.
+pub const MAX_BLOCKS: usize = core::u32::MAX as usize;
+
+/// Size of a ChaCha20 block in bytes
+pub const BLOCK_SIZE: usize = 64;
+
 /// The ChaCha20 stream cipher (RFC 7539 version with 96-bit nonce)
 ///
 /// Use `ChaCha20Legacy` for the legacy (a.k.a. "djb") construction with a
