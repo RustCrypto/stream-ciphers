@@ -43,6 +43,8 @@ extern crate salsa20_core;
 
 mod block;
 mod cipher;
+#[cfg(feature = "xsalsa20")]
+mod xsalsa20;
 
 use cipher::Cipher;
 use stream_cipher::generic_array::typenum::{U32, U8};
@@ -50,6 +52,8 @@ use stream_cipher::generic_array::GenericArray;
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 use salsa20_core::Ctr;
+#[cfg(feature = "xsalsa20")]
+pub use self::xsalsa20::XSalsa20;
 
 /// The Salsa20 cipher.
 #[derive(Debug)]
