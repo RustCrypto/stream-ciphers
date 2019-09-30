@@ -18,7 +18,9 @@ salsa20-core = { version = "0.2", path = "../salsa20-core"}
 stream-cipher = { version = "0.3", features = ["dev"] }
 
 [features]
+default = ["xsalsa20"]
 zeroize = ["salsa20-core/zeroize"]
+xsalsa20 = []
 
 [badges]
 travis-ci = { repository = "RustCrypto/stream-ciphers" }

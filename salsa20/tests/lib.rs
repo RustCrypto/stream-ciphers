@@ -4,6 +4,8 @@ extern crate salsa20;
 extern crate stream_cipher;
 
 use salsa20::Salsa20;
+#[cfg(feature = "xsalsa20")]
+use salsa20::XSalsa20;
 use stream_cipher::generic_array::GenericArray;
 use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
@@ -12,6 +14,10 @@ const KEY_BYTES: usize = 32;
 
 #[cfg(test)]
 const IV_BYTES: usize = 8;
+
+#[cfg(feature = "xsalsa20")]
+#[cfg(test)]
+const IV_BYTES_XSALSA20: usize = 24;
 
 #[cfg(test)]
 const KEY0: [u8; KEY_BYTES] = [
@@ -31,6 +37,10 @@ const KEY_LONG: [u8; KEY_BYTES] = [
     27, 28, 29, 30, 31, 32,
 ];
 
+#[cfg(feature = "xsalsa20")]
+#[cfg(test)]
+const KEY_XSALSA20: [u8; KEY_BYTES] = *b"this is 32-byte key for xsalsa20";
+
 #[cfg(test)]
 const IV0: [u8; IV_BYTES] = [0; IV_BYTES];
 
@@ -42,6 +52,10 @@ const IVHI: [u8; IV_BYTES] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01];
 
 #[cfg(test)]
 const IV_LONG: [u8; IV_BYTES] = [3, 1, 4, 1, 5, 9, 2, 6];
+
+#[cfg(feature = "xsalsa20")]
+#[cfg(test)]
+const IV_XSALSA20: [u8; IV_BYTES_XSALSA20] = *b"24-byte nonce for xsalsa";
 
 #[cfg(test)]
 const EXPECTED_KEY1_IV0: [u8; 64] = [
@@ -86,6 +100,27 @@ const EXPECTED_LONG: [u8; 256] = [
     0x4b, 0x8a, 0x50, 0xf9, 0x80, 0xa5, 0x0b, 0x35, 0xad, 0x80, 0x87, 0x37, 0x5e, 0x0c, 0x55, 0x6e,
     0xcb, 0xe6, 0xa7, 0x16, 0x1e, 0x86, 0x53, 0xce, 0x93, 0x91, 0xe1, 0xe6, 0x71, 0x0e, 0xd4, 0xf1,
 ];
+
+#[cfg(feature = "xsalsa20")]
+#[cfg(test)]
+const EXPECTED_XSALSA20_ZEROS: [u8; 64] = [
+    0x48, 0x48, 0x29, 0x7f, 0xeb, 0x1f, 0xb5, 0x2f,
+    0xb6, 0x6d, 0x81, 0x60, 0x9b, 0xd5, 0x47, 0xfa,
+    0xbc, 0xbe, 0x70, 0x26, 0xed, 0xc8, 0xb5, 0xe5,
+    0xe4, 0x49, 0xd0, 0x88, 0xbf, 0xa6, 0x9c, 0x08,
+    0x8f, 0x5d, 0x8d, 0xa1, 0xd7, 0x91, 0x26, 0x7c,
+    0x2c, 0x19, 0x5a, 0x7f, 0x8c, 0xae, 0x9c, 0x4b,
+    0x40, 0x50, 0xd0, 0x8c, 0xe6, 0xd3, 0xa1, 0x51,
+    0xec, 0x26, 0x5f, 0x3a, 0x58, 0xe4, 0x76, 0x48
+];
+
+#[cfg(feature = "xsalsa20")]
+#[cfg(test)]
+const EXPECTED_XSALSA20_HELLO_WORLD: [u8; 12] = [
+    0x00, 0x2d, 0x45, 0x13, 0x84, 0x3f, 0xc2, 0x40,
+    0xc4, 0x01, 0xe5, 0x41
+];
+
 
 #[test]
 fn salsa20_key1_iv0() {
@@ -155,4 +190,32 @@ fn salsa20_offsets() {
             }
         }
     }
+}
+
+#[cfg(feature = "xsalsa20")]
+#[test]
+fn xsalsa20_encrypt_zeros() {
+    let key = GenericArray::from(KEY_XSALSA20);
+    let iv = GenericArray::from(IV_XSALSA20);
+
+    let mut cipher = XSalsa20::new(&key, &iv);
+    let mut buf = [0; 64];
+    cipher.encrypt(&mut buf);
+
+    for i in 0..64 {
+        assert_eq!(buf[i], EXPECTED_XSALSA20_ZEROS[i]);
+    }
+}
+
+#[cfg(feature = "xsalsa20")]
+#[test]
+fn xsalsa20_encrypt_hello_world() {
+    let key = GenericArray::from(KEY_XSALSA20);
+    let iv = GenericArray::from(IV_XSALSA20);
+
+    let mut cipher = XSalsa20::new(&key, &iv);
+    let mut buf = *b"Hello world!";
+    cipher.encrypt(&mut buf);
+
+    assert_eq!(buf, EXPECTED_XSALSA20_HELLO_WORLD);
 }

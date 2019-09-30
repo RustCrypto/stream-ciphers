@@ -64,79 +64,18 @@ impl Block {
     #[inline]
     fn double_round(&mut self) {
         let state = &mut self.state;
-        let mut t: u32;
 
-        t = state[0].wrapping_add(state[12]);
-        state[4] ^= t.rotate_left(7) as u32;
-        t = state[5].wrapping_add(state[1]);
-        state[9] ^= t.rotate_left(7) as u32;
-        t = state[10].wrapping_add(state[6]);
-        state[14] ^= t.rotate_left(7) as u32;
-        t = state[15].wrapping_add(state[11]);
-        state[3] ^= t.rotate_left(7) as u32;
+        // column rounds
+        quarter_round(0, 4, 8, 12, state);
+        quarter_round(5, 9, 13, 1, state);
+        quarter_round(10, 14, 2, 6, state);
+        quarter_round(15, 3, 7, 11, state);
 
-        t = state[4].wrapping_add(state[0]);
-        state[8] ^= t.rotate_left(9) as u32;
-        t = state[9].wrapping_add(state[5]);
-        state[13] ^= t.rotate_left(9) as u32;
-        t = state[14].wrapping_add(state[10]);
-        state[2] ^= t.rotate_left(9) as u32;
-        t = state[3].wrapping_add(state[15]);
-        state[7] ^= t.rotate_left(9) as u32;
-
-        t = state[8].wrapping_add(state[4]);
-        state[12] ^= t.rotate_left(13) as u32;
-        t = state[13].wrapping_add(state[9]);
-        state[1] ^= t.rotate_left(13) as u32;
-        t = state[2].wrapping_add(state[14]);
-        state[6] ^= t.rotate_left(13) as u32;
-        t = state[7].wrapping_add(state[3]);
-        state[11] ^= t.rotate_left(13) as u32;
-
-        t = state[12].wrapping_add(state[8]);
-        state[0] ^= t.rotate_left(18) as u32;
-        t = state[1].wrapping_add(state[13]);
-        state[5] ^= t.rotate_left(18) as u32;
-        t = state[6].wrapping_add(state[2]);
-        state[10] ^= t.rotate_left(18) as u32;
-        t = state[11].wrapping_add(state[7]);
-        state[15] ^= t.rotate_left(18) as u32;
-
-        t = state[0].wrapping_add(state[3]);
-        state[1] ^= t.rotate_left(7) as u32;
-        t = state[5].wrapping_add(state[4]);
-        state[6] ^= t.rotate_left(7) as u32;
-        t = state[10].wrapping_add(state[9]);
-        state[11] ^= t.rotate_left(7) as u32;
-        t = state[15].wrapping_add(state[14]);
-        state[12] ^= t.rotate_left(7) as u32;
-
-        t = state[1].wrapping_add(state[0]);
-        state[2] ^= t.rotate_left(9) as u32;
-        t = state[6].wrapping_add(state[5]);
-        state[7] ^= t.rotate_left(9) as u32;
-        t = state[11].wrapping_add(state[10]);
-        state[8] ^= t.rotate_left(9) as u32;
-        t = state[12].wrapping_add(state[15]);
-        state[13] ^= t.rotate_left(9) as u32;
-
-        t = state[2].wrapping_add(state[1]);
-        state[3] ^= t.rotate_left(13) as u32;
-        t = state[7].wrapping_add(state[6]);
-        state[4] ^= t.rotate_left(13) as u32;
-        t = state[8].wrapping_add(state[11]);
-        state[9] ^= t.rotate_left(13) as u32;
-        t = state[13].wrapping_add(state[12]);
-        state[14] ^= t.rotate_left(13) as u32;
-
-        t = state[3].wrapping_add(state[2]);
-        state[0] ^= t.rotate_left(18) as u32;
-        t = state[4].wrapping_add(state[7]);
-        state[5] ^= t.rotate_left(18) as u32;
-        t = state[9].wrapping_add(state[8]);
-        state[10] ^= t.rotate_left(18) as u32;
-        t = state[14].wrapping_add(state[13]);
-        state[15] ^= t.rotate_left(18) as u32;
+        // diagonal rounds
+        quarter_round(0, 1, 2, 3, state);
+        quarter_round(5, 6, 7, 4, state);
+        quarter_round(10, 11, 8, 9, state);
+        quarter_round(15, 12, 13, 14, state);
     }
 
     /// Finish computing a state
@@ -168,4 +107,21 @@ impl Block {
 
         state
     }
+}
+
+#[inline]
+pub(crate) fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; 16]) {
+    let mut t: u32;
+
+    t = state[a].wrapping_add(state[d]);
+    state[b] ^= t.rotate_left(7) as u32;
+
+    t = state[b].wrapping_add(state[a]);
+    state[c] ^= t.rotate_left(9) as u32;
+
+    t = state[c].wrapping_add(state[b]);
+    state[d] ^= t.rotate_left(13) as u32;
+
+    t = state[d].wrapping_add(state[c]);
+    state[a] ^= t.rotate_left(18) as u32;
 }
