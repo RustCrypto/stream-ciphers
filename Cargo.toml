@@ -5,8 +5,8 @@ members = [
     "cfb-mode",
     "chacha20",
     "ctr",
+    "hc-256",
     "ofb",
     "salsa20",
     "salsa20-core",
-    "hc-256",
 ]
