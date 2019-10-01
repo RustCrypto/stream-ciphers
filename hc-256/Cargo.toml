@@ -1,6 +1,6 @@
 [package]
 name = "hc-256"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Eric McCorkle <eric@metricspace.net>"]
 license = "BSD"
 description = "HC-256 Stream Cipher"
@@ -11,7 +11,7 @@ categories = ["cryptography", "no-std"]
 [dependencies]
 block-cipher-trait = "0.6"
 stream-cipher = "0.3"
-zeroize = { version = "0.9", optional = true }
+zeroize = { version = "1.0.0-pre", optional = true }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
