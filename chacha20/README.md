@@ -12,6 +12,10 @@ high-performance software implementations.
 It improves upon the previous [Salsa20][3] stream cipher with increased
 per-round diffusion at no cost to performance.
 
+This crate also contains an implementation of [XChaCha20][4]: a variant
+of ChaCha20 with an extended 192-bit (24-byte) nonce, gated under the
+`xchacha20` Cargo feature (on-by-default).
+
 [Documentation][docs-link]
 
 ## Security Warning
@@ -56,3 +60,4 @@ dual licensed as above, without any additional terms or conditions.
 [1]: https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant
 [2]: https://en.wikipedia.org/wiki/Stream_cipher
 [3]: https://en.wikipedia.org/wiki/Salsa20
+[4]: https://tools.ietf.org/html/draft-arciszewski-xchacha-02
