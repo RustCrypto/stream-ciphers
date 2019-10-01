@@ -1,11 +1,11 @@
 [package]
 name = "salsa20"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Salsa20 Stream Cipher"
 repository = "https://github.com/RustCrypto/stream-ciphers"
-keywords = ["crypto", "stream-cipher", "trait"]
+keywords = ["crypto", "stream-cipher", "trait", "xsalsa20"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
 
@@ -24,3 +24,6 @@ xsalsa20 = []
 
 [badges]
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
+
+[package.metadata.docs.rs]
+all-features = true

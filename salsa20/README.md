@@ -9,6 +9,10 @@
 [Salsa20][1] is a [stream cipher][2] which is designed to support
 high-performance software implementations.
 
+This crate also contains an implementation of [XSalsa20][3]: a variant
+of Salsa20 with an extended 192-bit (24-byte) nonce, gated under the
+`xsalsa20` Cargo feature (on-by-default).
+
 [Documentation][docs-link]
 
 ## Security Warning
@@ -50,6 +54,6 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (general links)
 
-[1]: https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant
+[1]: https://en.wikipedia.org/wiki/Salsa20
 [2]: https://en.wikipedia.org/wiki/Stream_cipher
-[3]: https://en.wikipedia.org/wiki/Salsa20
+[3]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
