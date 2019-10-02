@@ -1,8 +1,8 @@
 [package]
 name = "hc-256"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["Eric McCorkle <eric@metricspace.net>"]
-license = "BSD"
+license = "MIT OR Apache-2.0"
 description = "HC-256 Stream Cipher"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait"]
@@ -18,4 +18,5 @@ stream-cipher = { version = "0.3", features = ["dev"] }
 block-cipher-trait = { version = "0.6", features = ["dev"] }
 
 [badges]
+maintenance = { status = "experimental" }
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
