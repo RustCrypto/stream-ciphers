@@ -18,7 +18,8 @@ of Salsa20 with an extended 192-bit (24-byte) nonce, gated under the
 ## Security Warning
 
 This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
-is not verified, which can lead to serious vulnerabilities!
+is not verified, which can lead to serious vulnerabilities! To avoid this, use
+the [XSalsa20Poly1305][4] authenticated encryption algorithm instead.
 
 No security audits of this crate have ever been performed, and it has not been
 thoroughly assessed to ensure its operation is constant-time on common CPU
@@ -57,3 +58,4 @@ dual licensed as above, without any additional terms or conditions.
 [1]: https://en.wikipedia.org/wiki/Salsa20
 [2]: https://en.wikipedia.org/wiki/Stream_cipher
 [3]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
+[4]: https://github.com/RustCrypto/AEADs/tree/master/xsalsa20poly1305

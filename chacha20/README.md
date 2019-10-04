@@ -21,7 +21,9 @@ of ChaCha20 with an extended 192-bit (24-byte) nonce, gated under the
 ## Security Warning
 
 This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
-is not verified, which can lead to serious vulnerabilities!
+is not verified, which can lead to serious vulnerabilities! To avoid this, use
+the [ChaCha20Poly1305][5] Authenticated Encryption with Associated Data (AEAD)
+algorithm instead.
 
 No security audits of this crate have ever been performed, and it has not been
 thoroughly assessed to ensure its operation is constant-time on common CPU
@@ -61,3 +63,4 @@ dual licensed as above, without any additional terms or conditions.
 [2]: https://en.wikipedia.org/wiki/Stream_cipher
 [3]: https://en.wikipedia.org/wiki/Salsa20
 [4]: https://tools.ietf.org/html/draft-arciszewski-xchacha-02
+[5]: https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305
