@@ -12,6 +12,9 @@ keywords = ["crypto", "stream-cipher", "xchacha20"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
 
+[badges]
+travis-ci = { repository = "RustCrypto/stream-ciphers" }
+
 [dependencies]
 byteorder = { version = "1", default-features = false }
 stream-cipher = "0.3"
@@ -19,15 +22,18 @@ salsa20-core = { version = "0.2", path = "../salsa20-core" }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
-
-[badges]
-travis-ci = { repository = "RustCrypto/stream-ciphers" }
+criterion = "0.3"
+criterion-cycles-per-byte = "0.1"
 
 [features]
 default = ["xchacha20"]
 legacy = []
 xchacha20 = []
 zeroize = ["salsa20-core/zeroize"]
+
+[[bench]]
+name = "chacha20"
+harness = false
 
 [package.metadata.docs.rs]
 all-features = true

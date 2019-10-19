@@ -1,6 +1,37 @@
-#![feature(test)]
-#[macro_use]
-extern crate stream_cipher;
 extern crate chacha20;
+extern crate criterion;
+extern crate criterion_cycles_per_byte;
 
-bench_sync!(chacha20::ChaCha20);
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion_cycles_per_byte::CyclesPerByte;
+
+use chacha20::{ChaCha20, stream_cipher::{NewStreamCipher, SyncStreamCipher}};
+
+const KB: usize = 1024;
+
+fn bench(c: &mut Criterion<CyclesPerByte>) {
+    let mut group = c.benchmark_group("chacha20");
+
+    for size in &[KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB] {
+        let mut buf = vec![0u8; *size];
+
+        group.throughput(Throughput::Bytes(*size as u64));
+
+        group.bench_function(BenchmarkId::new("apply_keystream", size), |b| {
+            let key = Default::default();
+            let nonce = Default::default();
+            let mut cipher = ChaCha20::new(&key, &nonce);
+
+            b.iter(|| cipher.apply_keystream(&mut buf));
+        });
+    }
+
+    group.finish();
+}
+
+criterion_group!(
+    name = benches;
+    config = Criterion::default().with_measurement(CyclesPerByte);
+    targets = bench
+);
+criterion_main!(benches);
