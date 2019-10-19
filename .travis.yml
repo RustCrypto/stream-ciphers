@@ -25,26 +25,34 @@ matrix:
       rust: 1.27.0
       env: {} # clear `-D warnings` above; allow warnings
       script:
-        - cargo test --all --release
+        - cargo test --all --exclude chacha20 --release
         - ./test_aesni.sh
+
+    # chacha20 crate with SSE2 backend
+    - name: "Rust: stable (chacha20)"
+      rust: stable
+      env: RUSTFLAGS="-Ctarget-feature=+sse2"
+      script: cargo test --package chacha20 --release
+
+    # no_std build
+    - name: "Rust: 1.27.0 (thumbv7em-none-eabihf)"
+      rust: 1.27.0
+      env: {} # clear `-D warnings` above; allow warnings
+      install: rustup target add thumbv7em-none-eabihf
+      script: cargo build --all --target thumbv7em-none-eabihf --release
     - name: "Rust: stable (thumbv7em-none-eabihf)"
       rust: stable
-      install:
-        - rustup target add thumbv7em-none-eabihf
-      script:
-        - cargo build --all --target thumbv7em-none-eabihf --release
+      install: rustup target add thumbv7em-none-eabihf
+      script: cargo build --all --target thumbv7em-none-eabihf --release
+
     - name: rustfmt
       rust: stable
-      install:
-        - rustup component add rustfmt
-      script:
-        - cargo fmt --all -- --check
+      install: rustup component add rustfmt
+      script: cargo fmt --all -- --check
     - name: clippy
       rust: stable
-      install:
-        - rustup component add clippy
-      script:
-        - cargo clippy --all
+      install: rustup component add clippy
+      script: cargo clippy --all
 
 branches:
   only:
