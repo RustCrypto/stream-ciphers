@@ -4,6 +4,9 @@
 
 use salsa20_core::{CONSTANTS, IV_WORDS, KEY_WORDS, STATE_WORDS};
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+pub(crate) mod sse2;
+
 /// The ChaCha20 block function
 ///
 /// While ChaCha20 is a stream cipher, not a block cipher, its core

@@ -1,6 +1,5 @@
 //! ChaCha20 cipher core implementation
 
-use block::Block;
 use byteorder::{ByteOrder, LE};
 use salsa20_core::{SalsaFamilyCipher, IV_WORDS, KEY_WORDS, STATE_WORDS};
 
@@ -42,7 +41,24 @@ impl Cipher {
 
 impl SalsaFamilyCipher for Cipher {
     #[inline]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn block(&self, counter: u64) -> [u32; STATE_WORDS] {
-        Block::generate(&self.key, self.iv, self.counter_offset + counter)
+        if cfg!(target_feature = "sse2") {
+            unsafe {
+                super::block::sse2::Block::generate(
+                    &self.key,
+                    self.iv,
+                    self.counter_offset + counter,
+                )
+            }
+        } else {
+            super::block::Block::generate(&self.key, self.iv, self.counter_offset + counter)
+        }
+    }
+
+    #[inline]
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+    fn block(&self, counter: u64) -> [u32; STATE_WORDS] {
+        super::block::Block::generate(&self.key, self.iv, self.counter_offset + counter)
     }
 }
