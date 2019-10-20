@@ -4,7 +4,7 @@ use byteorder::{ByteOrder, LE};
 use salsa20_core::{SalsaFamilyCipher, IV_WORDS, KEY_WORDS, STATE_WORDS};
 
 /// ChaCha20 core cipher functionality
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct Cipher {
     /// Secret key
     key: [u32; KEY_WORDS],

@@ -60,6 +60,8 @@ extern crate salsa20_core;
 // TODO: replace with `u32::from_le_bytes`/`to_le_bytes` in libcore (1.32+)
 #[cfg(feature = "xchacha20")]
 extern crate byteorder;
+#[cfg(feature = "rand_core")]
+extern crate rand_core;
 
 mod block;
 pub(crate) mod cipher;
@@ -67,6 +69,9 @@ pub(crate) mod cipher;
 mod legacy;
 #[cfg(feature = "xchacha20")]
 mod xchacha20;
+
+#[cfg(feature = "rng")]
+mod rng;
 
 use self::cipher::Cipher;
 use salsa20_core::Ctr;
@@ -80,6 +85,9 @@ use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCiph
 pub use self::legacy::ChaCha20Legacy;
 #[cfg(feature = "xchacha20")]
 pub use self::xchacha20::XChaCha20;
+
+#[cfg(feature = "rng")]
+pub use rng::{ChaCha20Rng, ChaCha20RngCore};
 
 /// Maximum number of blocks that can be encrypted with ChaCha20 before the
 /// counter overflows.

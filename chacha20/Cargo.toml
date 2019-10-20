@@ -19,6 +19,7 @@ travis-ci = { repository = "RustCrypto/stream-ciphers" }
 byteorder = { version = "1", default-features = false }
 stream-cipher = "0.3"
 salsa20-core = { version = "0.2", path = "../salsa20-core" }
+rand_core = { version = "0.5", optional = true }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
@@ -30,6 +31,7 @@ default = ["xchacha20"]
 legacy = []
 xchacha20 = []
 zeroize = ["salsa20-core/zeroize"]
+rng = ["rand_core"]
 
 [[bench]]
 name = "chacha20"
