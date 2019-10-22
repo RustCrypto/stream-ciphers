@@ -1,4 +1,4 @@
-//! The ChaCha20 stream cipher ([RFC 7539])
+//! The ChaCha20 stream cipher ([RFC 8439])
 //!
 //! ChaCha20 is a lightweight stream cipher which is amenable to fast,
 //! constant-time implementations in software. It improves upon the previous
@@ -46,7 +46,7 @@
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
 //! ```
 //!
-//! [RFC 7539]: https://tools.ietf.org/html/rfc7539
+//! [RFC 8439]: https://tools.ietf.org/html/rfc8439
 //! [Salsa20]: https://docs.rs/salsa20
 
 #![no_std]
@@ -88,7 +88,7 @@ pub const MAX_BLOCKS: usize = core::u32::MAX as usize;
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
 
-/// The ChaCha20 stream cipher (RFC 7539 version with 96-bit nonce)
+/// The ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
 ///
 /// Use `ChaCha20Legacy` for the legacy (a.k.a. "djb") construction with a
 /// 64-bit nonce.
