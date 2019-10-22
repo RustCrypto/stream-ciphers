@@ -13,7 +13,7 @@ pub(crate) struct Cipher {
     iv: [u32; IV_WORDS],
 
     /// Offset of the initial counter in the keystream. This is derived from
-    /// the extra 4 bytes in the 96-byte nonce RFC 7539 version (or is always
+    /// the extra 4 bytes in the 96-byte nonce RFC 8439 version (or is always
     /// 0 in the legacy version)
     counter_offset: u64,
 }

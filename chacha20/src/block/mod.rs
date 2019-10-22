@@ -1,6 +1,6 @@
-//! The ChaCha20 block function. Defined in RFC 7539 Section 2.3.
+//! The ChaCha20 block function. Defined in RFC 8439 Section 2.3.
 //!
-//! <https://tools.ietf.org/html/rfc7539#section-2.3>
+//! <https://tools.ietf.org/html/rfc8439#section-2.3>
 
 use salsa20_core::{CONSTANTS, IV_WORDS, KEY_WORDS, STATE_WORDS};
 
