@@ -1,9 +1,12 @@
 [package]
 name = "salsa20-core"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Eric McCorkle <eric@metricspace.net>"]
-license = "MIT OR Apache-2.0"
-description = "Salsa Family Stream Ciphers"
+license = "Apache-2.0 OR MIT"
+description = """
+Generic implementation of the stream-cipher crate traits for ciphers in the
+Salsa20 family. Used by the chacha20 and salsa20 crates.
+"""
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
