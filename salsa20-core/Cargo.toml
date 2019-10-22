@@ -10,7 +10,7 @@ categories = ["cryptography", "no-std"]
 
 [dependencies]
 stream-cipher = "0.3"
-zeroize = { version = "1.0.0-pre", optional = true, default-features = false }
+zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
