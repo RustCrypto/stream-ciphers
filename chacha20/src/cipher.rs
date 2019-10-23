@@ -2,6 +2,7 @@
 
 use byteorder::{ByteOrder, LE};
 use salsa20_core::{SalsaFamilyCipher, IV_WORDS, KEY_WORDS, STATE_WORDS};
+use super::MAX_BLOCKS;
 
 /// ChaCha20 core cipher functionality
 #[derive(Debug)]
@@ -43,6 +44,9 @@ impl SalsaFamilyCipher for Cipher {
     #[inline]
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn block(&self, counter: u64) -> [u32; STATE_WORDS] {
+        // TODO(tarcieri): avoid panic by making block API fallible
+        assert!(counter < MAX_BLOCKS as u64, "MAX_BLOCKS exceeded");
+
         if cfg!(target_feature = "sse2") {
             unsafe {
                 super::block::sse2::Block::generate(
@@ -59,6 +63,8 @@ impl SalsaFamilyCipher for Cipher {
     #[inline]
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     fn block(&self, counter: u64) -> [u32; STATE_WORDS] {
+        // TODO(tarcieri): avoid panic by making block API fallible
+        assert!(counter < MAX_BLOCKS as u64, "MAX_BLOCKS exceeded");
         super::block::Block::generate(&self.key, self.iv, self.counter_offset + counter)
     }
 }
