@@ -233,7 +233,7 @@ where
     fn generate_par_blocks(&self, counter: u64) -> Blocks<C> {
         let mut block = self.nonce;
         block[1] = block[1].wrapping_add(counter);
-        let mut blocks: Blocks<C> = unsafe { mem::uninitialized() };
+        let mut blocks: Blocks<C> = unsafe { mem::zeroed() };
         for b in blocks.iter_mut() {
             let block_be = conv_be(block);
             *b = unsafe { mem::transmute_copy(&block_be) };
