@@ -84,13 +84,8 @@ impl HC256 {
                 .wrapping_add(i as u32);
         }
 
-        for i in 0..TABLE_SIZE {
-            self.ptable[i] = data[i + 512];
-        }
-
-        for i in 0..TABLE_SIZE {
-            self.qtable[i] = data[i + 1536];
-        }
+        self.ptable[..TABLE_SIZE].clone_from_slice(&data[512..(TABLE_SIZE + 512)]);
+        self.qtable[..TABLE_SIZE].clone_from_slice(&data[1536..(TABLE_SIZE + 1536)]);
 
         self.idx = 0;
 
@@ -170,7 +165,7 @@ impl HC256 {
 
         // First, use the remaining part of the current word.
         for j in self.offset..4 {
-            data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
+            data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
             i += 1;
         }
 
@@ -182,7 +177,7 @@ impl HC256 {
             word = self.gen_word();
 
             for j in 0..4 {
-                data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
+                data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
         }
@@ -192,7 +187,7 @@ impl HC256 {
             word = self.gen_word();
 
             for j in 0..leftover {
-                data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
+                data[i] ^= ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
 
