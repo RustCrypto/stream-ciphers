@@ -29,7 +29,9 @@ matrix:
     - name: "Rust: stable (chacha20)"
       rust: stable
       env: RUSTFLAGS="-Ctarget-feature=+sse2"
-      script: cargo test --package chacha20 --release
+      script:
+        - cargo test --package chacha20 --release
+        - cd chacha20 && cargo build --no-default-features --features=rng # ensure RNG-only build works
 
     # no_std build
     - name: "Rust: 1.34.0 (thumbv7em-none-eabihf)"
