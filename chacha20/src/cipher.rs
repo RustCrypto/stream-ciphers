@@ -1,8 +1,7 @@
 //! ChaCha20 cipher core implementation
 
-use super::MAX_BLOCKS;
-use crate::block::Block;
-use byteorder::{ByteOrder, LE};
+use crate::{block::Block, MAX_BLOCKS};
+use core::convert::TryInto;
 use salsa20_core::{SalsaFamilyCipher, IV_WORDS, KEY_WORDS, STATE_WORDS};
 
 /// ChaCha20 core cipher functionality
@@ -25,12 +24,12 @@ impl Cipher {
     pub fn new(key_bytes: &[u8], iv_bytes: &[u8], counter_offset: u64) -> Self {
         let mut key = [0u32; KEY_WORDS];
         for (i, chunk) in key_bytes.chunks(4).enumerate() {
-            key[i] = LE::read_u32(chunk);
+            key[i] = u32::from_le_bytes(chunk.try_into().unwrap());
         }
 
         let mut iv = [0u32; IV_WORDS];
         for (i, chunk) in iv_bytes.chunks(4).enumerate() {
-            iv[i] = LE::read_u32(chunk);
+            iv[i] = u32::from_le_bytes(chunk.try_into().unwrap());
         }
 
         Cipher {
