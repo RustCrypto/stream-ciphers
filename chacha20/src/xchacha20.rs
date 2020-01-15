@@ -1,8 +1,7 @@
 //! XChaCha20 is an extended nonce variant of ChaCha20
 
-use crate::{block::quarter_round, ChaCha20};
+use crate::{block::soft::quarter_round, ChaCha20, CONSTANTS};
 use core::convert::TryInto;
-use salsa20_core::CONSTANTS;
 use stream_cipher::generic_array::{
     typenum::{U16, U24, U32},
     GenericArray,
@@ -39,7 +38,7 @@ impl NewStreamCipher for XChaCha20 {
     #[allow(unused_mut, clippy::let_and_return)]
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         // TODO(tarcieri): zeroize subkey
-        let mut subkey = hchacha20(key, iv[..16].as_ref().into());
+        let subkey = hchacha20(key, iv[..16].as_ref().into());
         let mut padded_iv = GenericArray::default();
         padded_iv[4..].copy_from_slice(&iv[16..]);
         XChaCha20(ChaCha20::new(&subkey, &padded_iv))

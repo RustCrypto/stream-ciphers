@@ -18,8 +18,8 @@ travis-ci = { repository = "RustCrypto/stream-ciphers" }
 
 [dependencies]
 rand_core = { version = "0.5", optional = true }
-salsa20-core = { version = "0.2", path = "../salsa20-core" }
-stream-cipher = "0.3"
+stream-cipher = { version = "0.3", optional = true }
+zeroize = { version = "1", optional = true }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
@@ -28,9 +28,8 @@ criterion-cycles-per-byte = "0.1"
 
 [features]
 default = ["xchacha20"]
-legacy = []
-xchacha20 = []
-zeroize = ["salsa20-core/zeroize"]
+legacy = ["stream-cipher"]
+xchacha20 = ["stream-cipher"]
 rng = ["rand_core"]
 
 [[bench]]

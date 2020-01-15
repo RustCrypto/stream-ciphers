@@ -53,9 +53,11 @@
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![deny(missing_docs)]
 
+#[cfg(feature = "stream-cipher")]
 pub use stream_cipher;
 
 mod block;
+#[cfg(feature = "stream-cipher")]
 pub(crate) mod cipher;
 #[cfg(feature = "legacy")]
 mod legacy;
@@ -65,35 +67,55 @@ mod xchacha20;
 #[cfg(feature = "rng")]
 mod rng;
 
-use self::cipher::Cipher;
-use salsa20_core::Ctr;
+#[cfg(feature = "legacy")]
+pub use self::legacy::ChaCha20Legacy;
+
+#[cfg(feature = "stream-cipher")]
+use self::{block::Block, cipher::Cipher};
+#[cfg(feature = "stream-cipher")]
+use core::convert::TryInto;
+#[cfg(feature = "stream-cipher")]
 use stream_cipher::generic_array::{
     typenum::{U12, U32},
     GenericArray,
 };
+#[cfg(feature = "stream-cipher")]
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
-#[cfg(feature = "legacy")]
-pub use self::legacy::ChaCha20Legacy;
 #[cfg(feature = "xchacha20")]
 pub use self::xchacha20::XChaCha20;
 
 #[cfg(feature = "rng")]
 pub use rng::{ChaCha20Rng, ChaCha20RngCore};
 
+/// Size of a ChaCha20 block in bytes
+pub const BLOCK_SIZE: usize = 64;
+
+/// Size of a ChaCha20 key in bytes
+pub const KEY_SIZE: usize = 32;
+
 /// Maximum number of blocks that can be encrypted with ChaCha20 before the
 /// counter overflows.
 pub const MAX_BLOCKS: usize = core::u32::MAX as usize;
 
-/// Size of a ChaCha20 block in bytes
-pub const BLOCK_SIZE: usize = 64;
+/// Number of bytes in the core (non-extended) ChaCha20 IV
+const IV_SIZE: usize = 8;
+
+/// Number of 32-bit words in the ChaCha20 state
+const STATE_WORDS: usize = 16;
+
+/// State initialization constant
+//pub(crate) const SIGMA: &[u8; 16] = b"expand 32-byte k";
+const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// The ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
 ///
 /// Use `ChaCha20Legacy` for the legacy (a.k.a. "djb") construction with a
 /// 64-bit nonce.
-pub struct ChaCha20(Ctr<Cipher>);
+#[cfg(feature = "stream-cipher")]
+pub struct ChaCha20(Cipher);
 
+#[cfg(feature = "stream-cipher")]
 impl NewStreamCipher for ChaCha20 {
     /// Key size in bytes
     type KeySize = U32;
@@ -101,25 +123,25 @@ impl NewStreamCipher for ChaCha20 {
     /// Nonce size in bytes
     type NonceSize = U12;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let exp_iv = &iv[0..4];
-        let base_iv = &iv[4..12];
-        let counter = (u64::from(exp_iv[0]) & 0xff) << 32
-            | (u64::from(exp_iv[1]) & 0xff) << 40
-            | (u64::from(exp_iv[2]) & 0xff) << 48
-            | (u64::from(exp_iv[3]) & 0xff) << 56;
-        let cipher = Cipher::new(key, base_iv, counter);
-
-        ChaCha20(Ctr::new(cipher))
+    fn new(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U12>) -> Self {
+        let block = Block::new(
+            key.as_ref().try_into().unwrap(),
+            iv[4..12].try_into().unwrap(),
+            20,
+        );
+        let counter = initial_counter(iv[..4].try_into().unwrap());
+        ChaCha20(Cipher::new(block, counter))
     }
 }
 
+#[cfg(feature = "stream-cipher")]
 impl SyncStreamCipher for ChaCha20 {
     fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.0.try_apply_keystream(data)
     }
 }
 
+#[cfg(feature = "stream-cipher")]
 impl SyncStreamCipherSeek for ChaCha20 {
     fn current_pos(&self) -> u64 {
         self.0.current_pos()
@@ -128,4 +150,13 @@ impl SyncStreamCipherSeek for ChaCha20 {
     fn seek(&mut self, pos: u64) {
         self.0.seek(pos);
     }
+}
+
+/// Get initial counter value for the given IV prefix
+#[cfg(feature = "stream-cipher")]
+fn initial_counter(exp_iv: [u8; 4]) -> u64 {
+    (u64::from(exp_iv[0]) & 0xff) << 32
+        | (u64::from(exp_iv[1]) & 0xff) << 40
+        | (u64::from(exp_iv[2]) & 0xff) << 48
+        | (u64::from(exp_iv[3]) & 0xff) << 56
 }
