@@ -6,15 +6,15 @@ extern crate zeroize;
 
 pub extern crate stream_cipher;
 
-use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::U32;
+use block_cipher_trait::generic_array::GenericArray;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;
 
 #[cfg(cargo_feature = "zeroize")]
-use zeroize::Zeroize;
-#[cfg(cargo_feature = "zeroize")]
 use std::ops::Drop;
+#[cfg(cargo_feature = "zeroize")]
+use zeroize::Zeroize;
 
 const TABLE_SIZE: usize = 1024;
 
@@ -35,7 +35,7 @@ pub struct HC256 {
     qtable: [u32; TABLE_SIZE],
     word: u32,
     idx: u32,
-    offset: u8
+    offset: u8,
 }
 
 #[inline]
@@ -50,31 +50,33 @@ fn f2(x: u32) -> u32 {
 
 impl HC256 {
     fn create() -> HC256 {
-        HC256 { ptable: [0; TABLE_SIZE],
-                qtable: [0; TABLE_SIZE],
-                word: 0,
-                idx: 0,
-                offset: 0 }
+        HC256 {
+            ptable: [0; TABLE_SIZE],
+            qtable: [0; TABLE_SIZE],
+            word: 0,
+            idx: 0,
+            offset: 0,
+        }
     }
 
     pub fn init(&mut self, key: &[u8], iv: &[u8]) {
         let mut data = [0; INIT_SIZE];
 
-        for i in 0 .. KEY_WORDS {
-            data[i] = key[4 * i] as u32 & 0xff |
-                      (key[(4 * i) + 1] as u32 & 0xff) << 8 |
-                      (key[(4 * i) + 2] as u32 & 0xff) << 16 |
-                      (key[(4 * i) + 3] as u32 & 0xff) << 24;
+        for i in 0..KEY_WORDS {
+            data[i] = key[4 * i] as u32 & 0xff
+                | (key[(4 * i) + 1] as u32 & 0xff) << 8
+                | (key[(4 * i) + 2] as u32 & 0xff) << 16
+                | (key[(4 * i) + 3] as u32 & 0xff) << 24;
         }
 
-        for i in 0 .. IV_WORDS {
-            data[i + KEY_WORDS] = iv[4 * i] as u32 & 0xff |
-                                  (iv[(4 * i) + 1] as u32 & 0xff) << 8 |
-                                  (iv[(4 * i) + 2] as u32 & 0xff) << 16 |
-                                  (iv[(4 * i) + 3] as u32 & 0xff) << 24;
+        for i in 0..IV_WORDS {
+            data[i + KEY_WORDS] = iv[4 * i] as u32 & 0xff
+                | (iv[(4 * i) + 1] as u32 & 0xff) << 8
+                | (iv[(4 * i) + 2] as u32 & 0xff) << 16
+                | (iv[(4 * i) + 3] as u32 & 0xff) << 24;
         }
 
-        for i in IV_WORDS + KEY_WORDS .. INIT_SIZE {
+        for i in IV_WORDS + KEY_WORDS..INIT_SIZE {
             data[i] = f2(data[i - 2])
                 .wrapping_add(data[i - 7])
                 .wrapping_add(f1(data[i - 15]))
@@ -82,11 +84,11 @@ impl HC256 {
                 .wrapping_add(i as u32);
         }
 
-        for i in 0 .. TABLE_SIZE {
+        for i in 0..TABLE_SIZE {
             self.ptable[i] = data[i + 512];
         }
 
-        for i in 0 .. TABLE_SIZE {
+        for i in 0..TABLE_SIZE {
             self.qtable[i] = data[i + 1536];
         }
 
@@ -95,7 +97,7 @@ impl HC256 {
         #[cfg(cargo_feature = "zeroize")]
         data.zeroize();
 
-        for _ in 0 .. 4096 {
+        for _ in 0..4096 {
             self.gen_word();
         }
 
@@ -144,23 +146,21 @@ impl HC256 {
         if i < 1024 {
             self.ptable[j] = self.ptable[j]
                 .wrapping_add(self.ptable[j.wrapping_sub(10) & TABLE_MASK])
-                .wrapping_add(self.g1(self.ptable[j.wrapping_sub(3) &
-                                                  TABLE_MASK],
-                                      self.ptable[j.wrapping_sub(1023) &
-                                                  TABLE_MASK]));
+                .wrapping_add(self.g1(
+                    self.ptable[j.wrapping_sub(3) & TABLE_MASK],
+                    self.ptable[j.wrapping_sub(1023) & TABLE_MASK],
+                ));
 
-            self.h1(self.ptable[j.wrapping_sub(12) & TABLE_MASK]) ^
-                self.ptable[j]
+            self.h1(self.ptable[j.wrapping_sub(12) & TABLE_MASK]) ^ self.ptable[j]
         } else {
             self.qtable[j] = self.qtable[j]
                 .wrapping_add(self.qtable[j.wrapping_sub(10) & TABLE_MASK])
-                .wrapping_add(self.g2(self.qtable[j.wrapping_sub(3) &
-                                                  TABLE_MASK],
-                                      self.qtable[j.wrapping_sub(1023) &
-                                                  TABLE_MASK]));
+                .wrapping_add(self.g2(
+                    self.qtable[j.wrapping_sub(3) & TABLE_MASK],
+                    self.qtable[j.wrapping_sub(1023) & TABLE_MASK],
+                ));
 
-            self.h2(self.qtable[j.wrapping_sub(12) & TABLE_MASK]) ^
-                self.qtable[j]
+            self.h2(self.qtable[j.wrapping_sub(12) & TABLE_MASK]) ^ self.qtable[j]
         }
     }
 
@@ -169,7 +169,7 @@ impl HC256 {
         let mut word: u32 = self.word;
 
         // First, use the remaining part of the current word.
-        for j in self.offset .. 4 {
+        for j in self.offset..4 {
             data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
             i += 1;
         }
@@ -178,10 +178,10 @@ impl HC256 {
         let leftover = (data.len() - i) % 4;
 
         // Process all the whole words
-        for _ in 0 .. mainlen {
+        for _ in 0..mainlen {
             word = self.gen_word();
 
-            for j in 0 .. 4  {
+            for j in 0..4 {
                 data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
@@ -191,7 +191,7 @@ impl HC256 {
         if leftover != 0 {
             word = self.gen_word();
 
-            for j in 0 .. leftover  {
+            for j in 0..leftover {
                 data[i] = data[i] ^ ((word >> (j * 8)) & 0xff) as u8;
                 i += 1;
             }
@@ -229,8 +229,7 @@ impl NewStreamCipher for HC256 {
     /// Nonce size in bytes
     type NonceSize = U32;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>,
-           iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let mut out = HC256::create();
 
         out.init(key.as_slice(), iv.as_slice());
