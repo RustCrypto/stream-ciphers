@@ -1,11 +1,12 @@
 //! The ChaCha20 block function. Defined in RFC 8439 Section 2.3.
 //!
 //! <https://tools.ietf.org/html/rfc8439#section-2.3>
+//!
+//! Portable implementation which does not rely on architecture-specific
+//! intrinsics.
 
+use super::quarter_round;
 use salsa20_core::{CONSTANTS, IV_WORDS, KEY_WORDS, STATE_WORDS};
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-pub(crate) mod sse2;
 
 /// The ChaCha20 block function
 ///
@@ -24,7 +25,7 @@ impl Block {
         iv: [u32; IV_WORDS],
         counter: u64,
     ) -> [u32; STATE_WORDS] {
-        let mut block = Self {
+        let block = Self {
             state: [
                 CONSTANTS[0],
                 CONSTANTS[1],
@@ -45,12 +46,13 @@ impl Block {
             ],
         };
 
+        // TODO(tarcieri): ChaCha8, ChaCha12
         block.rounds(20)
     }
 
     /// Run the 20 rounds (i.e. 10 double rounds) of ChaCha20
     #[inline]
-    fn rounds(&mut self, count: usize) -> [u32; STATE_WORDS] {
+    fn rounds(&self, count: usize) -> [u32; STATE_WORDS] {
         let mut state = self.state;
 
         for _ in 0..(count / 2) {
@@ -70,24 +72,4 @@ impl Block {
 
         state
     }
-}
-
-/// The ChaCha20 quarter round function
-#[inline]
-pub(crate) fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; 16]) {
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(16);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(12);
-
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(8);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(7);
 }

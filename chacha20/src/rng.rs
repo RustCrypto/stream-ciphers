@@ -1,7 +1,7 @@
 //! Block RNG based on rand_core::BlockRng
 
-use rand_core::{RngCore, SeedableRng, Error};
 use rand_core::block::{BlockRng, BlockRngCore};
+use rand_core::{Error, RngCore, SeedableRng};
 use salsa20_core::{SalsaFamilyCipher, IV_BYTES, KEY_BYTES, STATE_WORDS};
 
 use crate::cipher::Cipher;
@@ -38,7 +38,6 @@ impl RngCore for ChaCha20Rng {
     }
 }
 
-
 /// Core of the [`ChaCha20Rng`] random number generator, for use with
 /// [`rand_core::block::BlockRng`].
 #[derive(Clone, Debug)]
@@ -53,10 +52,7 @@ impl SeedableRng for ChaCha20RngCore {
     fn from_seed(seed: Self::Seed) -> Self {
         let iv = [0; IV_BYTES];
         let cipher = Cipher::new(&seed, &iv, 0);
-        Self {
-            cipher,
-            counter: 0,
-        }
+        Self { cipher, counter: 0 }
     }
 }
 

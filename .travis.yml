@@ -21,12 +21,9 @@ matrix:
     - rust: nightly
   fast_finish: true
   include:
-    - name: "Rust: 1.27.0"
-      rust: 1.27.0
-      env: {} # clear `-D warnings` above; allow warnings
-      script:
-        - cargo test --all --exclude chacha20 --release
-        - ./test_aesni.sh
+    - name: "Rust: 1.32.0"
+      rust: 1.32.0
+      script: ./test_aesni.sh
 
     # chacha20 crate with SSE2 backend
     - name: "Rust: stable (chacha20)"
@@ -35,9 +32,8 @@ matrix:
       script: cargo test --package chacha20 --release
 
     # no_std build
-    - name: "Rust: 1.27.0 (thumbv7em-none-eabihf)"
-      rust: 1.27.0
-      env: {} # clear `-D warnings` above; allow warnings
+    - name: "Rust: 1.32.0 (thumbv7em-none-eabihf)"
+      rust: 1.32.0
       install: rustup target add thumbv7em-none-eabihf
       script: cargo build --all --target thumbv7em-none-eabihf --release
     - name: "Rust: stable (thumbv7em-none-eabihf)"

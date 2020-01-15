@@ -1,3 +1,9 @@
+//! The ChaCha20 block function. Defined in RFC 8439 Section 2.3.
+//!
+//! <https://tools.ietf.org/html/rfc8439#section-2.3>
+//!
+//! SSE2-optimized implementation for x86/x86-64 CPUs.
+
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
@@ -13,62 +19,45 @@ pub(crate) struct Block {
 }
 
 impl Block {
-    #[target_feature(enable = "sse2")]
-    pub(crate) unsafe fn generate(
+    pub(crate) fn generate(
         key: &[u32; KEY_WORDS],
         iv: [u32; IV_WORDS],
         counter: u64,
     ) -> [u32; STATE_WORDS] {
-        let vs = init(key, iv, counter);
+        let vs = unsafe { init(key, iv, counter) };
 
-        let mut block = Self {
+        let block = Self {
             v0: vs[0],
             v1: vs[1],
             v2: vs[2],
             v3: vs[3],
         };
 
-        block.rounds();
-        block.finish(key, iv, counter)
+        // TODO(tarcieri): ChaCha8, ChaCha12
+        unsafe { block.rounds(20) }
     }
 
     #[inline]
     #[target_feature(enable = "sse2")]
-    pub unsafe fn rounds(&mut self) {
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
+    unsafe fn rounds(&self, count: usize) -> [u32; STATE_WORDS] {
+        let (mut v0, mut v1, mut v2, mut v3) = (self.v0, self.v1, self.v2, self.v3);
 
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-        double_quarter_round(&mut self.v0, &mut self.v1, &mut self.v2, &mut self.v3);
-    }
+        for _ in 0..(count / 2) {
+            double_quarter_round(&mut v0, &mut v1, &mut v2, &mut v3);
+        }
 
-    #[inline]
-    #[target_feature(enable = "sse2")]
-    unsafe fn finish(
-        mut self,
-        key: &[u32; KEY_WORDS],
-        iv: [u32; IV_WORDS],
-        counter: u64,
-    ) -> [u32; STATE_WORDS] {
-        let vs = init(key, iv, counter);
+        v0 = _mm_add_epi32(v0, self.v0);
+        v1 = _mm_add_epi32(v1, self.v1);
+        v2 = _mm_add_epi32(v2, self.v2);
+        v3 = _mm_add_epi32(v3, self.v3);
 
-        self.v0 = _mm_add_epi32(self.v0, vs[0]);
-        self.v1 = _mm_add_epi32(self.v1, vs[1]);
-        self.v2 = _mm_add_epi32(self.v2, vs[2]);
-        self.v3 = _mm_add_epi32(self.v3, vs[3]);
-
-        store(self.v0, self.v1, self.v2, self.v3)
+        store(v0, v1, v2, v3)
     }
 }
 
 #[inline]
 #[target_feature(enable = "sse2")]
+#[allow(clippy::cast_ptr_alignment)] // loadu supports unaligned loads
 unsafe fn init(key: &[u32; KEY_WORDS], iv: [u32; IV_WORDS], counter: u64) -> [__m128i; 4] {
     let v0 = _mm_loadu_si128(CONSTANTS.as_ptr() as *const __m128i);
     let v1 = _mm_loadu_si128(key.as_ptr().offset(0) as *const __m128i);
@@ -85,6 +74,7 @@ unsafe fn init(key: &[u32; KEY_WORDS], iv: [u32; IV_WORDS], counter: u64) -> [__
 
 #[inline]
 #[target_feature(enable = "sse2")]
+#[allow(clippy::cast_ptr_alignment)] // storeu supports unaligned stores
 unsafe fn store(v0: __m128i, v1: __m128i, v2: __m128i, v3: __m128i) -> [u32; STATE_WORDS] {
     let mut state = [0u32; STATE_WORDS];
 
@@ -183,28 +173,6 @@ mod tests {
     }
 
     #[test]
-    fn init_and_finish() {
-        unsafe {
-            let vs = init(&R_KEY, R_IV, R_CNT);
-            let block = Block {
-                v0: vs[0],
-                v1: vs[1],
-                v2: vs[2],
-                v3: vs[3],
-            };
-
-            assert_eq!(
-                block.finish(&R_KEY, R_IV, R_CNT).as_ref(),
-                &[
-                    3269521610, 1715521756, 4072954468, 3594570472, 853926946, 3738891202,
-                    2966796310, 682623550, 2127704868, 3828116434, 672899782, 577266394,
-                    2759139152, 1070353260, 2505124958, 695805424
-                ]
-            );
-        }
-    }
-
-    #[test]
     fn init_and_double_round() {
         unsafe {
             let vs = init(&R_KEY, R_IV, R_CNT);
@@ -212,7 +180,9 @@ mod tests {
             let mut v1 = vs[1];
             let mut v2 = vs[2];
             let mut v3 = vs[3];
+
             double_quarter_round(&mut v0, &mut v1, &mut v2, &mut v3);
+
             let state = store(v0, v1, v2, v3);
 
             assert_eq!(
@@ -229,7 +199,7 @@ mod tests {
     #[test]
     fn generate_vs_scalar_impl() {
         let scalar_result = ScalarBlock::generate(&R_KEY, R_IV, R_CNT);
-        let simd_result = unsafe { Block::generate(&R_KEY, R_IV, R_CNT) };
+        let simd_result = Block::generate(&R_KEY, R_IV, R_CNT);
 
         assert_eq!(scalar_result, simd_result)
     }
