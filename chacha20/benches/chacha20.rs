@@ -1,11 +1,10 @@
-extern crate chacha20;
-extern crate criterion;
-extern crate criterion_cycles_per_byte;
-
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use criterion_cycles_per_byte::CyclesPerByte;
 
-use chacha20::{ChaCha20, stream_cipher::{NewStreamCipher, SyncStreamCipher}};
+use chacha20::{
+    stream_cipher::{NewStreamCipher, SyncStreamCipher},
+    ChaCha20,
+};
 
 const KB: usize = 1024;
 

@@ -11,15 +11,16 @@ repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "xchacha20"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
+edition = "2018"
 
 [badges]
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
 
 [dependencies]
 byteorder = { version = "1", default-features = false }
-stream-cipher = "0.3"
-salsa20-core = { version = "0.2", path = "../salsa20-core" }
 rand_core = { version = "0.5", optional = true }
+salsa20-core = { version = "0.2", path = "../salsa20-core" }
+stream-cipher = "0.3"
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }

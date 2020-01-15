@@ -1,6 +1,5 @@
 //! Tests for ChaCha20 (IETF and "djb" versions) as well as XChaCha20
 
-extern crate chacha20;
 #[macro_use]
 extern crate stream_cipher;
 

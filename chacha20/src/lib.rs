@@ -53,15 +53,7 @@
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![deny(missing_docs)]
 
-pub extern crate stream_cipher;
-
-extern crate salsa20_core;
-
-// TODO: replace with `u32::from_le_bytes`/`to_le_bytes` in libcore (1.32+)
-#[cfg(feature = "xchacha20")]
-extern crate byteorder;
-#[cfg(feature = "rand_core")]
-extern crate rand_core;
+pub use stream_cipher;
 
 mod block;
 pub(crate) mod cipher;

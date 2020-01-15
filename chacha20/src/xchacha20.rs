@@ -1,7 +1,7 @@
 //! XChaCha20 is an extended nonce variant of ChaCha20
 
 use super::ChaCha20;
-use block::quarter_round;
+use crate::block::quarter_round;
 use byteorder::{ByteOrder, LE};
 #[cfg(feature = "zeroize")]
 use salsa20_core::zeroize::Zeroize;
