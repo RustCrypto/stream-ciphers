@@ -37,8 +37,11 @@
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
 //! # }
 //! ```
+
 #![no_std]
+#![allow(clippy::needless_doctest_main)]
 #![deny(missing_docs)]
+
 extern crate block_cipher_trait;
 pub extern crate stream_cipher;
 

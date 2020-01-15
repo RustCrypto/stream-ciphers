@@ -56,18 +56,21 @@ impl Block {
         let mut state = self.state;
 
         for _ in 0..(count / 2) {
+            // column rounds
             quarter_round(0, 4, 8, 12, &mut state);
             quarter_round(1, 5, 9, 13, &mut state);
             quarter_round(2, 6, 10, 14, &mut state);
             quarter_round(3, 7, 11, 15, &mut state);
+
+            // diagonal rounds
             quarter_round(0, 5, 10, 15, &mut state);
             quarter_round(1, 6, 11, 12, &mut state);
             quarter_round(2, 7, 8, 13, &mut state);
             quarter_round(3, 4, 9, 14, &mut state);
         }
 
-        for i in 0..16 {
-            state[i] = state[i].wrapping_add(self.state[i]);
+        for (s1, s0) in state.iter_mut().zip(&self.state) {
+            *s1 = s1.wrapping_add(*s0);
         }
 
         state

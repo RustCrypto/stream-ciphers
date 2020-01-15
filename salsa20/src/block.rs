@@ -40,76 +40,38 @@ impl Block {
             ],
         };
 
-        block.rounds();
-        block.finish(key, iv, counter)
+        block.rounds()
     }
 
     /// Run the 20 rounds (i.e. 10 double rounds) of Salsa20
     #[inline]
-    fn rounds(&mut self) {
-        self.double_round();
-        self.double_round();
-        self.double_round();
-        self.double_round();
-        self.double_round();
-
-        self.double_round();
-        self.double_round();
-        self.double_round();
-        self.double_round();
-        self.double_round();
-    }
-
-    /// Double round function
-    #[inline]
-    fn double_round(&mut self) {
-        let state = &mut self.state;
-
-        // column rounds
-        quarter_round(0, 4, 8, 12, state);
-        quarter_round(5, 9, 13, 1, state);
-        quarter_round(10, 14, 2, 6, state);
-        quarter_round(15, 3, 7, 11, state);
-
-        // diagonal rounds
-        quarter_round(0, 1, 2, 3, state);
-        quarter_round(5, 6, 7, 4, state);
-        quarter_round(10, 11, 8, 9, state);
-        quarter_round(15, 12, 13, 14, state);
-    }
-
-    /// Finish computing a state
-    #[inline]
-    fn finish(
-        self,
-        key: &[u32; KEY_WORDS],
-        iv: [u32; IV_WORDS],
-        counter: u64,
-    ) -> [u32; STATE_WORDS] {
+    fn rounds(&mut self) -> [u32; STATE_WORDS] {
         let mut state = self.state;
 
-        state[0] = state[0].wrapping_add(CONSTANTS[0]);
-        state[1] = state[1].wrapping_add(key[0]);
-        state[2] = state[2].wrapping_add(key[1]);
-        state[3] = state[3].wrapping_add(key[2]);
-        state[4] = state[4].wrapping_add(key[3]);
-        state[5] = state[5].wrapping_add(CONSTANTS[1]);
-        state[6] = state[6].wrapping_add(iv[0]);
-        state[7] = state[7].wrapping_add(iv[1]);
-        state[8] = state[8].wrapping_add((counter & 0xffff_ffff) as u32);
-        state[9] = state[9].wrapping_add(((counter >> 32) & 0xffff_ffff) as u32);
-        state[10] = state[10].wrapping_add(CONSTANTS[2]);
-        state[11] = state[11].wrapping_add(key[4]);
-        state[12] = state[12].wrapping_add(key[5]);
-        state[13] = state[13].wrapping_add(key[6]);
-        state[14] = state[14].wrapping_add(key[7]);
-        state[15] = state[15].wrapping_add(CONSTANTS[3]);
+        for _ in 0..10 {
+            // column rounds
+            quarter_round(0, 4, 8, 12, &mut state);
+            quarter_round(5, 9, 13, 1, &mut state);
+            quarter_round(10, 14, 2, 6, &mut state);
+            quarter_round(15, 3, 7, 11, &mut state);
+
+            // diagonal rounds
+            quarter_round(0, 1, 2, 3, &mut state);
+            quarter_round(5, 6, 7, 4, &mut state);
+            quarter_round(10, 11, 8, 9, &mut state);
+            quarter_round(15, 12, 13, 14, &mut state);
+        }
+
+        for (s1, s0) in state.iter_mut().zip(&self.state) {
+            *s1 = s1.wrapping_add(*s0);
+        }
 
         state
     }
 }
 
 #[inline]
+#[allow(clippy::many_single_char_names)]
 pub(crate) fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; 16]) {
     let mut t: u32;
 
