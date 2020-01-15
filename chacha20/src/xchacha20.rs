@@ -1,10 +1,7 @@
 //! XChaCha20 is an extended nonce variant of ChaCha20
 
-use super::ChaCha20;
-use crate::block::quarter_round;
-use byteorder::{ByteOrder, LE};
-#[cfg(feature = "zeroize")]
-use salsa20_core::zeroize::Zeroize;
+use crate::{block::quarter_round, ChaCha20};
+use core::convert::TryInto;
 use salsa20_core::CONSTANTS;
 use stream_cipher::generic_array::{
     typenum::{U16, U24, U32},
@@ -41,18 +38,11 @@ impl NewStreamCipher for XChaCha20 {
 
     #[allow(unused_mut, clippy::let_and_return)]
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        // TODO(tarcieri): zeroize subkey
         let mut subkey = hchacha20(key, iv[..16].as_ref().into());
         let mut padded_iv = GenericArray::default();
         padded_iv[4..].copy_from_slice(&iv[16..]);
-
-        let mut result = XChaCha20(ChaCha20::new(&subkey, &padded_iv));
-
-        #[cfg(feature = "zeroize")]
-        {
-            subkey.as_mut_slice().zeroize();
-        }
-
-        result
+        XChaCha20(ChaCha20::new(&subkey, &padded_iv))
     }
 }
 
@@ -88,18 +78,14 @@ impl SyncStreamCipherSeek for XChaCha20 {
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
 fn hchacha20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
-
-    state[0] = CONSTANTS[0];
-    state[1] = CONSTANTS[1];
-    state[2] = CONSTANTS[2];
-    state[3] = CONSTANTS[3];
+    state[..4].copy_from_slice(&CONSTANTS);
 
     for (i, chunk) in key.chunks(4).take(8).enumerate() {
-        state[4 + i] = LE::read_u32(chunk);
+        state[4 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
     }
 
     for (i, chunk) in input.chunks(4).enumerate() {
-        state[12 + i] = LE::read_u32(chunk);
+        state[12 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
     }
 
     // 20 rounds consisting of 10 column rounds and 10 diagonal rounds
@@ -120,11 +106,11 @@ fn hchacha20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> Gene
     let mut output = GenericArray::default();
 
     for (i, chunk) in output.chunks_mut(4).take(4).enumerate() {
-        LE::write_u32(chunk, state[i]);
+        chunk.copy_from_slice(&state[i].to_le_bytes());
     }
 
     for (i, chunk) in output.chunks_mut(4).skip(4).enumerate() {
-        LE::write_u32(chunk, state[i + 12]);
+        chunk.copy_from_slice(&state[i + 12].to_le_bytes());
     }
 
     output

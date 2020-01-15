@@ -17,7 +17,6 @@ edition = "2018"
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
 
 [dependencies]
-byteorder = { version = "1", default-features = false }
 rand_core = { version = "0.5", optional = true }
 salsa20-core = { version = "0.2", path = "../salsa20-core" }
 stream-cipher = "0.3"
