@@ -47,34 +47,58 @@ impl Block {
         Self { state, rounds }
     }
 
+    /// Generate output, overwriting data already in the buffer
     pub(crate) fn generate(&mut self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BLOCK_SIZE);
-
-        self.state[12] = (counter & 0xffff_ffff) as u32;
-        self.state[13] = ((counter >> 32) & 0xffff_ffff) as u32;
+        self.counter_setup(counter);
 
         let mut state = self.state;
+        self.rounds(&mut state);
 
+        for (i, chunk) in output.chunks_mut(4).enumerate() {
+            chunk.copy_from_slice(&state[i].to_le_bytes());
+        }
+    }
+
+    /// Apply generated keystream to the output buffer
+    pub(crate) fn apply_keystream(&mut self, counter: u64, output: &mut [u8]) {
+        debug_assert_eq!(output.len(), BLOCK_SIZE);
+        self.counter_setup(counter);
+
+        let mut state = self.state;
+        self.rounds(&mut state);
+
+        for (i, chunk) in output.chunks_mut(4).enumerate() {
+            for (a, b) in chunk.iter_mut().zip(&state[i].to_le_bytes()) {
+                *a ^= *b;
+            }
+        }
+    }
+
+    #[inline]
+    fn counter_setup(&mut self, counter: u64) {
+        self.state[12] = (counter & 0xffff_ffff) as u32;
+        self.state[13] = ((counter >> 32) & 0xffff_ffff) as u32;
+    }
+
+    #[inline]
+    fn rounds(&mut self, state: &mut [u32; STATE_WORDS]) {
         for _ in 0..(self.rounds / 2) {
             // column rounds
-            quarter_round(0, 4, 8, 12, &mut state);
-            quarter_round(1, 5, 9, 13, &mut state);
-            quarter_round(2, 6, 10, 14, &mut state);
-            quarter_round(3, 7, 11, 15, &mut state);
+            quarter_round(0, 4, 8, 12, state);
+            quarter_round(1, 5, 9, 13, state);
+            quarter_round(2, 6, 10, 14, state);
+            quarter_round(3, 7, 11, 15, state);
 
             // diagonal rounds
-            quarter_round(0, 5, 10, 15, &mut state);
-            quarter_round(1, 6, 11, 12, &mut state);
-            quarter_round(2, 7, 8, 13, &mut state);
-            quarter_round(3, 4, 9, 14, &mut state);
+            quarter_round(0, 5, 10, 15, state);
+            quarter_round(1, 6, 11, 12, state);
+            quarter_round(2, 7, 8, 13, state);
+            quarter_round(3, 4, 9, 14, state);
         }
 
         for (s1, s0) in state.iter_mut().zip(&self.state) {
             *s1 = s1.wrapping_add(*s0);
-        }
-
-        for (i, chunk) in output.chunks_mut(4).enumerate() {
-            chunk.copy_from_slice(&state[i].to_le_bytes());
         }
     }
 }

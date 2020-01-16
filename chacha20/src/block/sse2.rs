@@ -48,13 +48,26 @@ impl Block {
     #[inline]
     pub(crate) fn generate(&self, counter: u64, output: &mut [u8]) {
         unsafe {
-            self.rounds(
-                self.v0,
-                self.v1,
-                self.v2,
-                iv_setup(self.iv, counter),
-                output,
-            )
+            let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
+            let mut v3 = iv_setup(self.iv, counter);
+            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+            store(v0, v1, v2, v3, output)
+        }
+    }
+
+    #[inline]
+    #[allow(clippy::cast_ptr_alignment)] // loadu/storeu support unaligned loads/stores
+    pub(crate) fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
+        unsafe {
+            let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
+            let mut v3 = iv_setup(self.iv, counter);
+            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+
+            for (chunk, a) in output.chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+                let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
+                let out = _mm_xor_si128(*a, b);
+                _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
+            }
         }
     }
 
@@ -62,25 +75,21 @@ impl Block {
     #[target_feature(enable = "sse2")]
     unsafe fn rounds(
         &self,
-        mut v0: __m128i,
-        mut v1: __m128i,
-        mut v2: __m128i,
-        mut v3: __m128i,
-        output: &mut [u8],
+        v0: &mut __m128i,
+        v1: &mut __m128i,
+        v2: &mut __m128i,
+        v3: &mut __m128i,
     ) {
-        let v3_orig = v3;
+        let v3_orig = *v3;
 
         for _ in 0..(self.rounds / 2) {
-            double_quarter_round(&mut v0, &mut v1, &mut v2, &mut v3);
+            double_quarter_round(v0, v1, v2, v3);
         }
 
-        store(
-            _mm_add_epi32(v0, self.v0),
-            _mm_add_epi32(v1, self.v1),
-            _mm_add_epi32(v2, self.v2),
-            _mm_add_epi32(v3, v3_orig),
-            output,
-        )
+        *v0 = _mm_add_epi32(*v0, self.v0);
+        *v1 = _mm_add_epi32(*v1, self.v1);
+        *v2 = _mm_add_epi32(*v2, self.v2);
+        *v3 = _mm_add_epi32(*v3, v3_orig);
     }
 }
 
