@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.3.0 (2020-01-15)
+## 0.3.1 (2020-01-16)
+### Added
+- Parallelize AVX2 backend ([#87])
+- Benchmark for `ChaCha20Rng` ([#87])
+
+### Fixed
+- Fix broken buffering logic ([#86])
+
+[#86]: https://github.com/RustCrypto/stream-ciphers/pull/83
+[#87]: https://github.com/RustCrypto/stream-ciphers/pull/84
+
+## 0.3.0 (2020-01-15) [YANKED]
+
+NOTE: This release was yanked due to a showstopper bug in the newly added
+buffering logic which when seeking in the keystream could result in plaintexts
+being clobbered with the keystream instead of XOR'd correctly.
+
+The bug was addressed in v0.3.1 ([#86]).
+
 ### Added
 - AVX2 accelerated implementation ([#83])
 - ChaCha8 and ChaCha20 reduced round variants ([#84])

@@ -1,12 +1,12 @@
 [package]
 name = "chacha20"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["RustCrypto Developers"]
 license = "Apache-2.0 OR MIT"
 description = """
 The ChaCha20 stream cipher (RFC 8439) implemented in pure Rust using traits
 from the RustCrypto stream-cipher crate, with optional architecture-specific
-hardware acceleration (SSE2, AVX2). Additionally provides the ChaCha8, ChaCha12,
+hardware acceleration (AVX2, SSE2). Additionally provides the ChaCha8, ChaCha12,
 and XChaCha20 stream ciphers, and also optional rand_core-compatible RNGs based
 on those ciphers.
 """
