@@ -12,6 +12,7 @@
 //!
 //! - `ChaCha20`: standard IETF variant with 96-bit nonce
 //! - `ChaCha20Legacy`: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
+//! - `ChaCha8` / `ChaCha12`: reduced round variants of ChaCha20
 //! - `XChaCha20`: (gated under the `xchacha20` feature) 192-bit extended nonce variant
 //!
 //! # Security Warning
@@ -86,7 +87,9 @@ use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCiph
 pub use self::xchacha20::XChaCha20;
 
 #[cfg(feature = "rng")]
-pub use rng::{ChaCha20Rng, ChaCha20RngCore};
+pub use rng::{
+    ChaCha12Rng, ChaCha12RngCore, ChaCha20Rng, ChaCha20RngCore, ChaCha8Rng, ChaCha8RngCore,
+};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
@@ -108,49 +111,66 @@ const STATE_WORDS: usize = 16;
 //pub(crate) const SIGMA: &[u8; 16] = b"expand 32-byte k";
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
-/// The ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
-///
-/// Use `ChaCha20Legacy` for the legacy (a.k.a. "djb") construction with a
-/// 64-bit nonce.
-#[cfg(feature = "stream-cipher")]
-pub struct ChaCha20(Cipher);
+macro_rules! impl_chacha {
+    ($name:ident, $rounds:expr, $doc:expr) => {
+        #[cfg(feature = "stream-cipher")]
+        #[doc = $doc]
+        pub struct $name(Cipher);
 
-#[cfg(feature = "stream-cipher")]
-impl NewStreamCipher for ChaCha20 {
-    /// Key size in bytes
-    type KeySize = U32;
+        #[cfg(feature = "stream-cipher")]
+        impl NewStreamCipher for $name {
+            /// Key size in bytes
+            type KeySize = U32;
 
-    /// Nonce size in bytes
-    type NonceSize = U12;
+            /// Nonce size in bytes
+            type NonceSize = U12;
 
-    fn new(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U12>) -> Self {
-        let block = Block::new(
-            key.as_ref().try_into().unwrap(),
-            iv[4..12].try_into().unwrap(),
-            20,
-        );
-        let counter = initial_counter(iv[..4].try_into().unwrap());
-        ChaCha20(Cipher::new(block, counter))
+            fn new(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U12>) -> Self {
+                let block = Block::new(
+                    key.as_ref().try_into().unwrap(),
+                    iv[4..12].try_into().unwrap(),
+                    $rounds,
+                );
+                let counter = initial_counter(iv[..4].try_into().unwrap());
+                $name(Cipher::new(block, counter))
+            }
+        }
+
+        #[cfg(feature = "stream-cipher")]
+        impl SyncStreamCipher for $name {
+            fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
+                self.0.try_apply_keystream(data)
+            }
+        }
+
+        #[cfg(feature = "stream-cipher")]
+        impl SyncStreamCipherSeek for $name {
+            fn current_pos(&self) -> u64 {
+                self.0.current_pos()
+            }
+
+            fn seek(&mut self, pos: u64) {
+                self.0.seek(pos);
+            }
+        }
     }
 }
 
-#[cfg(feature = "stream-cipher")]
-impl SyncStreamCipher for ChaCha20 {
-    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
-        self.0.try_apply_keystream(data)
-    }
-}
-
-#[cfg(feature = "stream-cipher")]
-impl SyncStreamCipherSeek for ChaCha20 {
-    fn current_pos(&self) -> u64 {
-        self.0.current_pos()
-    }
-
-    fn seek(&mut self, pos: u64) {
-        self.0.seek(pos);
-    }
-}
+impl_chacha!(
+    ChaCha8,
+    8,
+    "The ChaCha8 stream cipher (8-round variant of ChaCha20)"
+);
+impl_chacha!(
+    ChaCha12,
+    12,
+    "The ChaCha20 stream cipher (12-round variant of ChaCha20)"
+);
+impl_chacha!(
+    ChaCha20,
+    20,
+    "The ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)"
+);
 
 /// Get initial counter value for the given IV prefix
 #[cfg(feature = "stream-cipher")]
