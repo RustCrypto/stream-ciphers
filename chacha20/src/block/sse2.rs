@@ -17,61 +17,68 @@ pub(crate) struct Block {
     v0: __m128i,
     v1: __m128i,
     v2: __m128i,
-    v3: __m128i,
+    iv: [i32; 2],
     rounds: usize,
 }
 
 impl Block {
     /// Initialize block function with the given key size, IV, and number of rounds
+    #[inline]
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE], rounds: usize) -> Self {
         assert!(
             rounds == 8 || rounds == 12 || rounds == 20,
             "rounds must be 8, 12, or 20"
         );
 
-        let vs = unsafe { init(key, iv, 0) };
+        let (v0, v1, v2) = unsafe { key_setup(key) };
+        let iv = [
+            i32::from_le_bytes(iv[4..].try_into().unwrap()),
+            i32::from_le_bytes(iv[..4].try_into().unwrap()),
+        ];
 
         Self {
-            v0: vs[0],
-            v1: vs[1],
-            v2: vs[2],
-            v3: vs[3],
+            v0,
+            v1,
+            v2,
+            iv,
             rounds,
         }
     }
 
     #[inline]
     pub(crate) fn generate(&self, counter: u64, output: &mut [u8]) {
-        let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
-
-        let v3_init = unsafe { set_counter(self.v3, counter) };
-        let mut v3 = v3_init;
-
-        for _ in 0..(self.rounds / 2) {
-            unsafe { double_quarter_round(&mut v0, &mut v1, &mut v2, &mut v3) };
-        }
-
         unsafe {
-            self.add_and_store(v0, v1, v2, v3, v3_init, output);
+            self.rounds(
+                self.v0,
+                self.v1,
+                self.v2,
+                iv_setup(self.iv, counter),
+                output,
+            )
         }
     }
 
     #[inline]
     #[target_feature(enable = "sse2")]
-    unsafe fn add_and_store(
+    unsafe fn rounds(
         &self,
-        v0: __m128i,
-        v1: __m128i,
-        v2: __m128i,
-        v3: __m128i,
-        v3_init: __m128i,
+        mut v0: __m128i,
+        mut v1: __m128i,
+        mut v2: __m128i,
+        mut v3: __m128i,
         output: &mut [u8],
     ) {
+        let v3_orig = v3;
+
+        for _ in 0..(self.rounds / 2) {
+            double_quarter_round(&mut v0, &mut v1, &mut v2, &mut v3);
+        }
+
         store(
             _mm_add_epi32(v0, self.v0),
             _mm_add_epi32(v1, self.v1),
             _mm_add_epi32(v2, self.v2),
-            _mm_add_epi32(v3, v3_init),
+            _mm_add_epi32(v3, v3_orig),
             output,
         )
     }
@@ -80,31 +87,21 @@ impl Block {
 #[inline]
 #[target_feature(enable = "sse2")]
 #[allow(clippy::cast_ptr_alignment)] // loadu supports unaligned loads
-unsafe fn init(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE], counter: u64) -> [__m128i; 4] {
+unsafe fn key_setup(key: &[u8; KEY_SIZE]) -> (__m128i, __m128i, __m128i) {
     let v0 = _mm_loadu_si128(CONSTANTS.as_ptr() as *const __m128i);
     let v1 = _mm_loadu_si128(key.as_ptr().offset(0x00) as *const __m128i);
     let v2 = _mm_loadu_si128(key.as_ptr().offset(0x10) as *const __m128i);
-    let v3 = _mm_set_epi32(
-        i32::from_le_bytes(iv[4..].try_into().unwrap()),
-        i32::from_le_bytes(iv[..4].try_into().unwrap()),
-        ((counter >> 32) & 0xffff_ffff) as i32,
-        (counter & 0xffff_ffff) as i32,
-    );
-
-    [v0, v1, v2, v3]
+    (v0, v1, v2)
 }
 
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn set_counter(v3: __m128i, counter: u64) -> __m128i {
-    _mm_or_si128(
-        v3,
-        _mm_set_epi32(
-            0,
-            0,
-            ((counter >> 32) & 0xffff_ffff) as i32,
-            (counter & 0xffff_ffff) as i32,
-        ),
+unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> __m128i {
+    _mm_set_epi32(
+        iv[0],
+        iv[1],
+        ((counter >> 32) & 0xffff_ffff) as i32,
+        (counter & 0xffff_ffff) as i32,
     )
 }
 
@@ -192,7 +189,17 @@ mod tests {
     #[test]
     fn init_and_store() {
         unsafe {
-            let vs = init(&R_KEY, R_IV, R_CNT);
+            let (v0, v1, v2) = key_setup(&R_KEY);
+
+            let v3 = iv_setup(
+                [
+                    i32::from_le_bytes(R_IV[4..].try_into().unwrap()),
+                    i32::from_le_bytes(R_IV[..4].try_into().unwrap()),
+                ],
+                R_CNT,
+            );
+
+            let vs = [v0, v1, v2, v3];
 
             let mut output = [0u8; BLOCK_SIZE];
             store(vs[0], vs[1], vs[2], vs[3], &mut output);
@@ -212,11 +219,15 @@ mod tests {
     #[test]
     fn init_and_double_round() {
         unsafe {
-            let vs = init(&R_KEY, R_IV, R_CNT);
-            let mut v0 = vs[0];
-            let mut v1 = vs[1];
-            let mut v2 = vs[2];
-            let mut v3 = vs[3];
+            let (mut v0, mut v1, mut v2) = key_setup(&R_KEY);
+
+            let mut v3 = iv_setup(
+                [
+                    i32::from_le_bytes(R_IV[4..].try_into().unwrap()),
+                    i32::from_le_bytes(R_IV[..4].try_into().unwrap()),
+                ],
+                R_CNT,
+            );
 
             double_quarter_round(&mut v0, &mut v1, &mut v2, &mut v3);
 
