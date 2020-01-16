@@ -18,6 +18,17 @@ of ChaCha20 with an extended 192-bit (24-byte) nonce, gated under the
 
 [Documentation][docs-link]
 
+## Implementations
+
+This crate contains the following implementations of ChaCha20, all of which
+work on stable Rust with the following `RUSTFLAGS`:
+
+- `x86` / `x86_64`
+  - `sse2`: `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
+  - `avx2`: `-Ctarget-cpu=haswell -Ctarget-feature=+avx2`
+- Portable
+  - `soft`
+
 ## Security Warning
 
 This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
