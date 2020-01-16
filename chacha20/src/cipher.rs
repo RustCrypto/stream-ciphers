@@ -4,7 +4,10 @@
 
 // TODO(tarcieri): figure out how to unify this with the `ctr` crate
 
-use crate::{block::Block, BLOCK_SIZE};
+use crate::{
+    block::{Block, BUFFER_SIZE},
+    BLOCK_SIZE,
+};
 use core::{
     cmp,
     fmt::{self, Debug},
@@ -12,7 +15,13 @@ use core::{
 use stream_cipher::{LoopError, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// Internal buffer
-type Buffer = [u8; BLOCK_SIZE];
+type Buffer = [u8; BUFFER_SIZE];
+
+/// How much to increment the counter by for each buffer we generate.
+/// Normally this is 1 but the AVX2 backend uses double-wide buffers.
+// TODO(tarcieri): support a parallel blocks count like the `ctr` crate
+// See: <https://github.com/RustCrypto/stream-ciphers/blob/907e94b/ctr/src/lib.rs#L73>
+const COUNTER_INCR: u64 = (BUFFER_SIZE as u64) / (BLOCK_SIZE as u64);
 
 /// ChaCha20 as a counter mode stream cipher
 pub(crate) struct Cipher {
@@ -39,7 +48,7 @@ impl Cipher {
     pub fn new(block: Block, counter_offset: u64) -> Self {
         Self {
             block,
-            buffer: [0u8; BLOCK_SIZE],
+            buffer: [0u8; BUFFER_SIZE],
             buffer_pos: None,
             counter: 0,
             counter_offset,
@@ -63,7 +72,7 @@ impl SyncStreamCipher for Cipher {
         if let Some(pos) = self.buffer_pos {
             let pos = pos as usize;
 
-            if data.len() >= BLOCK_SIZE - pos {
+            if data.len() >= BUFFER_SIZE - pos {
                 let buf = &self.buffer[pos..];
                 let (r, l) = data.split_at_mut(buf.len());
                 data = l;
@@ -79,20 +88,20 @@ impl SyncStreamCipher for Cipher {
 
         let mut counter = self.counter;
 
-        while data.len() >= BLOCK_SIZE {
-            let (l, r) = { data }.split_at_mut(BLOCK_SIZE);
+        while data.len() >= BUFFER_SIZE {
+            let (l, r) = { data }.split_at_mut(BUFFER_SIZE);
             data = r;
 
             // TODO(tarcieri): double check this should be checked and not wrapping
             let counter_with_offset = self.counter_offset.checked_add(counter).unwrap();
             self.block.apply_keystream(counter_with_offset, l);
 
-            counter = counter.checked_add(1).unwrap();
+            counter = counter.checked_add(COUNTER_INCR).unwrap();
         }
 
         if !data.is_empty() {
             self.generate_block(counter);
-            counter = counter.checked_add(1).unwrap();
+            counter = counter.checked_add(COUNTER_INCR).unwrap();
             let n = data.len();
             xor(data, &self.buffer[..n]);
             self.buffer_pos = Some(n as u8);
@@ -126,7 +135,7 @@ impl SyncStreamCipherSeek for Cipher {
             self.buffer_pos = None;
         } else {
             self.generate_block(self.counter);
-            self.counter = self.counter.checked_add(1).unwrap();
+            self.counter = self.counter.checked_add(COUNTER_INCR).unwrap();
             self.buffer_pos = Some(rem as u8);
         }
     }
@@ -137,12 +146,12 @@ impl Cipher {
         let dlen = data.len()
             - self
                 .buffer_pos
-                .map(|pos| cmp::min(BLOCK_SIZE - pos as usize, data.len()))
+                .map(|pos| cmp::min(BUFFER_SIZE - pos as usize, data.len()))
                 .unwrap_or_default();
 
-        let data_buffers = dlen / BLOCK_SIZE + if data.len() % BLOCK_SIZE != 0 { 1 } else { 0 };
+        let data_blocks = dlen / BLOCK_SIZE + if data.len() % BLOCK_SIZE != 0 { 1 } else { 0 };
 
-        if self.counter.checked_add(data_buffers as u64).is_some() {
+        if self.counter.checked_add(data_blocks as u64).is_some() {
             Ok(())
         } else {
             Err(LoopError)

@@ -8,7 +8,7 @@
 //! Goll, M., and Gueron,S.: Vectorization of ChaCha Stream Cipher. Cryptology ePrint Archive,
 //! Report 2013/759, November, 2013, <https://eprint.iacr.org/2013/759.pdf>
 
-use crate::{CONSTANTS, IV_SIZE, KEY_SIZE};
+use crate::{BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
 use core::convert::TryInto;
 
 #[cfg(target_arch = "x86")]
@@ -16,6 +16,12 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+/// Size of buffers passed to `generate` and `apply_keystream` for this
+/// backend, which operates on two blocks in parallel for optimal performance.
+pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE * 2;
+
+/// The ChaCha20 block function (AVX2 accelerated implementation for x86/x86_64)
+// TODO(tarcieri): zeroize?
 #[derive(Clone)]
 pub(crate) struct Block {
     v0: __m256i,
@@ -62,14 +68,22 @@ impl Block {
     #[inline]
     #[allow(clippy::cast_ptr_alignment)] // loadu/storeu support unaligned loads/stores
     pub(crate) fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
+        debug_assert_eq!(output.len(), BUFFER_SIZE);
+
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
             self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
 
-            for (chunk, a) in output.chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+            for (chunk, a) in output[..BLOCK_SIZE].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
                 let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
                 let out = _mm_xor_si128(_mm256_castsi256_si128(*a), b);
+                _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
+            }
+
+            for (chunk, a) in output[BLOCK_SIZE..].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+                let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
+                let out = _mm_xor_si128(_mm256_extractf128_si256(*a, 1), b);
                 _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
             }
         }
@@ -132,22 +146,21 @@ unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> __m256i {
 #[target_feature(enable = "avx2")]
 #[allow(clippy::cast_ptr_alignment)] // storeu supports unaligned stores
 unsafe fn store(v0: __m256i, v1: __m256i, v2: __m256i, v3: __m256i, output: &mut [u8]) {
-    _mm_storeu_si128(
-        output.as_mut_ptr().offset(0x00) as *mut __m128i,
-        _mm256_castsi256_si128(v0),
-    );
-    _mm_storeu_si128(
-        output.as_mut_ptr().offset(0x10) as *mut __m128i,
-        _mm256_castsi256_si128(v1),
-    );
-    _mm_storeu_si128(
-        output.as_mut_ptr().offset(0x20) as *mut __m128i,
-        _mm256_castsi256_si128(v2),
-    );
-    _mm_storeu_si128(
-        output.as_mut_ptr().offset(0x30) as *mut __m128i,
-        _mm256_castsi256_si128(v3),
-    );
+    debug_assert_eq!(output.len(), BUFFER_SIZE);
+
+    for (chunk, v) in output[..BLOCK_SIZE].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+        _mm_storeu_si128(
+            chunk.as_mut_ptr() as *mut __m128i,
+            _mm256_castsi256_si128(*v),
+        );
+    }
+
+    for (chunk, v) in output[BLOCK_SIZE..].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+        _mm_storeu_si128(
+            chunk.as_mut_ptr() as *mut __m128i,
+            _mm256_extractf128_si256(*v, 1),
+        );
+    }
 }
 
 #[inline]

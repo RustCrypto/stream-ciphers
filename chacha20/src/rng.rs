@@ -4,7 +4,10 @@ use core::slice;
 use rand_core::block::{BlockRng, BlockRngCore};
 use rand_core::{Error, RngCore, SeedableRng};
 
-use crate::{block::Block, BLOCK_SIZE, KEY_SIZE, STATE_WORDS};
+use crate::{
+    block::{Block, BUFFER_SIZE},
+    KEY_SIZE,
+};
 
 macro_rules! impl_chacha_rng {
     ($name:ident, $core:ident, $rounds:expr, $doc:expr) => {
@@ -63,12 +66,12 @@ macro_rules! impl_chacha_rng {
 
         impl BlockRngCore for $core {
             type Item = u32;
-            type Results = [u32; STATE_WORDS];
+            type Results = [u32; BUFFER_SIZE / 4];
 
             fn generate(&mut self, results: &mut Self::Results) {
                 // TODO(tarcieri): eliminate unsafety (replace w\ [u8; BLOCK_SIZE)
                 self.block.generate(self.counter, unsafe {
-                    slice::from_raw_parts_mut(results.as_mut_ptr() as *mut u8, BLOCK_SIZE)
+                    slice::from_raw_parts_mut(results.as_mut_ptr() as *mut u8, BUFFER_SIZE)
                 });
                 self.counter += 1;
             }

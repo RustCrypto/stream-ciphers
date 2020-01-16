@@ -8,11 +8,11 @@
 use crate::{BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
 use core::{convert::TryInto, mem};
 
-/// The ChaCha20 block function
-///
-/// While ChaCha20 is a stream cipher, not a block cipher, its core
-/// primitive is a function which acts on a 512-bit block
-// TODO(tarcieri): zeroize? need to make sure we're actually copying first
+/// Size of buffers passed to `generate` and `apply_keystream` for this backend
+pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
+
+/// The ChaCha20 block function (portable software implementation)
+// TODO(tarcieri): zeroize?
 #[allow(dead_code)]
 #[derive(Clone)]
 pub(crate) struct Block {
@@ -49,7 +49,7 @@ impl Block {
 
     /// Generate output, overwriting data already in the buffer
     pub(crate) fn generate(&mut self, counter: u64, output: &mut [u8]) {
-        debug_assert_eq!(output.len(), BLOCK_SIZE);
+        debug_assert_eq!(output.len(), BUFFER_SIZE);
         self.counter_setup(counter);
 
         let mut state = self.state;
@@ -62,7 +62,7 @@ impl Block {
 
     /// Apply generated keystream to the output buffer
     pub(crate) fn apply_keystream(&mut self, counter: u64, output: &mut [u8]) {
-        debug_assert_eq!(output.len(), BLOCK_SIZE);
+        debug_assert_eq!(output.len(), BUFFER_SIZE);
         self.counter_setup(counter);
 
         let mut state = self.state;
