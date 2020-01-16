@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix broken buffering logic ([#86])
 
-[#86]: https://github.com/RustCrypto/stream-ciphers/pull/83
-[#87]: https://github.com/RustCrypto/stream-ciphers/pull/84
+[#86]: https://github.com/RustCrypto/stream-ciphers/pull/86
+[#87]: https://github.com/RustCrypto/stream-ciphers/pull/87
 
 ## 0.3.0 (2020-01-15) [YANKED]
 
