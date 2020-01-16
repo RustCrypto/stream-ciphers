@@ -21,20 +21,20 @@ mod avx2;
     any(target_arch = "x86", target_arch = "x86_64"),
     any(target_feature = "sse2", target_feature = "avx2")
 )))]
-pub(crate) use self::soft::Block;
+pub(crate) use self::soft::{Block, BUFFER_SIZE};
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
     target_feature = "sse2",
     not(target_feature = "avx2")
 ))]
-pub(crate) use self::sse2::Block;
+pub(crate) use self::sse2::{Block, BUFFER_SIZE};
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
     target_feature = "avx2"
 ))]
-pub(crate) use self::avx2::Block;
+pub(crate) use self::avx2::{Block, BUFFER_SIZE};
 
 use core::fmt::{self, Debug};
 

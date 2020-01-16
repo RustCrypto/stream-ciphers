@@ -24,10 +24,12 @@ This crate contains the following implementations of ChaCha20, all of which
 work on stable Rust with the following `RUSTFLAGS`:
 
 - `x86` / `x86_64`
-  - `sse2`: `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
-  - `avx2`: `-Ctarget-cpu=haswell -Ctarget-feature=+avx2`
+  - `avx2`: (~1.4cpb) `-Ctarget-cpu=haswell -Ctarget-feature=+avx2`
+  - `sse2`: (~2.5cpb) `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
 - Portable
-  - `soft`
+  - `soft`: (~5 cpb on x86/x86_64)
+
+NOTE: cpb = cycles per byte (smaller is better)
 
 ## Security Warning
 

@@ -4,7 +4,7 @@
 //!
 //! SSE2-optimized implementation for x86/x86-64 CPUs.
 
-use crate::{CONSTANTS, IV_SIZE, KEY_SIZE};
+use crate::{BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
 use core::convert::TryInto;
 
 #[cfg(target_arch = "x86")]
@@ -12,6 +12,11 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+/// Size of buffers passed to `generate` and `apply_keystream` for this backend
+pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
+
+/// The ChaCha20 block function (SSE2 accelerated implementation for x86/x86_64)
+// TODO(tarcieri): zeroize?
 #[derive(Clone)]
 pub(crate) struct Block {
     v0: __m128i,
@@ -47,6 +52,8 @@ impl Block {
 
     #[inline]
     pub(crate) fn generate(&self, counter: u64, output: &mut [u8]) {
+        debug_assert_eq!(output.len(), BUFFER_SIZE);
+
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
@@ -58,6 +65,8 @@ impl Block {
     #[inline]
     #[allow(clippy::cast_ptr_alignment)] // loadu/storeu support unaligned loads/stores
     pub(crate) fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
+        debug_assert_eq!(output.len(), BUFFER_SIZE);
+
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);

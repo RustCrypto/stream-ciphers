@@ -36,7 +36,11 @@ xchacha20 = ["stream-cipher"]
 rng = ["rand_core"]
 
 [[bench]]
-name = "chacha20"
+name = "stream_cipher"
+harness = false
+
+[[bench]]
+name = "rng"
 harness = false
 
 [package.metadata.docs.rs]
