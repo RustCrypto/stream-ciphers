@@ -6,21 +6,35 @@ pub(crate) mod soft;
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "sse2"
+    target_feature = "sse2",
+    not(target_feature = "avx2")
 ))]
 mod sse2;
 
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "avx2"
+))]
+mod avx2;
+
 #[cfg(not(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "sse2"
+    any(target_feature = "sse2", target_feature = "avx2")
 )))]
 pub(crate) use self::soft::Block;
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "sse2"
+    target_feature = "sse2",
+    not(target_feature = "avx2")
 ))]
 pub(crate) use self::sse2::Block;
+
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "avx2"
+))]
+pub(crate) use self::avx2::Block;
 
 use core::fmt::{self, Debug};
 

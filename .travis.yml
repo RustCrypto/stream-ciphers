@@ -25,12 +25,13 @@ matrix:
       rust: 1.32.0
       script: ./test_aesni.sh
 
-    # chacha20 crate with SSE2 backend
+    # chacha20 crate with SSE2 and AVX2 backends
     - name: "Rust: stable (chacha20)"
       rust: stable
-      env: RUSTFLAGS="-Ctarget-feature=+sse2"
+      env:
       script:
-        - cargo test --package chacha20 --release
+        - RUSTFLAGS="-Ctarget-feature=+sse2" cargo test --package chacha20 --release
+        - RUSTFLAGS="-Ctarget-feature=+avx2" cargo test --package chacha20 --release
         - cd chacha20 && cargo build --no-default-features --features=rng # ensure RNG-only build works
 
     # no_std build
