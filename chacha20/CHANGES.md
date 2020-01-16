@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.0 (2020-01-15)
+### Added
+- AVX2 accelerated implementation ([#83])
+- ChaCha8 and ChaCha20 reduced round variants ([#84])
+
+### Changed
+- Simplify portable implementation ([#76])
+- Make 2018 edition crate; MSRV 1.34+ ([#77])
+- Replace `salsa20-core` dependency with `ctr`-derived buffering ([#81])
+
+### Removed
+- `byteorder` dependency ([#80])
+
+[#76]: https://github.com/RustCrypto/stream-ciphers/pull/76
+[#77]: https://github.com/RustCrypto/stream-ciphers/pull/77
+[#80]: https://github.com/RustCrypto/stream-ciphers/pull/80
+[#81]: https://github.com/RustCrypto/stream-ciphers/pull/81
+[#83]: https://github.com/RustCrypto/stream-ciphers/pull/83
+[#84]: https://github.com/RustCrypto/stream-ciphers/pull/84
+
 ## 0.2.3 (2019-10-23)
 ### Security
 - Ensure block counter < MAX_BLOCKS ([#68])
