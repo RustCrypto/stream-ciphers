@@ -48,6 +48,7 @@ impl Block {
     }
 
     /// Generate output, overwriting data already in the buffer
+    #[inline]
     pub(crate) fn generate(&mut self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);
         self.counter_setup(counter);
@@ -61,6 +62,8 @@ impl Block {
     }
 
     /// Apply generated keystream to the output buffer
+    #[inline]
+    #[cfg(feature = "stream-cipher")]
     pub(crate) fn apply_keystream(&mut self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);
         self.counter_setup(counter);
