@@ -8,18 +8,17 @@ repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait", "xsalsa20"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
-byteorder = { version = "1", default-features = false }
 stream-cipher = "0.3"
-salsa20-core = { version = "0.2", path = "../salsa20-core"}
+zeroize = { version = "1", optional = true }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
 
 [features]
 default = ["xsalsa20"]
-zeroize = ["salsa20-core/zeroize"]
 xsalsa20 = []
 
 [badges]

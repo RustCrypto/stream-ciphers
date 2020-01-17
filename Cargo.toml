@@ -8,5 +8,4 @@ members = [
     "hc-256",
     "ofb",
     "salsa20",
-    "salsa20-core",
 ]

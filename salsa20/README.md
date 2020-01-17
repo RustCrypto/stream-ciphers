@@ -49,7 +49,7 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/salsa20/badge.svg
 [docs-link]: https://docs.rs/salsa20/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.27+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.34+-blue.svg
 [build-image]: https://travis-ci.org/RustCrypto/stream-ciphers.svg?branch=master
 [build-link]: https://travis-ci.org/RustCrypto/stream-ciphers
 

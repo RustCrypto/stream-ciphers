@@ -1,11 +1,7 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use super::Salsa20;
-use block::quarter_round;
-use byteorder::{ByteOrder, LE};
-#[cfg(feature = "zeroize")]
-use salsa20_core::zeroize::Zeroize;
-use salsa20_core::CONSTANTS;
+use crate::{block::quarter_round, Salsa20, CONSTANTS};
+use core::convert::TryInto;
 use stream_cipher::generic_array::{
     typenum::{U16, U24, U32},
     GenericArray,
@@ -39,6 +35,7 @@ impl NewStreamCipher for XSalsa20 {
 
         #[cfg(feature = "zeroize")]
         {
+            use zeroize::Zeroize;
             subkey.as_mut_slice().zeroize();
         }
 
@@ -82,15 +79,15 @@ fn hsalsa20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> Gener
     state[15] = CONSTANTS[3];
 
     for (i, chunk) in key.chunks(4).take(4).enumerate() {
-        state[1 + i] = LE::read_u32(chunk);
+        state[1 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
     }
 
     for (i, chunk) in key.chunks(4).skip(4).enumerate() {
-        state[11 + i] = LE::read_u32(chunk);
+        state[11 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
     }
 
     for (i, chunk) in input.chunks(4).enumerate() {
-        state[6 + i] = LE::read_u32(chunk);
+        state[6 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
     }
 
     // 20 rounds consisting of 10 column rounds and 10 diagonal rounds
@@ -112,7 +109,7 @@ fn hsalsa20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> Gener
     let key_idx: [usize; 8] = [0, 5, 10, 15, 6, 7, 8, 9];
 
     for (i, chunk) in output.chunks_mut(4).enumerate() {
-        LE::write_u32(chunk, state[key_idx[i]]);
+        chunk.copy_from_slice(&state[key_idx[i]].to_le_bytes());
     }
 
     output

@@ -107,8 +107,7 @@ const IV_SIZE: usize = 8;
 /// Number of 32-bit words in the ChaCha20 state
 const STATE_WORDS: usize = 16;
 
-/// State initialization constant
-//pub(crate) const SIGMA: &[u8; 16] = b"expand 32-byte k";
+/// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 macro_rules! impl_chacha {
