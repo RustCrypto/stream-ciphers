@@ -71,8 +71,8 @@ macro_rules! impl_chacha_rng {
 
             fn generate(&mut self, results: &mut Self::Results) {
                 // TODO(tarcieri): eliminate unsafety (replace w\ [u8; BLOCK_SIZE)
-                self.block.generate(self.counter, &mut unsafe {
-                    *(results.as_mut_ptr() as *mut [u8; BUFFER_SIZE])
+                self.block.generate(self.counter, unsafe {
+                    &mut *(results.as_mut_ptr() as *mut [u8; BUFFER_SIZE])
                 });
                 self.counter += 1;
             }
@@ -102,3 +102,27 @@ impl_chacha_rng!(
     20,
     "Random number generator over the ChaCha20 stream cipher."
 );
+
+#[cfg(test)]
+mod tests {
+    use crate::KEY_SIZE;
+    use super::ChaCha20Rng;
+    use rand_core::{SeedableRng, RngCore};
+
+    const KEY: [u8; KEY_SIZE] = [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+        26, 27, 28, 29, 30, 31, 32,
+    ];
+
+    #[test]
+    fn test_rng_output() {
+        let mut rng = ChaCha20Rng::from_seed(KEY);
+        let mut bytes = [0u8; 13];
+
+        rng.fill_bytes(&mut bytes);
+        assert_eq!(bytes, [177, 105, 126, 159, 198, 70, 30, 25, 131, 209, 49, 207, 105]);
+
+        rng.fill_bytes(&mut bytes);
+        assert_eq!(bytes, [167, 163, 252, 19, 79, 20, 152, 128, 232, 187, 43, 93, 35]);
+    }
+}
