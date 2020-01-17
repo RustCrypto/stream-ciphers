@@ -1,6 +1,5 @@
 //! Block RNG based on rand_core::BlockRng
 
-use core::slice;
 use rand_core::block::{BlockRng, BlockRngCore};
 use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
 
@@ -72,8 +71,8 @@ macro_rules! impl_chacha_rng {
 
             fn generate(&mut self, results: &mut Self::Results) {
                 // TODO(tarcieri): eliminate unsafety (replace w\ [u8; BLOCK_SIZE)
-                self.block.generate(self.counter, unsafe {
-                    slice::from_raw_parts_mut(results.as_mut_ptr() as *mut u8, BUFFER_SIZE)
+                self.block.generate(self.counter, &mut unsafe {
+                    *(results.as_mut_ptr() as *mut [u8; BUFFER_SIZE])
                 });
                 self.counter += 1;
             }
