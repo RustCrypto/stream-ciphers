@@ -105,9 +105,9 @@ impl_chacha_rng!(
 
 #[cfg(test)]
 mod tests {
-    use crate::KEY_SIZE;
     use super::ChaCha20Rng;
-    use rand_core::{SeedableRng, RngCore};
+    use crate::KEY_SIZE;
+    use rand_core::{RngCore, SeedableRng};
 
     const KEY: [u8; KEY_SIZE] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -120,9 +120,15 @@ mod tests {
         let mut bytes = [0u8; 13];
 
         rng.fill_bytes(&mut bytes);
-        assert_eq!(bytes, [177, 105, 126, 159, 198, 70, 30, 25, 131, 209, 49, 207, 105]);
+        assert_eq!(
+            bytes,
+            [177, 105, 126, 159, 198, 70, 30, 25, 131, 209, 49, 207, 105]
+        );
 
         rng.fill_bytes(&mut bytes);
-        assert_eq!(bytes, [167, 163, 252, 19, 79, 20, 152, 128, 232, 187, 43, 93, 35]);
+        assert_eq!(
+            bytes,
+            [167, 163, 252, 19, 79, 20, 152, 128, 232, 187, 43, 93, 35]
+        );
     }
 }

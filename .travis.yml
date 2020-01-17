@@ -28,7 +28,6 @@ matrix:
     # chacha20 crate with SSE2 and AVX2 backends
     - name: "Rust: stable (chacha20)"
       rust: stable
-      env:
       script:
         - RUSTFLAGS="-Ctarget-feature=+sse2" cargo test --package chacha20 --release
         - RUSTFLAGS="-Ctarget-feature=+avx2" cargo test --package chacha20 --release
