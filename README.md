@@ -23,13 +23,14 @@ Crates have not yet received any formal cryptographic and security reviews.
 | `hc-256` | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) |
 | `ofb` | [![crates.io](https://img.shields.io/crates/v/ofb.svg)](https://crates.io/crates/ofb) | [![Documentation](https://docs.rs/ofb/badge.svg)](https://docs.rs/ofb) |
 | `salsa20` | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) |
-| `salsa20-core` | [![crates.io](https://img.shields.io/crates/v/salsa20-core.svg)](https://crates.io/crates/salsa20-core) | [![Documentation](https://docs.rs/salsa20-core/badge.svg)](https://docs.rs/salsa20-core) |
 
 
 ### Minimum Rust version
-All crates in this repository support Rust 1.27 or higher. In future minimum
-supported Rust version can be changed, but it will be done with the minor
-version bump.
+All crates in this repository support Rust 1.27 or higher except for the
+`chacha20` and `salsa20` crates, which require Rust 1.34+.
+
+In future minimum supported Rust version can be changed, but it will be done
+with the minor version bump.
 
 ## Usage
 

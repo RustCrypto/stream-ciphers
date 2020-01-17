@@ -25,7 +25,7 @@ pub(crate) struct Block {
 
 #[allow(dead_code)]
 impl Block {
-    /// Initialize block function with the given key size, IV, and number of rounds
+    /// Initialize block function with the given key, IV, and number of rounds
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE], rounds: usize) -> Self {
         assert!(
             rounds == 8 || rounds == 12 || rounds == 20,
