@@ -26,6 +26,7 @@ zeroize = { version = "1", optional = true }
 
 [dev-dependencies]
 stream-cipher = { version = "0.3", features = ["dev"] }
+c2-chacha = "0.2"
 criterion = "0.3"
 criterion-cycles-per-byte = "0.1"
 

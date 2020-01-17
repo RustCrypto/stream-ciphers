@@ -31,6 +31,24 @@ fn bench(c: &mut Criterion<CyclesPerByte>) {
     }
 
     group.finish();
+
+    let mut group = c.benchmark_group("c2-chacha");
+
+    for size in &[KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB] {
+        let mut buf = vec![0u8; *size];
+
+        group.throughput(Throughput::Bytes(*size as u64));
+
+        group.bench_function(BenchmarkId::new("apply_keystream", size), |b| {
+            let key = b"very secret key-the most secret.";
+            let iv = b"my nonce";
+            let mut cipher = c2_chacha::ChaCha20::new_var(key, iv).unwrap();
+
+            b.iter(|| cipher.apply_keystream(&mut buf));
+        });
+    }
+
+    group.finish();
 }
 
 criterion_group!(
