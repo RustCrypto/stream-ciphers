@@ -34,7 +34,8 @@
 //! ```
 
 #![no_std]
-#![deny(missing_docs)]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
 pub use stream_cipher;
 
