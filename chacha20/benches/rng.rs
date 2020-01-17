@@ -19,7 +19,7 @@ fn bench(c: &mut Criterion<CyclesPerByte>) {
 
         group.throughput(Throughput::Bytes(*size as u64));
 
-        group.bench_function(BenchmarkId::new("apply_keystream", size), |b| {
+        group.bench_function(BenchmarkId::new("fill_bytes", size), |b| {
             let mut rng = ChaCha20Rng::from_seed(Default::default());
             b.iter(|| rng.fill_bytes(&mut buf));
         });
