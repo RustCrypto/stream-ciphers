@@ -2,7 +2,7 @@
 
 use core::slice;
 use rand_core::block::{BlockRng, BlockRngCore};
-use rand_core::{Error, RngCore, SeedableRng};
+use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
 
 use crate::{
     block::{Block, BUFFER_SIZE},
@@ -47,6 +47,8 @@ macro_rules! impl_chacha_rng {
             }
         }
 
+        impl CryptoRng for $name {}
+
         #[doc = "Core random number generator, for use with [`rand_core::block::BlockRng`]"]
         #[derive(Clone, Debug)]
         pub struct $core {
@@ -76,6 +78,8 @@ macro_rules! impl_chacha_rng {
                 self.counter += 1;
             }
         }
+
+        impl CryptoRng for $core {}
     }
 }
 
