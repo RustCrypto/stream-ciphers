@@ -6,7 +6,7 @@
 //! intrinsics.
 
 use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
-use core::{convert::TryInto, marker::PhantomData, mem};
+use core::{convert::TryInto, marker::PhantomData};
 
 /// Size of buffers passed to `generate` and `apply_keystream` for this backend
 pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
@@ -27,17 +27,24 @@ pub(crate) struct Block<R: Rounds> {
 impl<R: Rounds> Block<R> {
     /// Initialize block function with the given key, IV, and number of rounds
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
-        let mut state: [u32; STATE_WORDS] = unsafe { mem::zeroed() };
-        state[..4].copy_from_slice(&CONSTANTS);
-
-        for (i, chunk) in key.chunks(4).enumerate() {
-            state[4 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-
-        state[12] = 0;
-        state[13] = 0;
-        state[14] = u32::from_le_bytes(iv[0..4].try_into().unwrap());
-        state[15] = u32::from_le_bytes(iv[4..].try_into().unwrap());
+        let state = [
+            CONSTANTS[0],
+            CONSTANTS[1],
+            CONSTANTS[2],
+            CONSTANTS[3],
+            u32::from_le_bytes(key[..4].try_into().unwrap()),
+            u32::from_le_bytes(key[4..8].try_into().unwrap()),
+            u32::from_le_bytes(key[8..12].try_into().unwrap()),
+            u32::from_le_bytes(key[12..16].try_into().unwrap()),
+            u32::from_le_bytes(key[16..20].try_into().unwrap()),
+            u32::from_le_bytes(key[20..24].try_into().unwrap()),
+            u32::from_le_bytes(key[24..28].try_into().unwrap()),
+            u32::from_le_bytes(key[28..32].try_into().unwrap()),
+            0,
+            0,
+            u32::from_le_bytes(iv[0..4].try_into().unwrap()),
+            u32::from_le_bytes(iv[4..].try_into().unwrap()),
+        ];
 
         Self {
             state,
