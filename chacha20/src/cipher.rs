@@ -38,7 +38,12 @@ type Buffer = [u8; BUFFER_SIZE];
 // See: <https://github.com/RustCrypto/stream-ciphers/blob/907e94b/ctr/src/lib.rs#L73>
 const COUNTER_INCR: u64 = (BUFFER_SIZE as u64) / (BLOCK_SIZE as u64);
 
-/// ChaCha20 as a counter mode stream cipher
+/// ChaCha family stream cipher, generic around a number of rounds.
+///
+/// Use the [`ChaCha8`], [`ChaCha12`], or [`ChaCha20`] type aliases to select
+/// a specific number of rounds.
+///
+/// Generally [`ChaCha20`] is preferred.
 pub struct Cipher<R: Rounds> {
     /// ChaCha20 block function initialized with a key and IV
     block: Block<R>,
