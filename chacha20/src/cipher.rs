@@ -2,17 +2,32 @@
 //!
 //! Adapted from the `ctr` crate.
 
-// TODO(tarcieri): figure out how to unify this with the `ctr` crate
+// TODO(tarcieri): figure out how to unify this with the `ctr` crate (see #95)
 
 use crate::{
     block::{Block, BUFFER_SIZE},
-    BLOCK_SIZE,
+    rounds::{Rounds, R12, R20, R8},
+    BLOCK_SIZE, MAX_BLOCKS,
 };
 use core::{
     cmp,
+    convert::TryInto,
     fmt::{self, Debug},
 };
-use stream_cipher::{LoopError, SyncStreamCipher, SyncStreamCipherSeek};
+use stream_cipher::generic_array::{
+    typenum::{U12, U32},
+    GenericArray,
+};
+use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+
+/// ChaCha8 stream cipher (reduced-round variant of ChaCha20 with 8 rounds)
+pub type ChaCha8 = Cipher<R8>;
+
+/// ChaCha12 stream cipher (reduced-round variant of ChaCha20 with 12 rounds)
+pub type ChaCha12 = Cipher<R12>;
+
+/// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
+pub type ChaCha20 = Cipher<R20>;
 
 /// Internal buffer
 type Buffer = [u8; BUFFER_SIZE];
@@ -24,9 +39,9 @@ type Buffer = [u8; BUFFER_SIZE];
 const COUNTER_INCR: u64 = (BUFFER_SIZE as u64) / (BLOCK_SIZE as u64);
 
 /// ChaCha20 as a counter mode stream cipher
-pub(crate) struct Cipher {
+pub struct Cipher<R: Rounds> {
     /// ChaCha20 block function initialized with a key and IV
-    block: Block,
+    block: Block<R>,
 
     /// Buffer containing previous block function output
     buffer: Buffer,
@@ -43,9 +58,24 @@ pub(crate) struct Cipher {
     counter_offset: u64,
 }
 
-impl Cipher {
-    /// Create new CTR mode cipher from the given block and starting counter
-    pub fn new(block: Block, counter_offset: u64) -> Self {
+impl<R: Rounds> NewStreamCipher for Cipher<R> {
+    /// Key size in bytes
+    type KeySize = U32;
+
+    /// Nonce size in bytes
+    type NonceSize = U12;
+
+    fn new(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U12>) -> Self {
+        let block = Block::new(
+            key.as_ref().try_into().unwrap(),
+            iv[4..12].try_into().unwrap(),
+        );
+
+        let counter_offset = (u64::from(iv[0]) & 0xff) << 32
+            | (u64::from(iv[1]) & 0xff) << 40
+            | (u64::from(iv[2]) & 0xff) << 48
+            | (u64::from(iv[3]) & 0xff) << 56;
+
         Self {
             block,
             buffer: [0u8; BUFFER_SIZE],
@@ -54,17 +84,9 @@ impl Cipher {
             counter_offset,
         }
     }
-
-    /// Generate a block, storing it in the internal buffer
-    #[inline]
-    fn generate_block(&mut self, counter: u64) {
-        // TODO(tarcieri): double check this should be checked and not wrapping
-        let counter_with_offset = self.counter_offset.checked_add(counter).unwrap();
-        self.block.generate(counter_with_offset, &mut self.buffer);
-    }
 }
 
-impl SyncStreamCipher for Cipher {
+impl<R: Rounds> SyncStreamCipher for Cipher<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
 
@@ -113,7 +135,7 @@ impl SyncStreamCipher for Cipher {
     }
 }
 
-impl SyncStreamCipherSeek for Cipher {
+impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
     fn current_pos(&self) -> u64 {
         let bs = BLOCK_SIZE as u64;
 
@@ -141,7 +163,8 @@ impl SyncStreamCipherSeek for Cipher {
     }
 }
 
-impl Cipher {
+impl<R: Rounds> Cipher<R> {
+    /// Check data length
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         let dlen = data.len()
             - self
@@ -151,15 +174,25 @@ impl Cipher {
 
         let data_blocks = dlen / BLOCK_SIZE + if data.len() % BLOCK_SIZE != 0 { 1 } else { 0 };
 
-        if self.counter.checked_add(data_blocks as u64).is_some() {
-            Ok(())
-        } else {
-            Err(LoopError)
+        if let Some(new_counter) = self.counter.checked_add(data_blocks as u64) {
+            if new_counter <= MAX_BLOCKS as u64 {
+                return Ok(());
+            }
         }
+
+        Err(LoopError)
+    }
+
+    /// Generate a block, storing it in the internal buffer
+    #[inline]
+    fn generate_block(&mut self, counter: u64) {
+        // TODO(tarcieri): double check this should be checked and not wrapping
+        let counter_with_offset = self.counter_offset.checked_add(counter).unwrap();
+        self.block.generate(counter_with_offset, &mut self.buffer);
     }
 }
 
-impl Debug for Cipher {
+impl<R: Rounds> Debug for Cipher<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Cipher {{ .. }}")
     }

@@ -1,6 +1,6 @@
 //! XChaCha20 is an extended nonce variant of ChaCha20
 
-use crate::{block::soft::quarter_round, ChaCha20, CONSTANTS};
+use crate::{block::soft::quarter_round, cipher::ChaCha20, CONSTANTS};
 use core::convert::TryInto;
 use stream_cipher::generic_array::{
     typenum::{U16, U24, U32},

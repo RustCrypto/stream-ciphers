@@ -5,11 +5,12 @@ use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
 
 use crate::{
     block::{Block, BUFFER_SIZE},
-    KEY_SIZE,
+    rounds::{R12, R20, R8},
+    KEY_SIZE, MAX_BLOCKS,
 };
 
 macro_rules! impl_chacha_rng {
-    ($name:ident, $core:ident, $rounds:expr, $doc:expr) => {
+    ($name:ident, $core:ident, $rounds:ident, $doc:expr) => {
         #[doc = $doc]
         #[derive(Clone, Debug)]
         pub struct $name(BlockRng<$core>);
@@ -51,7 +52,7 @@ macro_rules! impl_chacha_rng {
         #[doc = "Core random number generator, for use with [`rand_core::block::BlockRng`]"]
         #[derive(Clone, Debug)]
         pub struct $core {
-            block: Block,
+            block: Block<$rounds>,
             counter: u64,
         }
 
@@ -60,7 +61,7 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let block = Block::new(&seed, Default::default(), $rounds);
+                let block = Block::new(&seed, Default::default());
                 Self { block, counter: 0 }
             }
         }
@@ -70,6 +71,8 @@ macro_rules! impl_chacha_rng {
             type Results = [u32; BUFFER_SIZE / 4];
 
             fn generate(&mut self, results: &mut Self::Results) {
+                assert!(self.counter <= MAX_BLOCKS as u64, "maximum number of allowed ChaCha blocks exceeded");
+
                 // TODO(tarcieri): eliminate unsafety (replace w\ [u8; BLOCK_SIZE)
                 self.block.generate(self.counter, unsafe {
                     &mut *(results.as_mut_ptr() as *mut [u8; BUFFER_SIZE])
@@ -85,21 +88,21 @@ macro_rules! impl_chacha_rng {
 impl_chacha_rng!(
     ChaCha8Rng,
     ChaCha8RngCore,
-    8,
+    R8,
     "Random number generator over the ChaCha8 stream cipher."
 );
 
 impl_chacha_rng!(
     ChaCha12Rng,
     ChaCha12RngCore,
-    12,
+    R12,
     "Random number generator over the ChaCha12 stream cipher."
 );
 
 impl_chacha_rng!(
     ChaCha20Rng,
     ChaCha20RngCore,
-    20,
+    R20,
     "Random number generator over the ChaCha20 stream cipher."
 );
 

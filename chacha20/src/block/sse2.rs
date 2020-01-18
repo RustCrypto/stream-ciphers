@@ -4,8 +4,8 @@
 //!
 //! SSE2-optimized implementation for x86/x86-64 CPUs.
 
-use crate::{BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
-use core::convert::TryInto;
+use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
+use core::{convert::TryInto, marker::PhantomData};
 
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
@@ -18,23 +18,18 @@ pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
 /// The ChaCha20 block function (SSE2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
 #[derive(Clone)]
-pub(crate) struct Block {
+pub(crate) struct Block<R: Rounds> {
     v0: __m128i,
     v1: __m128i,
     v2: __m128i,
     iv: [i32; 2],
-    rounds: usize,
+    rounds: PhantomData<R>,
 }
 
-impl Block {
+impl<R: Rounds> Block<R> {
     /// Initialize block function with the given key size, IV, and number of rounds
     #[inline]
-    pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE], rounds: usize) -> Self {
-        assert!(
-            rounds == 8 || rounds == 12 || rounds == 20,
-            "rounds must be 8, 12, or 20"
-        );
-
+    pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
         let (v0, v1, v2) = unsafe { key_setup(key) };
         let iv = [
             i32::from_le_bytes(iv[4..].try_into().unwrap()),
@@ -46,7 +41,7 @@ impl Block {
             v1,
             v2,
             iv,
-            rounds,
+            rounds: PhantomData,
         }
     }
 
@@ -92,7 +87,7 @@ impl Block {
     ) {
         let v3_orig = *v3;
 
-        for _ in 0..(self.rounds / 2) {
+        for _ in 0..(R::COUNT / 2) {
             double_quarter_round(v0, v1, v2, v3);
         }
 
@@ -193,6 +188,7 @@ unsafe fn add_xor_rot(v0: &mut __m128i, v1: &mut __m128i, v2: &mut __m128i, v3: 
 #[cfg(all(test, target_feature = "sse2"))]
 mod tests {
     use super::*;
+    use crate::rounds::R20;
     use crate::{block::soft::Block as SoftBlock, BLOCK_SIZE};
     use core::convert::TryInto;
 
@@ -268,10 +264,10 @@ mod tests {
     #[test]
     fn generate_vs_scalar_impl() {
         let mut soft_result = [0u8; BLOCK_SIZE];
-        SoftBlock::new(&R_KEY, R_IV, 20).generate(R_CNT, &mut soft_result);
+        SoftBlock::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut soft_result);
 
         let mut simd_result = [0u8; BLOCK_SIZE];
-        Block::new(&R_KEY, R_IV, 20).generate(R_CNT, &mut simd_result);
+        Block::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut simd_result);
 
         assert_eq!(&soft_result[..], &simd_result[..])
     }
