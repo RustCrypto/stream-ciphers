@@ -4,6 +4,8 @@
 
 pub(crate) mod soft;
 
+use crate::rounds::Rounds;
+
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
     target_feature = "sse2",
@@ -39,7 +41,7 @@ pub(crate) use self::avx2::{Block, BUFFER_SIZE};
 use core::fmt::{self, Debug};
 
 /// Common debug impl for all blocks
-impl Debug for Block {
+impl<R: Rounds> Debug for Block<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.write_str("Block {{  .. }}")
     }

@@ -5,8 +5,8 @@
 //! Portable implementation which does not rely on architecture-specific
 //! intrinsics.
 
-use crate::{BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
-use core::{convert::TryInto, mem};
+use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
+use core::{convert::TryInto, marker::PhantomData, mem};
 
 /// Size of buffers passed to `generate` and `apply_keystream` for this backend
 pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
@@ -15,23 +15,18 @@ pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
 // TODO(tarcieri): zeroize?
 #[allow(dead_code)]
 #[derive(Clone)]
-pub(crate) struct Block {
+pub(crate) struct Block<R: Rounds> {
     /// Internal state of the block function
     state: [u32; STATE_WORDS],
 
     /// Number of rounds to perform
-    rounds: usize,
+    rounds: PhantomData<R>,
 }
 
 #[allow(dead_code)]
-impl Block {
+impl<R: Rounds> Block<R> {
     /// Initialize block function with the given key, IV, and number of rounds
-    pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE], rounds: usize) -> Self {
-        assert!(
-            rounds == 8 || rounds == 12 || rounds == 20,
-            "rounds must be 8, 12, or 20"
-        );
-
+    pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
         let mut state: [u32; STATE_WORDS] = unsafe { mem::zeroed() };
         state[..4].copy_from_slice(&CONSTANTS);
 
@@ -44,7 +39,10 @@ impl Block {
         state[14] = u32::from_le_bytes(iv[0..4].try_into().unwrap());
         state[15] = u32::from_le_bytes(iv[4..].try_into().unwrap());
 
-        Self { state, rounds }
+        Self {
+            state,
+            rounds: PhantomData,
+        }
     }
 
     /// Generate output, overwriting data already in the buffer
@@ -86,7 +84,7 @@ impl Block {
 
     #[inline]
     fn rounds(&mut self, state: &mut [u32; STATE_WORDS]) {
-        for _ in 0..(self.rounds / 2) {
+        for _ in 0..(R::COUNT / 2) {
             // column rounds
             quarter_round(0, 4, 8, 12, state);
             quarter_round(1, 5, 9, 13, state);

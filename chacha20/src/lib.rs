@@ -62,34 +62,26 @@ mod block;
 pub(crate) mod cipher;
 #[cfg(feature = "legacy")]
 mod legacy;
+mod rounds;
 #[cfg(feature = "xchacha20")]
 mod xchacha20;
 
 #[cfg(feature = "rng")]
 mod rng;
 
+#[cfg(feature = "stream-cipher")]
+pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher};
+
 #[cfg(feature = "legacy")]
 pub use self::legacy::ChaCha20Legacy;
-
-#[cfg(feature = "stream-cipher")]
-use self::{block::Block, cipher::Cipher};
-#[cfg(feature = "stream-cipher")]
-use core::convert::TryInto;
-#[cfg(feature = "stream-cipher")]
-use stream_cipher::generic_array::{
-    typenum::{U12, U32},
-    GenericArray,
-};
-#[cfg(feature = "stream-cipher")]
-use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
-
-#[cfg(feature = "xchacha20")]
-pub use self::xchacha20::XChaCha20;
 
 #[cfg(feature = "rng")]
 pub use rng::{
     ChaCha12Rng, ChaCha12RngCore, ChaCha20Rng, ChaCha20RngCore, ChaCha8Rng, ChaCha8RngCore,
 };
+
+#[cfg(feature = "xchacha20")]
+pub use self::xchacha20::XChaCha20;
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
@@ -109,73 +101,3 @@ const STATE_WORDS: usize = 16;
 
 /// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
-
-macro_rules! impl_chacha {
-    ($name:ident, $rounds:expr, $doc:expr) => {
-        #[cfg(feature = "stream-cipher")]
-        #[doc = $doc]
-        pub struct $name(Cipher);
-
-        #[cfg(feature = "stream-cipher")]
-        impl NewStreamCipher for $name {
-            /// Key size in bytes
-            type KeySize = U32;
-
-            /// Nonce size in bytes
-            type NonceSize = U12;
-
-            fn new(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U12>) -> Self {
-                let block = Block::new(
-                    key.as_ref().try_into().unwrap(),
-                    iv[4..12].try_into().unwrap(),
-                    $rounds,
-                );
-                let counter = initial_counter(iv[..4].try_into().unwrap());
-                $name(Cipher::new(block, counter))
-            }
-        }
-
-        #[cfg(feature = "stream-cipher")]
-        impl SyncStreamCipher for $name {
-            fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
-                self.0.try_apply_keystream(data)
-            }
-        }
-
-        #[cfg(feature = "stream-cipher")]
-        impl SyncStreamCipherSeek for $name {
-            fn current_pos(&self) -> u64 {
-                self.0.current_pos()
-            }
-
-            fn seek(&mut self, pos: u64) {
-                self.0.seek(pos);
-            }
-        }
-    }
-}
-
-impl_chacha!(
-    ChaCha8,
-    8,
-    "The ChaCha8 stream cipher (8-round variant of ChaCha20)"
-);
-impl_chacha!(
-    ChaCha12,
-    12,
-    "The ChaCha20 stream cipher (12-round variant of ChaCha20)"
-);
-impl_chacha!(
-    ChaCha20,
-    20,
-    "The ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)"
-);
-
-/// Get initial counter value for the given IV prefix
-#[cfg(feature = "stream-cipher")]
-fn initial_counter(exp_iv: [u8; 4]) -> u64 {
-    (u64::from(exp_iv[0]) & 0xff) << 32
-        | (u64::from(exp_iv[1]) & 0xff) << 40
-        | (u64::from(exp_iv[2]) & 0xff) << 48
-        | (u64::from(exp_iv[3]) & 0xff) << 56
-}

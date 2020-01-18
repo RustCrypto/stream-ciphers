@@ -2,7 +2,7 @@
 //!
 //! Adapted from the `ctr` crate.
 
-// TODO(tarcieri): figure out how to unify this with the `ctr` crate
+// TODO(tarcieri): figure out how to unify this with the `ctr` crate (see #95)
 
 use crate::{block::Block, BLOCK_SIZE};
 use core::{
