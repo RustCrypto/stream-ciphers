@@ -19,10 +19,8 @@ stream-cipher = { version = "0.3", features = ["dev"] }
 
 [features]
 default = ["xsalsa20"]
+hsalsa20 = ["xsalsa20"]
 xsalsa20 = []
 
 [badges]
 travis-ci = { repository = "RustCrypto/stream-ciphers" }
-
-[package.metadata.docs.rs]
-all-features = true
