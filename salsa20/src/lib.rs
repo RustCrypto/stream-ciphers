@@ -47,6 +47,9 @@ mod xsalsa20;
 #[cfg(feature = "xsalsa20")]
 pub use self::xsalsa20::XSalsa20;
 
+#[cfg(feature = "hsalsa20")]
+pub use self::xsalsa20::hsalsa20;
+
 use crate::{block::Block, cipher::Cipher};
 use core::convert::TryInto;
 use stream_cipher::generic_array::typenum::{U32, U8};

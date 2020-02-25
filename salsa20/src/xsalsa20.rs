@@ -59,18 +59,18 @@ impl SyncStreamCipherSeek for XSalsa20 {
     }
 }
 
+/// The HSalsa20 function defined in the paper "Extending the Salsa20 nonce"
+///
+/// <https://cr.yp.to/snuffle/xsalsa-20110204.pdf>
+///
 /// HSalsa20 takes 512-bits of input:
 ///
-/// * Constants (`u32` x 4)
-/// * Key (`u32` x 8)
-/// * Nonce (`u32` x 4)
+/// - Constants (`u32` x 4)
+/// - Key (`u32` x 8)
+/// - Nonce (`u32` x 4)
 ///
 /// It produces 256-bits of output suitable for use as a Salsa20 key
-///
-/// For more information on HSalsa20, see:
-///
-/// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
-fn hsalsa20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+pub fn hsalsa20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
 
     state[0] = CONSTANTS[0];
