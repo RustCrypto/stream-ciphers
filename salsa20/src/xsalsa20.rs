@@ -70,7 +70,10 @@ impl SyncStreamCipherSeek for XSalsa20 {
 /// - Nonce (`u32` x 4)
 ///
 /// It produces 256-bits of output suitable for use as a Salsa20 key
-pub fn hsalsa20(key: &GenericArray<u8, U32>, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+pub fn hsalsa20(
+    key: &GenericArray<u8, U32>,
+    input: &GenericArray<u8, U16>,
+) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
 
     state[0] = CONSTANTS[0];
