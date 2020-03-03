@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.4 (2020-03-02)
+### Fixed
+- Avoid accidental `alloc` and `std` linking ([#105])
+
+[#105]: https://github.com/RustCrypto/stream-ciphers/pull/105
+
 ## 0.3.3 (2020-01-18)
 ### Changed
 - Replace macros with `Rounds` trait + generics ([#100])
