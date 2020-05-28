@@ -42,16 +42,15 @@
 #![allow(clippy::needless_doctest_main)]
 #![deny(missing_docs)]
 
-extern crate block_cipher_trait;
-pub extern crate stream_cipher;
+pub use stream_cipher;
 
 use stream_cipher::{
     InvalidKeyNonceLength, LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek,
 };
 
-use block_cipher_trait::generic_array::typenum::{Unsigned, U16};
-use block_cipher_trait::generic_array::{ArrayLength, GenericArray};
-use block_cipher_trait::BlockCipher;
+use block_cipher::generic_array::typenum::{Unsigned, U16};
+use block_cipher::generic_array::{ArrayLength, GenericArray};
+use block_cipher::{BlockCipher, NewBlockCipher};
 use core::{cmp, fmt, mem, ptr};
 
 #[inline(always)]
@@ -116,7 +115,7 @@ fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
 
 impl<C> NewStreamCipher for Ctr128<C>
 where
-    C: BlockCipher<BlockSize = U16>,
+    C: NewBlockCipher + BlockCipher<BlockSize = U16>,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     type KeySize = C::KeySize;
@@ -290,7 +289,7 @@ where
     C: BlockCipher<BlockSize = U16>,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Ctr128 {{ .. }}")
     }
 }
