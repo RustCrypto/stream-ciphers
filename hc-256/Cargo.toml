@@ -7,6 +7,7 @@ description = "HC-256 Stream Cipher"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
+readme = "README.md"
 
 [dependencies]
 block-cipher-trait = "0.6"

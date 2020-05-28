@@ -1,13 +1,14 @@
 [package]
 name = "cfb8"
 version = "0.3.2"
+description = "Generic 8-bit Cipher Feedback (CFB8) mode implementation."
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
-description = "Generic 8-bit Cipher Feedback (CFB8) mode implementation."
 documentation = "https://docs.rs/cfb8"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "block-mode"]
 categories = ["cryptography", "no-std"]
+readme = "README.md"
 
 [dependencies]
 stream-cipher = "0.3"

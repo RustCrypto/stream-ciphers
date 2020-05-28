@@ -1,13 +1,14 @@
 [package]
 name = "cfb-mode"
 version = "0.3.2"
+description = "Generic Cipher Feedback (CFB) mode implementation."
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
-description = "Generic Cipher Feedback (CFB) mode implementation."
 documentation = "https://docs.rs/cfb-mode"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "block-mode"]
 categories = ["cryptography", "no-std"]
+readme = "README.md"
 
 [dependencies]
 stream-cipher = "0.3"

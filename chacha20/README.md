@@ -1,10 +1,17 @@
 # RustCrypto: ChaCha20
 
-[![crate][crate-image]][crate-link]
+[![Crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
 [![Build Status][build-image]][build-link]
+[![HAZMAT][hazmat-image]][hazmat-link]
+
+Pure Rust implementation of the [ChaCha20 Stream Cipher][1].
+
+[Documentation][docs-link]
+
+## About
 
 [ChaCha20][1] is a [stream cipher][2] which is designed to support
 high-performance software implementations.
@@ -15,8 +22,6 @@ per-round diffusion at no cost to performance.
 This crate also contains an implementation of [XChaCha20][4]: a variant
 of ChaCha20 with an extended 192-bit (24-byte) nonce, gated under the
 `xchacha20` Cargo feature (on-by-default).
-
-[Documentation][docs-link]
 
 ## Implementations
 
@@ -31,18 +36,29 @@ work on stable Rust with the following `RUSTFLAGS`:
 
 NOTE: cpb = cycles per byte (smaller is better)
 
-## Security Warning
+## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
-This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
-is not verified, which can lead to serious vulnerabilities! To avoid this, use
-the [ChaCha20Poly1305][5] Authenticated Encryption with Associated Data (AEAD)
-algorithm instead.
+This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
+verify ciphertext integerity), which can lead to serious vulnerabilities
+if used incorrectly!
 
 No security audits of this crate have ever been performed, and it has not been
 thoroughly assessed to ensure its operation is constant-time on common CPU
 architectures.
 
 USE AT YOUR OWN RISK!
+
+## Minimum Supported Rust Version
+
+Rust **1.41** or higher.
+
+Minimum supported Rust version can be changed in the future, but it will be
+done with a minor version bump.
+
+## SemVer Policy
+
+- All on-by-default features of this library are covered by SemVer
+- MSRV is considered exempt from SemVer as noted above
 
 ## License
 
@@ -61,16 +77,18 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/chacha20.svg
-[crate-link]: https://crates.io/crates/chacha20
-[docs-image]: https://docs.rs/chacha20/badge.svg
-[docs-link]: https://docs.rs/chacha20/
+[crate-image]: https://img.shields.io/crates/v/cfb-mode.svg
+[crate-link]: https://crates.io/crates/cfb-mode
+[docs-image]: https://docs.rs/cfb-mode/badge.svg
+[docs-link]: https://docs.rs/cfb-mode/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.34+-blue.svg
-[build-image]: https://travis-ci.org/RustCrypto/stream-ciphers.svg?branch=master
-[build-link]: https://travis-ci.org/RustCrypto/stream-ciphers
+[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0%EF%B8%8F-red.svg
+[hazmat-link]: https://github.com/RustCrypto/meta/wiki/About-%22hazmat%22-crates
+[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push
+[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Acfb-mode
 
-[//]: # (general links)
+[//]: # (footnotes)
 
 [1]: https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant
 [2]: https://en.wikipedia.org/wiki/Stream_cipher
