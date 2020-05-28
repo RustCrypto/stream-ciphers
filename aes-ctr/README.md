@@ -1,4 +1,4 @@
-# RustCrypto: Salsa20 Stream Cipher
+# RustCrypto: AES-CTR
 
 [![Crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
@@ -7,30 +7,25 @@
 [![Build Status][build-image]][build-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
-Pure Rust implementation of the [Salsa20 Stream Cipher][1].
+Pure Rust implementation of the [Advanced Encryption Standard (AES)][1]
+in [Counter Mode][2].
+
+Provides a high-performance implementation based on AES-NI and other x86(-64)
+CPU intrinsics when available, or otherwise falls back on a bitsliced software
+implementation and the [`ctr`][3] crate.
 
 [Documentation][docs-link]
 
-<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/salsa20.svg" width="250px">
-
-## About
-
-[Salsa20][1] is a [stream cipher][2] which is designed to support
-high-performance software implementations.
-
-This crate also contains an implementation of [XSalsa20][3]: a variant
-of Salsa20 with an extended 192-bit (24-byte) nonce, gated under the
-`xsalsa20` Cargo feature (on-by-default).
-
-## ⚠️ Security Warning: [Hazmat!][hazmat-link]
+### ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
 This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
 verify ciphertext integerity), which can lead to serious vulnerabilities
 if used incorrectly!
 
-No security audits of this crate have ever been performed, and it has not been
-thoroughly assessed to ensure its operation is constant-time on common CPU
-architectures.
+To avoid this, use an [AEAD][4] mode based on AES, such as [AES-GCM][5] or
+[AES-GCM-SIV][6].
+
+See the [RustCrypto/AEADs][7] repository for more information.
 
 USE AT YOUR OWN RISK!
 
@@ -63,20 +58,23 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/salsa20.svg
-[crate-link]: https://crates.io/crates/salsa20
-[docs-image]: https://docs.rs/salsa20/badge.svg
-[docs-link]: https://docs.rs/salsa20/
+[crate-image]: https://img.shields.io/crates/v/aes-ctr.svg
+[crate-link]: https://crates.io/crates/aes-ctr
+[docs-image]: https://docs.rs/aes-ctr/badge.svg
+[docs-link]: https://docs.rs/aes-ctr/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
 [hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0%EF%B8%8F-red.svg
 [hazmat-link]: https://github.com/RustCrypto/meta/wiki/About-%22hazmat%22-crates
-[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Asalsa20
+[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/aes-ctr/badge.svg?branch=master&event=push
+[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Aaes-ctr
 
-[//]: # (footnotes)
+[//]: # (general links)
 
-[1]: https://en.wikipedia.org/wiki/Salsa20
-[2]: https://en.wikipedia.org/wiki/Stream_cipher
-[3]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
-[4]: https://github.com/RustCrypto/AEADs/tree/master/xsalsa20poly1305
+[1]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+[2]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_(CTR)
+[3]: https://github.com/RustCrypto/stream-ciphers/tree/master/ctr
+[4]: https://en.wikipedia.org/wiki/Authenticated_encryption
+[5]: https://github.com/RustCrypto/AEADs/tree/master/aes-gcm
+[6]: https://github.com/RustCrypto/AEADs/tree/master/aes-gcm-siv
+[7]: https://github.com/RustCrypto/AEADs

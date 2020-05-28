@@ -1,13 +1,14 @@
 [package]
 name = "aes-ctr"
 version = "0.3.0"
+description = "AES-CTR stream ciphers"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
-description = "AES-CTR stream ciphers"
 documentation = "https://docs.rs/aes-ctr"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
+readme = "README.md"
 
 [dependencies]
 stream-cipher = "0.3"

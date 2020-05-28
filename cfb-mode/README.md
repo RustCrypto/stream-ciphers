@@ -1,4 +1,4 @@
-# RustCrypto: Salsa20 Stream Cipher
+# RustCrypto: Cipher Feedback Mode (CFB)
 
 [![Crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
@@ -7,20 +7,12 @@
 [![Build Status][build-image]][build-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
-Pure Rust implementation of the [Salsa20 Stream Cipher][1].
+Generic [Cipher Feedback (CFB)][1] mode implementation as a
+[self-synchronizing stream cipher][2].
 
 [Documentation][docs-link]
 
-<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/salsa20.svg" width="250px">
-
-## About
-
-[Salsa20][1] is a [stream cipher][2] which is designed to support
-high-performance software implementations.
-
-This crate also contains an implementation of [XSalsa20][3]: a variant
-of Salsa20 with an extended 192-bit (24-byte) nonce, gated under the
-`xsalsa20` Cargo feature (on-by-default).
+![Diagram](https://github.com/RustCrypto/meta/blob/master/img/stream-ciphers/cfb.png?raw=true)
 
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
@@ -63,20 +55,18 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/salsa20.svg
-[crate-link]: https://crates.io/crates/salsa20
-[docs-image]: https://docs.rs/salsa20/badge.svg
-[docs-link]: https://docs.rs/salsa20/
+[crate-image]: https://img.shields.io/crates/v/cfb-mode.svg
+[crate-link]: https://crates.io/crates/cfb-mode
+[docs-image]: https://docs.rs/cfb-mode/badge.svg
+[docs-link]: https://docs.rs/cfb-mode/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
 [hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0%EF%B8%8F-red.svg
 [hazmat-link]: https://github.com/RustCrypto/meta/wiki/About-%22hazmat%22-crates
-[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Asalsa20
+[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push
+[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Acfb-mode
 
 [//]: # (footnotes)
 
-[1]: https://en.wikipedia.org/wiki/Salsa20
-[2]: https://en.wikipedia.org/wiki/Stream_cipher
-[3]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
-[4]: https://github.com/RustCrypto/AEADs/tree/master/xsalsa20poly1305
+[1]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#CFB
+[2]: https://en.wikipedia.org/wiki/Stream_cipher#Self-synchronizing_stream_ciphers
