@@ -11,7 +11,7 @@ Pure Rust implementation of the [Salsa20 Stream Cipher][1].
 
 [Documentation][docs-link]
 
-<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/salsa20.svg" width="250px">
+<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/salsa20.png" width="300px">
 
 ## About
 
