@@ -1,5 +1,4 @@
 # RustCrypto: stream ciphers
-[![Build Status](https://travis-ci.org/RustCrypto/stream-ciphers.svg?branch=master)](https://travis-ci.org/RustCrypto/stream-ciphers) [![dependency status](https://deps.rs/repo/github/RustCrypto/stream-ciphers/status.svg)](https://deps.rs/repo/github/RustCrypto/stream-ciphers)
 
 Collection of [stream cipher][1] algorithms written in pure Rust.
 
@@ -13,16 +12,16 @@ Crates have not yet received any formal cryptographic and security reviews.
 **USE AT YOUR OWN RISK.**
 
 ## Crates
-| Name | Crates.io | Documentation |
-| ---- | :--------:| :------------:|
-| `aes-ctr` | [![crates.io](https://img.shields.io/crates/v/aes-ctr.svg)](https://crates.io/crates/aes-ctr) | [![Documentation](https://docs.rs/aes-ctr/badge.svg)](https://docs.rs/aes-ctr) |
-| `cfb-mode` | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) |
-| `cfb8` | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) |
-| `chacha20` | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) |
-| `ctr` | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) |
-| `hc-256` | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) |
-| `ofb` | [![crates.io](https://img.shields.io/crates/v/ofb.svg)](https://crates.io/crates/ofb) | [![Documentation](https://docs.rs/ofb/badge.svg)](https://docs.rs/ofb) |
-| `salsa20` | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) |
+| Name | Crates.io | Documentation | Build Status |
+|------|-----------|---------------|--------------|
+| `aes-ctr` | [![crates.io](https://img.shields.io/crates/v/aes-ctr.svg)](https://crates.io/crates/aes-ctr) | [![Documentation](https://docs.rs/aes-ctr/badge.svg)](https://docs.rs/aes-ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/aes-ctr/badge.svg?branch=master&event=push)
+| `cfb-mode` | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
+| `cfb8` | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
+| `chacha20` | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/chacha20/badge.svg?branch=master&event=push)
+| `ctr` | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ctr/badge.svg?branch=master&event=push)
+| `hc-256` | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/hc-256/badge.svg?branch=master&event=push)
+| `ofb` | [![crates.io](https://img.shields.io/crates/v/ofb.svg)](https://crates.io/crates/ofb) | [![Documentation](https://docs.rs/ofb/badge.svg)](https://docs.rs/ofb) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ofb/badge.svg?branch=master&event=push)
+| `salsa20` | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master)
 
 
 ### Minimum Rust version
