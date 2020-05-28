@@ -1,5 +1,5 @@
 #![no_std]
-extern crate aes_ctr;
+
 #[macro_use]
 extern crate stream_cipher;
 

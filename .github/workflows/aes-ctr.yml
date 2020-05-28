@@ -50,7 +50,7 @@ jobs:
       working-directory: aes-ctr
     - run: cargo test --release
       working-directory: aes-ctr
-    - run: cargo test --release
+    - run: cargo test --release --lib
       env:
         RUSTFLAGS: "-C target-feature=+aes,+sse2,+ssse3"
       working-directory: aes-ctr
