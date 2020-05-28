@@ -1,4 +1,4 @@
-# ChaCha20
+# RustCrypto: ChaCha20
 
 [![crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
