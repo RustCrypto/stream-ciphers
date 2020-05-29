@@ -8,11 +8,10 @@
 //!
 //! # Examples
 //! ```
-//! #[macro_use] extern crate hex_literal;
-//!
 //! use aes::Aes128;
 //! use cfb8::Cfb8;
 //! use cfb8::stream_cipher::{NewStreamCipher, StreamCipher};
+//! use hex_literal::hex;
 //!
 //! type AesCfb8 = Cfb8<Aes128>;
 //!

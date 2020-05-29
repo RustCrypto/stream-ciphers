@@ -8,9 +8,8 @@
 //!
 //! # Examples
 //! ```
-//! #[macro_use] extern crate hex_literal;
-//!
 //! use aes::Aes128;
+//! use hex_literal::hex;
 //! use ofb::Ofb;
 //! use ofb::stream_cipher::{NewStreamCipher, SyncStreamCipher};
 //!
