@@ -1,9 +1,5 @@
-use aes;
-
-#[macro_use]
-extern crate stream_cipher;
-
 use cfb_mode::Cfb;
+use stream_cipher::new_async_test;
 
 // tests vectors are from:
 // https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf

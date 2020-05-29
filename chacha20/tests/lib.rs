@@ -1,9 +1,7 @@
 //! Tests for ChaCha20 (IETF and "djb" versions) as well as XChaCha20
 
-#[macro_use]
-extern crate stream_cipher;
-
 use chacha20::ChaCha20;
+use stream_cipher::{new_seek_test, new_sync_test};
 
 // IETF version of ChaCha20 (96-bit nonce)
 new_sync_test!(chacha20_core, ChaCha20, "chacha20");
