@@ -2,22 +2,11 @@
 # It is not intended for manual editing.
 [[package]]
 name = "aes"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54eb1d8fe354e5fc611daf4f2ea97dd45a765f4f1e4512306ec183ae2e8f20c9"
-dependencies = [
- "aes-soft 0.3.3",
- "aesni 0.6.0",
- "block-cipher-trait",
-]
-
-[[package]]
-name = "aes"
 version = "0.4.0-pre"
 source = "git+https://github.com/RustCrypto/block-ciphers#044bc4ce9c0634871790cfae7e4d6a1d6e252516"
 dependencies = [
- "aes-soft 0.4.0-pre",
- "aesni 0.7.0-pre",
+ "aes-soft",
+ "aesni",
  "block-cipher",
 ]
 
@@ -25,21 +14,10 @@ dependencies = [
 name = "aes-ctr"
 version = "0.3.0"
 dependencies = [
- "aes-soft 0.4.0-pre",
- "aesni 0.7.0-pre",
+ "aes-soft",
+ "aesni",
  "ctr",
  "stream-cipher 0.4.0-pre",
-]
-
-[[package]]
-name = "aes-soft"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfd7e7ae3f9a1fb5c03b389fc6bb9a51400d0c13053f0dca698c832bfd893a0d"
-dependencies = [
- "block-cipher-trait",
- "byteorder",
- "opaque-debug",
 ]
 
 [[package]]
@@ -49,16 +27,6 @@ source = "git+https://github.com/RustCrypto/block-ciphers#044bc4ce9c0634871790cf
 dependencies = [
  "block-cipher",
  "byteorder",
- "opaque-debug",
-]
-
-[[package]]
-name = "aesni"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f70a6b5f971e473091ab7cfb5ffac6cde81666c4556751d8d5620ead8abf100"
-dependencies = [
- "block-cipher-trait",
  "opaque-debug",
 ]
 
@@ -114,15 +82,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "block-cipher-trait"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c924d49bd09e7c06003acda26cd9742e796e34282ec6c1189404dee0c1f4774"
-dependencies = [
- "generic-array 0.12.3",
-]
-
-[[package]]
 name = "bstr"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -159,7 +118,7 @@ dependencies = [
 name = "cfb-mode"
 version = "0.3.2"
 dependencies = [
- "aes 0.4.0-pre",
+ "aes",
  "block-cipher",
  "hex-literal",
  "stream-cipher 0.4.0-pre",
@@ -169,7 +128,7 @@ dependencies = [
 name = "cfb8"
 version = "0.3.2"
 dependencies = [
- "aes 0.4.0-pre",
+ "aes",
  "block-cipher",
  "hex-literal",
  "stream-cipher 0.4.0-pre",
@@ -320,7 +279,7 @@ dependencies = [
 name = "ctr"
 version = "0.3.2"
 dependencies = [
- "aes 0.4.0-pre",
+ "aes",
  "blobby",
  "block-cipher",
  "stream-cipher 0.4.0-pre",
@@ -476,10 +435,10 @@ dependencies = [
 name = "ofb"
 version = "0.1.1"
 dependencies = [
- "aes 0.3.2",
- "block-cipher-trait",
+ "aes",
+ "block-cipher",
  "hex-literal",
- "stream-cipher 0.3.2",
+ "stream-cipher 0.4.0-pre",
 ]
 
 [[package]]

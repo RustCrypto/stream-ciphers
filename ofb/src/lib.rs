@@ -50,12 +50,12 @@
 #![no_std]
 #![deny(missing_docs)]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
-extern crate block_cipher_trait;
-pub extern crate stream_cipher;
 
-use block_cipher_trait::generic_array::typenum::Unsigned;
-use block_cipher_trait::generic_array::GenericArray;
-use block_cipher_trait::BlockCipher;
+pub use stream_cipher;
+
+use block_cipher::generic_array::typenum::Unsigned;
+use block_cipher::generic_array::GenericArray;
+use block_cipher::{BlockCipher, NewBlockCipher};
 use stream_cipher::{InvalidKeyNonceLength, LoopError, NewStreamCipher, SyncStreamCipher};
 
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
@@ -67,7 +67,10 @@ pub struct Ofb<C: BlockCipher> {
     pos: usize,
 }
 
-impl<C: BlockCipher> NewStreamCipher for Ofb<C> {
+impl<C> NewStreamCipher for Ofb<C>
+where
+    C: BlockCipher + NewBlockCipher,
+{
     type KeySize = C::KeySize;
     type NonceSize = C::BlockSize;
 

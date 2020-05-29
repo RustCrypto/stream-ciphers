@@ -115,7 +115,7 @@ fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
 
 impl<C> NewStreamCipher for Ctr128<C>
 where
-    C: NewBlockCipher + BlockCipher<BlockSize = U16>,
+    C: BlockCipher<BlockSize = U16> + NewBlockCipher,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     type KeySize = C::KeySize;
