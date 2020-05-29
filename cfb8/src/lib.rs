@@ -48,12 +48,12 @@
 #![no_std]
 #![deny(missing_docs)]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
-extern crate block_cipher_trait;
-pub extern crate stream_cipher;
 
-use block_cipher_trait::generic_array::typenum::Unsigned;
-use block_cipher_trait::generic_array::GenericArray;
-use block_cipher_trait::BlockCipher;
+pub use stream_cipher;
+
+use block_cipher::generic_array::typenum::Unsigned;
+use block_cipher::generic_array::GenericArray;
+use block_cipher::{BlockCipher, NewBlockCipher};
 use stream_cipher::{InvalidKeyNonceLength, NewStreamCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
@@ -62,7 +62,10 @@ pub struct Cfb8<C: BlockCipher> {
     iv: GenericArray<u8, C::BlockSize>,
 }
 
-impl<C: BlockCipher> NewStreamCipher for Cfb8<C> {
+impl<C> NewStreamCipher for Cfb8<C>
+where
+    C: BlockCipher + NewBlockCipher,
+{
     type KeySize = C::KeySize;
     type NonceSize = C::BlockSize;
 

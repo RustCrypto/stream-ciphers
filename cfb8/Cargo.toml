@@ -9,14 +9,15 @@ repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "block-mode"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
-stream-cipher = "0.3"
-block-cipher-trait = "0.6"
+stream-cipher = "= 0.4.0-pre"
+block-cipher = "= 0.7.0-pre"
 
 [dev-dependencies]
-aes = "0.3"
-stream-cipher = { version = "0.3", features = ["dev"] }
+aes = "= 0.4.0-pre"
+stream-cipher = { version = "= 0.4.0-pre", features = ["dev"] }
 hex-literal = "0.1"
 
 [badges]
