@@ -11,6 +11,8 @@ Pure Rust implementation of the [ChaCha20 Stream Cipher][1].
 
 [Documentation][docs-link]
 
+<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/chacha20.png" width="300px">
+
 ## About
 
 [ChaCha20][1] is a [stream cipher][2] which is designed to support
