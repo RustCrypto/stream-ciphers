@@ -159,10 +159,10 @@ dependencies = [
 name = "cfb-mode"
 version = "0.3.2"
 dependencies = [
- "aes 0.3.2",
- "block-cipher-trait",
+ "aes 0.4.0-pre",
+ "block-cipher",
  "hex-literal",
- "stream-cipher 0.3.2",
+ "stream-cipher 0.4.0-pre",
 ]
 
 [[package]]

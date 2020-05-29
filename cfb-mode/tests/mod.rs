@@ -1,5 +1,5 @@
-extern crate aes;
-extern crate cfb_mode;
+use aes;
+
 #[macro_use]
 extern crate stream_cipher;
 
