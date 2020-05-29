@@ -72,7 +72,7 @@ impl<R: Rounds> NewStreamCipher for Cipher<R> {
 
     fn new(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U12>) -> Self {
         let block = Block::new(
-            key.as_ref().try_into().unwrap(),
+            key.as_slice().try_into().unwrap(),
             iv[4..12].try_into().unwrap(),
         );
 

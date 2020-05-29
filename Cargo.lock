@@ -188,7 +188,7 @@ dependencies = [
  "criterion",
  "criterion-cycles-per-byte",
  "rand_core",
- "stream-cipher 0.3.2",
+ "stream-cipher 0.4.0-pre",
  "zeroize",
 ]
 
