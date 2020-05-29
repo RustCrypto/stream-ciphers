@@ -37,10 +37,8 @@ Crates functionality is expressed in terms of traits defined in the
 [`stream-cipher`][2] crate.
 
 Let's use AES-128-OFB to demonstrate usage of synchronous stream cipher:
-```rust
-extern crate aes;
-extern crate ofb;
 
+```rust
 use aes::Aes128;
 use ofb::Ofb;
 // import relevant traits

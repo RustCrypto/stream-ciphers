@@ -1,7 +1,3 @@
 #![feature(test)]
-#[macro_use]
-extern crate stream_cipher;
-use aes;
-use ofb;
-
+use stream_cipher::bench_sync;
 bench_sync!(ofb::Ofb<aes::Aes128>);

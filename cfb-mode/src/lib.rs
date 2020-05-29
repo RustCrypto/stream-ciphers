@@ -8,8 +8,6 @@
 //!
 //! # Examples
 //! ```
-//! extern crate aes;
-//! extern crate cfb_mode;
 //! #[macro_use] extern crate hex_literal;
 //!
 //! use aes::Aes128;

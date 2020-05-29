@@ -9,15 +9,12 @@
 //!
 //! # Usage example
 //! ```
-//! // `aes` crate provides AES block cipher implementation
-//! extern crate aes;
-//! extern crate ctr;
-//!
 //! use ctr::stream_cipher::generic_array::GenericArray;
 //! use ctr::stream_cipher::{
 //!     NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek
 //! };
 //!
+//! // `aes` crate provides AES block cipher implementation
 //! type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
 //!
 //! # fn main() {

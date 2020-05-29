@@ -1,12 +1,7 @@
-use aes;
-use blobby;
-use ctr;
-#[macro_use]
-extern crate stream_cipher;
-
 use aes::block_cipher::generic_array::GenericArray;
 use aes::block_cipher::NewBlockCipher;
 use stream_cipher::SyncStreamCipher;
+use stream_cipher::{new_seek_test, new_sync_test};
 
 type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
 type Aes256Ctr = ctr::Ctr128<aes::Aes256>;
