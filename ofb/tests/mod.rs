@@ -1,5 +1,5 @@
-extern crate aes;
-extern crate ofb;
+use aes;
+use ofb;
 #[macro_use]
 extern crate stream_cipher;
 
