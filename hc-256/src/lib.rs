@@ -1,6 +1,9 @@
 //! HC-256 Stream Cipher
 
 #![no_std]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![forbid(unsafe_code)]
+#![warn(missing_docs, rust_2018_idioms)]
 
 pub use stream_cipher;
 
@@ -30,14 +33,27 @@ pub struct HC256 {
     offset: u8,
 }
 
-#[inline]
-fn f1(x: u32) -> u32 {
-    x.rotate_right(7) ^ x.rotate_right(18) ^ (x >> 3)
+impl NewStreamCipher for HC256 {
+    /// Key size in bytes
+    type KeySize = U32;
+    /// Nonce size in bytes
+    type NonceSize = U32;
+
+    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        let mut out = HC256::create();
+        out.init(key.as_slice(), iv.as_slice());
+        out
+    }
 }
 
-#[inline]
-fn f2(x: u32) -> u32 {
-    x.rotate_right(17) ^ x.rotate_right(19) ^ (x >> 10)
+impl StreamCipher for HC256 {
+    fn encrypt(&mut self, data: &mut [u8]) {
+        self.process(data);
+    }
+
+    fn decrypt(&mut self, data: &mut [u8]) {
+        self.process(data);
+    }
 }
 
 impl HC256 {
@@ -51,7 +67,7 @@ impl HC256 {
         }
     }
 
-    pub fn init(&mut self, key: &[u8], iv: &[u8]) {
+    fn init(&mut self, key: &[u8], iv: &[u8]) {
         let mut data = [0; INIT_SIZE];
 
         for i in 0..KEY_WORDS {
@@ -210,27 +226,12 @@ impl Drop for HC256 {
     }
 }
 
-impl NewStreamCipher for HC256 {
-    /// Key size in bytes
-    type KeySize = U32;
-    /// Nonce size in bytes
-    type NonceSize = U32;
-
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = HC256::create();
-
-        out.init(key.as_slice(), iv.as_slice());
-
-        out
-    }
+#[inline]
+fn f1(x: u32) -> u32 {
+    x.rotate_right(7) ^ x.rotate_right(18) ^ (x >> 3)
 }
 
-impl StreamCipher for HC256 {
-    fn encrypt(&mut self, data: &mut [u8]) {
-        self.process(data);
-    }
-
-    fn decrypt(&mut self, data: &mut [u8]) {
-        self.process(data);
-    }
+#[inline]
+fn f2(x: u32) -> u32 {
+    x.rotate_right(17) ^ x.rotate_right(19) ^ (x >> 10)
 }

@@ -36,8 +36,10 @@
 //! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
 //! ```
+
 #![no_std]
-#![deny(missing_docs)]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
+#![warn(missing_docs, rust_2018_idioms)]
 
 pub use stream_cipher;
 
