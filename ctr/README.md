@@ -12,7 +12,7 @@ a 128-bit block size.
 
 [Documentation][docs-link]
 
-![Diagram](https://github.com/RustCrypto/meta/blob/master/img/stream-ciphers/ctr.png?raw=true)
+<img alt="diagram" src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/ctr.png" width="500px">
 
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 

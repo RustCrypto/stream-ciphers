@@ -12,7 +12,7 @@ Generic [Output Feedback (OFB)][1] mode implementation as a
 
 [Documentation][docs-link]
 
-![Diagram](https://github.com/RustCrypto/meta/blob/master/img/stream-ciphers/ofb.png?raw=true)
+<img alt="diagram" src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/ofb.png" width="500px">
 
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
