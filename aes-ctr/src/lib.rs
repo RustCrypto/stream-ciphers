@@ -38,21 +38,8 @@
 //! ```
 #![no_std]
 #![deny(missing_docs)]
-#[cfg(not(all(
-    target_feature = "aes",
-    target_feature = "sse2",
-    target_feature = "ssse3",
-    any(target_arch = "x86_64", target_arch = "x86"),
-)))]
-extern crate aes_soft;
-#[cfg(not(all(
-    target_feature = "aes",
-    target_feature = "sse2",
-    target_feature = "ssse3",
-    any(target_arch = "x86_64", target_arch = "x86"),
-)))]
-extern crate ctr;
-pub extern crate stream_cipher;
+
+pub use stream_cipher;
 
 #[cfg(not(all(
     target_feature = "aes",
@@ -60,7 +47,15 @@ pub extern crate stream_cipher;
     target_feature = "ssse3",
     any(target_arch = "x86_64", target_arch = "x86"),
 )))]
-mod dummy;
+mod soft;
+
+#[cfg(not(all(
+    target_feature = "aes",
+    target_feature = "sse2",
+    target_feature = "ssse3",
+    any(target_arch = "x86_64", target_arch = "x86"),
+)))]
+use soft as aes;
 
 #[cfg(all(
     target_feature = "aes",
@@ -68,14 +63,6 @@ mod dummy;
     target_feature = "ssse3",
     any(target_arch = "x86_64", target_arch = "x86"),
 ))]
-extern crate aesni;
+use aesni as aes;
 
-#[cfg(all(
-    target_feature = "aes",
-    target_feature = "sse2",
-    target_feature = "ssse3",
-    any(target_arch = "x86_64", target_arch = "x86"),
-))]
-use aesni as dummy;
-
-pub use dummy::{Aes128Ctr, Aes192Ctr, Aes256Ctr};
+pub use crate::aes::{Aes128Ctr, Aes192Ctr, Aes256Ctr};

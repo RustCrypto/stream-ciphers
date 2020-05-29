@@ -25,10 +25,10 @@ dependencies = [
 name = "aes-ctr"
 version = "0.3.0"
 dependencies = [
- "aes-soft 0.3.3",
- "aesni 0.6.0",
- "ctr 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "stream-cipher 0.3.2",
+ "aes-soft 0.4.0-pre",
+ "aesni 0.7.0-pre",
+ "ctr",
+ "stream-cipher 0.4.0-pre",
 ]
 
 [[package]]
@@ -60,7 +60,6 @@ checksum = "2f70a6b5f971e473091ab7cfb5ffac6cde81666c4556751d8d5620ead8abf100"
 dependencies = [
  "block-cipher-trait",
  "opaque-debug",
- "stream-cipher 0.3.2",
 ]
 
 [[package]]
@@ -70,6 +69,7 @@ source = "git+https://github.com/RustCrypto/block-ciphers#044bc4ce9c0634871790cf
 dependencies = [
  "block-cipher",
  "opaque-debug",
+ "stream-cipher 0.4.0-pre",
 ]
 
 [[package]]
@@ -324,16 +324,6 @@ dependencies = [
  "blobby",
  "block-cipher",
  "stream-cipher 0.4.0-pre",
-]
-
-[[package]]
-name = "ctr"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "022cd691704491df67d25d006fe8eca083098253c4d43516c2206479c58c6736"
-dependencies = [
- "block-cipher-trait",
- "stream-cipher 0.3.2",
 ]
 
 [[package]]
