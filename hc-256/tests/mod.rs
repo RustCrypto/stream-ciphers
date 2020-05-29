@@ -1,8 +1,4 @@
-extern crate block_cipher_trait;
-extern crate hc_256;
-extern crate stream_cipher;
-
-use block_cipher_trait::generic_array::GenericArray;
+use block_cipher::generic_array::GenericArray;
 use hc_256::HC256;
 use stream_cipher::NewStreamCipher;
 use stream_cipher::StreamCipher;

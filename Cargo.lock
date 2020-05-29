@@ -109,6 +109,7 @@ name = "block-cipher"
 version = "0.7.0-pre"
 source = "git+https://github.com/RustCrypto/traits#8f24286f0aa22d9f98a3edbe859a890d5d0d879e"
 dependencies = [
+ "blobby",
  "generic-array 0.14.1",
 ]
 
@@ -118,7 +119,6 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c924d49bd09e7c06003acda26cd9742e796e34282ec6c1189404dee0c1f4774"
 dependencies = [
- "blobby",
  "generic-array 0.12.3",
 ]
 
@@ -354,8 +354,8 @@ dependencies = [
 name = "hc-256"
 version = "0.0.1"
 dependencies = [
- "block-cipher-trait",
- "stream-cipher 0.3.2",
+ "block-cipher",
+ "stream-cipher 0.4.0-pre",
  "zeroize",
 ]
 

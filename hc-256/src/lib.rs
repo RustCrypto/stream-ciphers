@@ -1,15 +1,12 @@
+//! HC-256 Stream Cipher
+
 #![no_std]
-extern crate block_cipher_trait;
 
-#[cfg(cargo_feature = "zeroize")]
-extern crate zeroize;
+pub use stream_cipher;
 
-pub extern crate stream_cipher;
-
-use block_cipher_trait::generic_array::typenum::U32;
-use block_cipher_trait::generic_array::GenericArray;
-use stream_cipher::NewStreamCipher;
-use stream_cipher::StreamCipher;
+use block_cipher::consts::U32;
+use block_cipher::generic_array::GenericArray;
+use stream_cipher::{NewStreamCipher, StreamCipher};
 
 #[cfg(cargo_feature = "zeroize")]
 use std::ops::Drop;
@@ -17,19 +14,14 @@ use std::ops::Drop;
 use zeroize::Zeroize;
 
 const TABLE_SIZE: usize = 1024;
-
 const TABLE_MASK: usize = TABLE_SIZE - 1;
-
 const INIT_SIZE: usize = 2660;
-
 const KEY_BITS: usize = 256;
-
 const KEY_WORDS: usize = KEY_BITS / 32;
-
 const IV_BITS: usize = 256;
-
 const IV_WORDS: usize = IV_BITS / 32;
 
+/// The HC-256 stream cipher
 pub struct HC256 {
     ptable: [u32; TABLE_SIZE],
     qtable: [u32; TABLE_SIZE],

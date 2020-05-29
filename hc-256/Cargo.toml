@@ -8,15 +8,16 @@ repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
-block-cipher-trait = "0.6"
-stream-cipher = "0.3"
+block-cipher = "= 0.7.0-pre"
+stream-cipher = "= 0.4.0-pre"
 zeroize = { version = "1", optional = true }
 
 [dev-dependencies]
-stream-cipher = { version = "0.3", features = ["dev"] }
-block-cipher-trait = { version = "0.6", features = ["dev"] }
+stream-cipher = { version = "= 0.4.0-pre", features = ["dev"] }
+block-cipher = { version = "= 0.7.0-pre", features = ["dev"] }
 
 [badges]
 maintenance = { status = "experimental" }
