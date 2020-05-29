@@ -16,6 +16,7 @@ pub(crate) struct Block {
 impl Block {
     /// Initialize block function with the given key and IV
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
+        #[allow(unsafe_code)]
         let mut state: [u32; STATE_WORDS] = unsafe { mem::zeroed() };
         state[0] = CONSTANTS[0];
 
