@@ -1,8 +1,5 @@
 //! Salsa20 tests
 
-extern crate salsa20;
-extern crate stream_cipher;
-
 use salsa20::Salsa20;
 #[cfg(feature = "xsalsa20")]
 use salsa20::XSalsa20;

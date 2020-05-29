@@ -83,7 +83,7 @@ impl NewStreamCipher for Salsa20 {
     type NonceSize = U8;
 
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let block = Block::new(key.as_ref().try_into().unwrap(), (*iv).into());
+        let block = Block::new(key.as_slice().try_into().unwrap(), (*iv).into());
 
         Salsa20(Cipher::new(block))
     }
