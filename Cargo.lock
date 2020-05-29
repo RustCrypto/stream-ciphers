@@ -17,7 +17,7 @@ dependencies = [
  "aes-soft",
  "aesni",
  "ctr",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
 ]
 
 [[package]]
@@ -37,7 +37,7 @@ source = "git+https://github.com/RustCrypto/block-ciphers#044bc4ce9c0634871790cf
 dependencies = [
  "block-cipher",
  "opaque-debug",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
 ]
 
 [[package]]
@@ -78,7 +78,7 @@ version = "0.7.0-pre"
 source = "git+https://github.com/RustCrypto/traits#8f24286f0aa22d9f98a3edbe859a890d5d0d879e"
 dependencies = [
  "blobby",
- "generic-array 0.14.1",
+ "generic-array",
 ]
 
 [[package]]
@@ -121,7 +121,7 @@ dependencies = [
  "aes",
  "block-cipher",
  "hex-literal",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
 ]
 
 [[package]]
@@ -131,7 +131,7 @@ dependencies = [
  "aes",
  "block-cipher",
  "hex-literal",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
 ]
 
 [[package]]
@@ -147,7 +147,7 @@ dependencies = [
  "criterion",
  "criterion-cycles-per-byte",
  "rand_core",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
  "zeroize",
 ]
 
@@ -282,7 +282,7 @@ dependencies = [
  "aes",
  "blobby",
  "block-cipher",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
 ]
 
 [[package]]
@@ -290,15 +290,6 @@ name = "either"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
-
-[[package]]
-name = "generic-array"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c68f0274ae0e023facc3c97b2e00f076be70e254bc851d972503b328db79b2ec"
-dependencies = [
- "typenum",
-]
 
 [[package]]
 name = "generic-array"
@@ -314,7 +305,7 @@ name = "hc-256"
 version = "0.0.1"
 dependencies = [
  "block-cipher",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
  "zeroize",
 ]
 
@@ -438,7 +429,7 @@ dependencies = [
  "aes",
  "block-cipher",
  "hex-literal",
- "stream-cipher 0.4.0-pre",
+ "stream-cipher",
 ]
 
 [[package]]
@@ -571,7 +562,7 @@ checksum = "ed3d612bc64430efeb3f7ee6ef26d590dce0c43249217bddc62112540c7941e1"
 name = "salsa20"
 version = "0.4.1"
 dependencies = [
- "stream-cipher 0.3.2",
+ "stream-cipher",
  "zeroize",
 ]
 
@@ -635,21 +626,11 @@ dependencies = [
 
 [[package]]
 name = "stream-cipher"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8131256a5896cabcf5eb04f4d6dacbe1aefda854b0d9896e09cb58829ec5638c"
-dependencies = [
- "blobby",
- "generic-array 0.12.3",
-]
-
-[[package]]
-name = "stream-cipher"
 version = "0.4.0-pre"
 source = "git+https://github.com/RustCrypto/traits#8f24286f0aa22d9f98a3edbe859a890d5d0d879e"
 dependencies = [
  "blobby",
- "generic-array 0.14.1",
+ "generic-array",
 ]
 
 [[package]]

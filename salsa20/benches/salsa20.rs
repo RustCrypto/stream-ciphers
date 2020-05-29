@@ -1,6 +1,4 @@
 #![feature(test)]
-#[macro_use]
-extern crate stream_cipher;
-extern crate salsa20;
 
+use stream_cipher::bench_sync;
 bench_sync!(salsa20::Salsa20);
