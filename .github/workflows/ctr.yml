@@ -7,9 +7,14 @@ on:
       - "Cargo.*"
   push:
     branches: master
-    paths:
-      - "ctr/**"
-      - "Cargo.*"
+
+defaults:
+  run:
+    working-directory: ctr
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   build:
@@ -31,7 +36,7 @@ jobs:
           target: ${{ matrix.target }}
           override: true
       - run: cargo build --no-default-features --release --target ${{ matrix.target }}
-        working-directory: ctr
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -47,6 +52,4 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
       - run: cargo test
-        working-directory: ctr
       - run: cargo test --release
-        working-directory: ctr

@@ -7,9 +7,14 @@ on:
       - "Cargo.*"
   push:
     branches: master
-    paths:
-      - "chacha20/**"
-      - "Cargo.*"
+
+defaults:
+  run:
+    working-directory: chacha20
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   build:
@@ -34,7 +39,7 @@ jobs:
         env:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: -D warnings
-        working-directory: chacha20
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -44,48 +49,31 @@ jobs:
           - stable
     steps:
       - uses: actions/checkout@v1
-
       - name: Cache cargo registry
         uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
-
       - name: Cache cargo index
         uses: actions/cache@v1
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('Cargo.lock') }}
-
       - name: Cache cargo build
         uses: actions/cache@v1
         with:
           path: target
           key: ${{ runner.os }}-rust-${{ matrix.toolchain }}-${{ matrix.target }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
-
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-
       - run: cargo test
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: "-Dwarnings"
-        working-directory: chacha20
+      - run: cargo test --release
       - run: cargo test --release
         env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: "-Dwarnings"
-        working-directory: chacha20
-      - run: cargo test --release
-        env:
-          CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Ctarget-feature=+sse2 -Dwarnings"
-        working-directory: chacha20
       - run: cargo test --release
         env:
-          CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Ctarget-feature=+avx2 -Dwarnings"
-        working-directory: chacha20
