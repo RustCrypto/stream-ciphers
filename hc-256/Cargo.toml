@@ -18,7 +18,3 @@ zeroize = { version = "1", optional = true }
 [dev-dependencies]
 stream-cipher = { version = "= 0.4.0-pre", features = ["dev"] }
 block-cipher = { version = "= 0.7.0-pre", features = ["dev"] }
-
-[badges]
-maintenance = { status = "experimental" }
-travis-ci = { repository = "RustCrypto/stream-ciphers" }
