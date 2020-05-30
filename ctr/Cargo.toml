@@ -19,6 +19,3 @@ block-cipher = "0.7.0-pre"
 aes = { version = "= 0.4.0-pre", git = "https://github.com/RustCrypto/block-ciphers" }
 stream-cipher = { version = "= 0.4.0-pre", features = ["dev"], git = "https://github.com/RustCrypto/traits" }
 blobby = "0.1"
-
-[badges]
-travis-ci = { repository = "RustCrypto/stream-ciphers" }

@@ -23,6 +23,3 @@ aesni = "= 0.7.0-pre"
 
 [dev-dependencies]
 stream-cipher = { version = "= 0.4.0-pre", features = ["dev"] }
-
-[badges]
-travis-ci = { repository = "RustCrypto/stream-ciphers" }
