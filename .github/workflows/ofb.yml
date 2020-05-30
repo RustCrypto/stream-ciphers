@@ -7,9 +7,14 @@ on:
       - "Cargo.*"
   push:
     branches: master
-    paths:
-      - "ofb/**"
-      - "Cargo.*"
+
+defaults:
+  run:
+    working-directory: ofb
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   build:
@@ -31,7 +36,7 @@ jobs:
           target: ${{ matrix.target }}
           override: true
       - run: cargo build --no-default-features --release --target ${{ matrix.target }}
-        working-directory: ofb
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -47,6 +52,4 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
       - run: cargo test
-        working-directory: ofb
       - run: cargo test --release
-        working-directory: ofb

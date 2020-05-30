@@ -7,9 +7,14 @@ on:
       - "Cargo.*"
   push:
     branches: master
-    paths:
-      - "aes-ctr/**"
-      - "Cargo.*"
+
+defaults:
+  run:
+    working-directory: aes-ctr
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   build:
@@ -31,7 +36,7 @@ jobs:
           target: ${{ matrix.target }}
           override: true
       - run: cargo build --no-default-features --release --target ${{ matrix.target }}
-        working-directory: aes-ctr
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -47,10 +52,7 @@ jobs:
         toolchain: ${{ matrix.rust }}
         override: true
     - run: cargo test
-      working-directory: aes-ctr
     - run: cargo test --release
-      working-directory: aes-ctr
     - run: cargo test --release --lib
       env:
         RUSTFLAGS: "-C target-feature=+aes,+sse2,+ssse3"
-      working-directory: aes-ctr
