@@ -1,6 +1,6 @@
 [package]
 name = "ofb"
-version = "0.1.1"
+version = "0.2.0-pre"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Generic Output Feedback (OFB) mode implementation."
