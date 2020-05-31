@@ -1,19 +1,22 @@
 //! The Salsa20 block function.
 
-use crate::{BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
-use core::{convert::TryInto, mem};
+use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
+use core::{convert::TryInto, marker::PhantomData, mem};
 
 /// The Salsa20 block function
 ///
 /// While Salsa20 is a stream cipher, not a block cipher, its core
 /// primitive is a function which acts on a 512-bit block
 // TODO(tarcieri): zeroize? need to make sure we're actually copying first
-pub(crate) struct Block {
+pub(crate) struct Block<R: Rounds> {
     /// Internal state of the block function
     state: [u32; STATE_WORDS],
+
+    /// Number of rounds to perform
+    rounds: PhantomData<R>,
 }
 
-impl Block {
+impl<R: Rounds> Block<R> {
     /// Initialize block function with the given key and IV
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
         #[allow(unsafe_code)]
@@ -40,7 +43,10 @@ impl Block {
 
         state[15] = CONSTANTS[3];
 
-        Self { state }
+        Self {
+            state,
+            rounds: PhantomData,
+        }
     }
 
     /// Generate output, overwriting data already in the buffer
@@ -80,7 +86,7 @@ impl Block {
     /// Run the 20 rounds (i.e. 10 double rounds) of Salsa20
     #[inline]
     fn rounds(&mut self, state: &mut [u32; STATE_WORDS]) {
-        for _ in 0..10 {
+        for _ in 0..(R::COUNT / 2) {
             // column rounds
             quarter_round(0, 4, 8, 12, state);
             quarter_round(5, 9, 13, 1, state);

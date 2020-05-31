@@ -4,20 +4,17 @@
 
 // TODO(tarcieri): figure out how to unify this with the `ctr` crate (see #95)
 
-use crate::{block::Block, BLOCK_SIZE};
-use core::{
-    cmp,
-    fmt::{self, Debug},
-};
+use crate::{block::Block, rounds::Rounds, BLOCK_SIZE};
+use core::{cmp, fmt};
 use stream_cipher::{LoopError, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// Internal buffer
 type Buffer = [u8; BLOCK_SIZE];
 
 /// ChaCha20 as a counter mode stream cipher
-pub(crate) struct Cipher {
+pub(crate) struct Cipher<R: Rounds> {
     /// ChaCha20 block function initialized with a key and IV
-    block: Block,
+    block: Block<R>,
 
     /// Buffer containing previous block function output
     buffer: Buffer,
@@ -29,9 +26,9 @@ pub(crate) struct Cipher {
     counter: u64,
 }
 
-impl Cipher {
+impl<R: Rounds> Cipher<R> {
     /// Create new CTR mode cipher from the given block and starting counter
-    pub fn new(block: Block) -> Self {
+    pub fn new(block: Block<R>) -> Self {
         Self {
             block,
             buffer: [0u8; BLOCK_SIZE],
@@ -41,7 +38,7 @@ impl Cipher {
     }
 }
 
-impl SyncStreamCipher for Cipher {
+impl<R: Rounds> SyncStreamCipher for Cipher<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
 
@@ -86,7 +83,7 @@ impl SyncStreamCipher for Cipher {
     }
 }
 
-impl SyncStreamCipherSeek for Cipher {
+impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
     fn current_pos(&self) -> u64 {
         let bs = BLOCK_SIZE as u64;
 
@@ -114,7 +111,7 @@ impl SyncStreamCipherSeek for Cipher {
     }
 }
 
-impl Cipher {
+impl<R: Rounds> Cipher<R> {
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         let dlen = data.len()
             - self
@@ -132,7 +129,7 @@ impl Cipher {
     }
 }
 
-impl Debug for Cipher {
+impl<R: Rounds> fmt::Debug for Cipher<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Cipher {{ .. }}")
     }
