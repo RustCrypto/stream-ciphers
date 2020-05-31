@@ -42,6 +42,7 @@ pub use stream_cipher;
 
 mod block;
 mod cipher;
+mod rounds;
 #[cfg(feature = "xsalsa20")]
 mod xsalsa20;
 
@@ -51,7 +52,11 @@ pub use self::xsalsa20::XSalsa20;
 #[cfg(feature = "hsalsa20")]
 pub use self::xsalsa20::hsalsa20;
 
-use crate::{block::Block, cipher::Cipher};
+use crate::{
+    block::Block,
+    cipher::Cipher,
+    rounds::{Rounds, R12, R20, R8},
+};
 use core::convert::TryInto;
 use stream_cipher::generic_array::typenum::{U32, U8};
 use stream_cipher::generic_array::GenericArray;
@@ -72,11 +77,26 @@ const STATE_WORDS: usize = 16;
 /// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
-/// The Salsa20 cipher.
-#[derive(Debug)]
-pub struct Salsa20(Cipher);
+/// Salsa20/8 stream cipher
+/// (reduced-round variant of Salsa20 with 8 rounds, *not recommended*)
+pub type Salsa8 = Salsa<R8>;
 
-impl NewStreamCipher for Salsa20 {
+/// Salsa20/12 stream cipher
+/// (reduced-round variant of Salsa20 with 12 rounds, *not recommended*)
+pub type Salsa12 = Salsa<R12>;
+
+/// Salsa20/20 stream cipher
+/// (20 rounds; **recommended**)
+pub type Salsa20 = Salsa<R20>;
+
+/// The Salsa20 family of stream ciphers
+/// (implemented generically over a number of rounds).
+///
+/// We recommend you use the [`Salsa20`] (a.k.a. Salsa20/20) variant.
+#[derive(Debug)]
+pub struct Salsa<R: Rounds>(Cipher<R>);
+
+impl<R: Rounds> NewStreamCipher for Salsa<R> {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -85,12 +105,11 @@ impl NewStreamCipher for Salsa20 {
 
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let block = Block::new(key.as_slice().try_into().unwrap(), (*iv).into());
-
-        Salsa20(Cipher::new(block))
+        Salsa(Cipher::new(block))
     }
 }
 
-impl SyncStreamCipherSeek for Salsa20 {
+impl<R: Rounds> SyncStreamCipherSeek for Salsa<R> {
     fn current_pos(&self) -> u64 {
         self.0.current_pos()
     }
@@ -100,7 +119,7 @@ impl SyncStreamCipherSeek for Salsa20 {
     }
 }
 
-impl SyncStreamCipher for Salsa20 {
+impl<R: Rounds> SyncStreamCipher for Salsa<R> {
     fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.0.try_apply_keystream(data)
     }
