@@ -19,7 +19,7 @@ implementation and the [`ctr`][3] crate.
 ### ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
 This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
-verify ciphertext integerity), which can lead to serious vulnerabilities
+verify ciphertext integrity), which can lead to serious vulnerabilities
 if used incorrectly!
 
 To avoid this, use an [AEAD][4] mode based on AES, such as [AES-GCM][5] or
