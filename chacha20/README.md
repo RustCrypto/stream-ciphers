@@ -38,17 +38,26 @@ work on stable Rust with the following `RUSTFLAGS`:
 
 NOTE: cpb = cycles per byte (smaller is better)
 
-## ⚠️ Security Warning: [Hazmat!][hazmat-link]
+## Security
+
+### ⚠️ Warning: [Hazmat!][hazmat-link]
 
 This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
-verify ciphertext integerity), which can lead to serious vulnerabilities
+verify ciphertext integrity), which can lead to serious vulnerabilities
 if used incorrectly!
 
-No security audits of this crate have ever been performed, and it has not been
-thoroughly assessed to ensure its operation is constant-time on common CPU
-architectures.
+To avoid this, use an [AEAD][5] mode based on ChaCha20, i.e. [ChaCha20Poly1305][6].
+See the [RustCrypto/AEADs][7] repository for more information.
 
 USE AT YOUR OWN RISK!
+
+### Notes
+
+This crate has received one [security audit by NCC Group][8], with no significant
+findings. We would like to thank [MobileCoin][9] for funding the audit.
+
+All implementations contained in the crate (along with the underlying ChaCha20
+stream cipher itself) are designed to execute in constant time.
 
 ## Minimum Supported Rust Version
 
@@ -96,4 +105,8 @@ dual licensed as above, without any additional terms or conditions.
 [2]: https://en.wikipedia.org/wiki/Stream_cipher
 [3]: https://en.wikipedia.org/wiki/Salsa20
 [4]: https://tools.ietf.org/html/draft-arciszewski-xchacha-02
-[5]: https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305
+[5]: https://en.wikipedia.org/wiki/Authenticated_encryption
+[6]: https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305
+[7]: https://github.com/RustCrypto/AEADs
+[8]: https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/
+[9]: https://www.mobilecoin.com/
