@@ -41,14 +41,13 @@
 
 pub use stream_cipher;
 
-use stream_cipher::{
-    InvalidKeyNonceLength, LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek,
+use core::{cmp, convert::TryInto, fmt, mem};
+use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
+use stream_cipher::generic_array::{
+    typenum::{Unsigned, U16},
+    ArrayLength, GenericArray,
 };
-
-use block_cipher::generic_array::typenum::{Unsigned, U16};
-use block_cipher::generic_array::{ArrayLength, GenericArray};
-use block_cipher::{BlockCipher, NewBlockCipher};
-use core::{cmp, fmt, mem, ptr};
+use stream_cipher::{FromBlockCipher, LoopError, SyncStreamCipher, SyncStreamCipherSeek};
 
 #[inline(always)]
 fn xor(buf: &mut [u8], key: &[u8]) {
@@ -60,7 +59,7 @@ fn xor(buf: &mut [u8], key: &[u8]) {
 
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 type Blocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
-type Nonce<C> = GenericArray<u8, <C as NewStreamCipher>::NonceSize>;
+type Nonce = GenericArray<u8, U16>;
 
 /// CTR mode of operation for 128-bit block ciphers
 pub struct Ctr128<C>
@@ -75,62 +74,24 @@ where
     pos: Option<u8>,
 }
 
-impl<C> Ctr128<C>
-where
-    C: BlockCipher<BlockSize = U16>,
-    C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
-{
-    /// Create new CTR mode instance using initialized block cipher.
-    pub fn from_cipher(cipher: C, nonce: &GenericArray<u8, U16>) -> Self {
-        let mut n = [0u64; 2];
-
-        // TODO: replace with `u64::from_be_bytes` in libcore (1.32+)
-        unsafe {
-            ptr::copy_nonoverlapping(nonce.as_ptr(), n.as_mut_ptr() as *mut u8, 16);
-        }
-
-        Self {
-            cipher,
-            nonce: conv_be(n),
-            counter: 0,
-            block: Default::default(),
-            pos: None,
-        }
-    }
-}
-
-#[inline(always)]
-fn conv_be(val: [u64; 2]) -> [u64; 2] {
-    [val[0].to_be(), val[1].to_be()]
-}
-
-#[inline(always)]
-fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
-    let blocks_len = C::BlockSize::to_usize() * C::ParBlocks::to_usize();
-    unsafe { core::slice::from_raw_parts(blocks.as_ptr() as *const u8, blocks_len) }
-}
-
-impl<C> NewStreamCipher for Ctr128<C>
+impl<C> FromBlockCipher for Ctr128<C>
 where
     C: BlockCipher<BlockSize = U16> + NewBlockCipher,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
-    type KeySize = C::KeySize;
-    type NonceSize = C::BlockSize;
+    type BlockCipher = C;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>, nonce: &Nonce<Self>) -> Self {
-        let cipher = C::new(key);
-        Self::from_cipher(cipher, nonce)
-    }
-
-    fn new_var(key: &[u8], nonce: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
-        let nonce = if Self::NonceSize::to_usize() != nonce.len() {
-            Err(InvalidKeyNonceLength)?
-        } else {
-            GenericArray::from_slice(nonce)
-        };
-        let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
-        Ok(Self::from_cipher(cipher, nonce))
+    fn from_block_cipher(cipher: C, nonce: &Nonce) -> Self {
+        Self {
+            cipher,
+            nonce: [
+                u64::from_be_bytes(nonce[..8].try_into().unwrap()),
+                u64::from_be_bytes(nonce[8..].try_into().unwrap()),
+            ],
+            counter: 0,
+            block: Default::default(),
+            pos: None,
+        }
     }
 }
 
@@ -289,4 +250,15 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Ctr128 {{ .. }}")
     }
+}
+
+#[inline(always)]
+fn conv_be(val: [u64; 2]) -> [u64; 2] {
+    [val[0].to_be(), val[1].to_be()]
+}
+
+#[inline(always)]
+fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
+    let blocks_len = C::BlockSize::to_usize() * C::ParBlocks::to_usize();
+    unsafe { core::slice::from_raw_parts(blocks.as_ptr() as *const u8, blocks_len) }
 }
