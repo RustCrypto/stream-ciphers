@@ -3,7 +3,7 @@
 [[package]]
 name = "aes"
 version = "0.4.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers#aa14e7b919a8d4e304ace0af3a487539e1ff5ef8"
+source = "git+https://github.com/RustCrypto/block-ciphers#f2d2e41f1cec0e64f6dff15baec2b54d37d813a3"
 dependencies = [
  "aes-soft",
  "aesni",
@@ -23,7 +23,7 @@ dependencies = [
 [[package]]
 name = "aes-soft"
 version = "0.4.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers#aa14e7b919a8d4e304ace0af3a487539e1ff5ef8"
+source = "git+https://github.com/RustCrypto/block-ciphers#f2d2e41f1cec0e64f6dff15baec2b54d37d813a3"
 dependencies = [
  "block-cipher",
  "byteorder",
@@ -33,7 +33,7 @@ dependencies = [
 [[package]]
 name = "aesni"
 version = "0.7.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers#aa14e7b919a8d4e304ace0af3a487539e1ff5ef8"
+source = "git+https://github.com/RustCrypto/block-ciphers#f2d2e41f1cec0e64f6dff15baec2b54d37d813a3"
 dependencies = [
  "block-cipher",
  "opaque-debug",
@@ -75,7 +75,7 @@ dependencies = [
 [[package]]
 name = "block-cipher"
 version = "0.7.0-pre"
-source = "git+https://github.com/RustCrypto/traits#519d488768d0157b375282738c95f992d3ffc611"
+source = "git+https://github.com/RustCrypto/traits#c2266385dc366383baaf5699b727a27c62d3f446"
 dependencies = [
  "blobby",
  "generic-array",
@@ -281,7 +281,6 @@ version = "0.4.0-pre"
 dependencies = [
  "aes",
  "blobby",
- "block-cipher",
  "stream-cipher",
 ]
 
@@ -618,9 +617,10 @@ dependencies = [
 [[package]]
 name = "stream-cipher"
 version = "0.4.0-pre"
-source = "git+https://github.com/RustCrypto/traits#519d488768d0157b375282738c95f992d3ffc611"
+source = "git+https://github.com/RustCrypto/traits#c2266385dc366383baaf5699b727a27c62d3f446"
 dependencies = [
  "blobby",
+ "block-cipher",
  "generic-array",
 ]
 

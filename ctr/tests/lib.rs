@@ -1,7 +1,6 @@
 use aes::block_cipher::generic_array::GenericArray;
 use aes::block_cipher::NewBlockCipher;
-use stream_cipher::SyncStreamCipher;
-use stream_cipher::{new_seek_test, new_sync_test};
+use stream_cipher::{new_seek_test, new_sync_test, FromBlockCipher, SyncStreamCipher};
 
 type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
 type Aes256Ctr = ctr::Ctr128<aes::Aes256>;
@@ -21,7 +20,7 @@ fn test_from_cipher() {
         let ciphertext = row[3];
 
         let block_cipher = aes::Aes128::new_varkey(key).unwrap();
-        let mut cipher = ctr::Ctr128::from_cipher(block_cipher, iv);
+        let mut cipher = ctr::Ctr128::from_block_cipher(block_cipher, iv);
 
         let mut buf = plaintext.to_vec();
         cipher.apply_keystream(&mut buf);
