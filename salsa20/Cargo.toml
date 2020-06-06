@@ -1,6 +1,6 @@
 [package]
 name = "salsa20"
-version = "0.5.0-pre"
+version = "0.5.0"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Salsa20 Stream Cipher"
