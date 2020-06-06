@@ -9,10 +9,3 @@ members = [
     "ofb",
     "salsa20",
 ]
-
-[patch.crates-io]
-aes = { git = "https://github.com/RustCrypto/block-ciphers" }
-aesni = { git = "https://github.com/RustCrypto/block-ciphers" }
-aes-soft = { git = "https://github.com/RustCrypto/block-ciphers" }
-block-cipher = { git = "https://github.com/RustCrypto/traits" }
-stream-cipher = { git = "https://github.com/RustCrypto/traits" }

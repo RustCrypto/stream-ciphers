@@ -12,9 +12,9 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-stream-cipher = { version = "= 0.4.0-pre", features = ["block-cipher"] }
+stream-cipher = { version = "0.4", features = ["block-cipher"] }
 
 [dev-dependencies]
-aes = "= 0.4.0-pre"
-stream-cipher = { version = "= 0.4.0-pre", features = ["dev"] }
+aes = "0.4"
+stream-cipher = { version = "0.4", features = ["dev"] }
 blobby = "0.1"
