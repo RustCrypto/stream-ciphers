@@ -88,16 +88,16 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/cfb-mode.svg
-[crate-link]: https://crates.io/crates/cfb-mode
-[docs-image]: https://docs.rs/cfb-mode/badge.svg
-[docs-link]: https://docs.rs/cfb-mode/
+[crate-image]: https://img.shields.io/crates/v/chacha20.svg
+[crate-link]: https://crates.io/crates/chacha20
+[docs-image]: https://docs.rs/chacha20/badge.svg
+[docs-link]: https://docs.rs/chacha20/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
 [hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0%EF%B8%8F-red.svg
 [hazmat-link]: https://github.com/RustCrypto/meta/wiki/About-%22hazmat%22-crates
-[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Acfb-mode
+[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/chacha20/badge.svg?branch=master&event=push
+[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Achacha20
 
 [//]: # (footnotes)
 
