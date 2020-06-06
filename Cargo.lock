@@ -2,8 +2,9 @@
 # It is not intended for manual editing.
 [[package]]
 name = "aes"
-version = "0.4.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers#f2d2e41f1cec0e64f6dff15baec2b54d37d813a3"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7001367fde4c768a19d1029f0a8be5abd9308e1119846d5bd9ad26297b8faf5"
 dependencies = [
  "aes-soft",
  "aesni",
@@ -22,8 +23,9 @@ dependencies = [
 
 [[package]]
 name = "aes-soft"
-version = "0.4.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers#f2d2e41f1cec0e64f6dff15baec2b54d37d813a3"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4925647ee64e5056cf231608957ce7c81e12d6d6e316b9ce1404778cc1d35fa7"
 dependencies = [
  "block-cipher",
  "byteorder",
@@ -32,8 +34,9 @@ dependencies = [
 
 [[package]]
 name = "aesni"
-version = "0.7.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers#f2d2e41f1cec0e64f6dff15baec2b54d37d813a3"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d050d39b0b7688b3a3254394c3e30a9d66c41dcf9b05b0e2dbdc623f6505d264"
 dependencies = [
  "block-cipher",
  "opaque-debug",
@@ -74,8 +77,9 @@ dependencies = [
 
 [[package]]
 name = "block-cipher"
-version = "0.7.0-pre"
-source = "git+https://github.com/RustCrypto/traits#c2266385dc366383baaf5699b727a27c62d3f446"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f837aab23b44bf3be7e24411b599fda76b1788792e765fa077af268292e156d1"
 dependencies = [
  "blobby",
  "generic-array",
@@ -616,8 +620,9 @@ dependencies = [
 
 [[package]]
 name = "stream-cipher"
-version = "0.4.0-pre"
-source = "git+https://github.com/RustCrypto/traits#c2266385dc366383baaf5699b727a27c62d3f446"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97961116ec5528e0df39aa6e514377cd1572b8b4623576b371da425a87328d16"
 dependencies = [
  "blobby",
  "block-cipher",
