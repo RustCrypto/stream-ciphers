@@ -69,11 +69,12 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-      - run: cargo test
       - run: cargo test --release
-      - run: cargo test --release
+      - name: "Run cargo test --release (SSE2)"
         env:
           RUSTFLAGS: "-Ctarget-feature=+sse2 -Dwarnings"
-      - run: cargo test --release
+        run: cargo test --release
+      - name: "Run cargo test --release (AVX2)"
         env:
           RUSTFLAGS: "-Ctarget-feature=+avx2 -Dwarnings"
+        run: cargo test --release
