@@ -13,7 +13,7 @@ dependencies = [
 
 [[package]]
 name = "aes-ctr"
-version = "0.4.0-pre"
+version = "0.4.0"
 dependencies = [
  "aes-soft",
  "aesni",
@@ -120,7 +120,7 @@ dependencies = [
 
 [[package]]
 name = "cfb-mode"
-version = "0.4.0-pre"
+version = "0.4.0"
 dependencies = [
  "aes",
  "block-cipher",
@@ -130,7 +130,7 @@ dependencies = [
 
 [[package]]
 name = "cfb8"
-version = "0.4.0-pre"
+version = "0.4.0"
 dependencies = [
  "aes",
  "block-cipher",
@@ -305,7 +305,7 @@ dependencies = [
 
 [[package]]
 name = "hc-256"
-version = "0.1.0-pre"
+version = "0.1.0"
 dependencies = [
  "block-cipher",
  "stream-cipher",
@@ -427,7 +427,7 @@ dependencies = [
 
 [[package]]
 name = "ofb"
-version = "0.2.0-pre"
+version = "0.2.0"
 dependencies = [
  "aes",
  "block-cipher",
