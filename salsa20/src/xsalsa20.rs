@@ -1,12 +1,15 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use crate::{block::quarter_round, Salsa20, CONSTANTS};
+use crate::{block::quarter_round, Key, Salsa20, CONSTANTS, IV_SIZE};
 use core::convert::TryInto;
-use stream_cipher::generic_array::{
-    typenum::{U16, U24, U32},
-    GenericArray,
+use stream_cipher::{
+    consts::{U16, U24, U32},
+    generic_array::GenericArray,
 };
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+
+/// EXtended Salsa20 nonce (192-bit/24-byte)
+pub type XNonce = stream_cipher::Nonce<XSalsa20>;
 
 /// XSalsa20 is a Salsa20 variant with an extended 192-bit (24-byte) nonce.
 ///
@@ -26,12 +29,12 @@ impl NewStreamCipher for XSalsa20 {
     type NonceSize = U24;
 
     #[allow(unused_mut, clippy::let_and_return)]
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut subkey = hsalsa20(key, iv[..16].as_ref().into());
-        let mut padded_iv = GenericArray::default();
-        padded_iv.copy_from_slice(&iv[16..]);
+    fn new(key: &Key, nonce: &XNonce) -> Self {
+        let mut subkey = hsalsa20(key, nonce[..16].as_ref().into());
+        let mut padded_nonce = [0u8; IV_SIZE];
+        padded_nonce.copy_from_slice(&nonce[16..]);
 
-        let mut result = XSalsa20(Salsa20::new(&subkey, &padded_iv));
+        let mut result = XSalsa20(Salsa20::new(&subkey, &padded_nonce.into()));
 
         #[cfg(feature = "zeroize")]
         {
@@ -70,10 +73,7 @@ impl SyncStreamCipherSeek for XSalsa20 {
 /// - Nonce (`u32` x 4)
 ///
 /// It produces 256-bits of output suitable for use as a Salsa20 key
-pub fn hsalsa20(
-    key: &GenericArray<u8, U32>,
-    input: &GenericArray<u8, U16>,
-) -> GenericArray<u8, U32> {
+pub fn hsalsa20(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
 
     state[0] = CONSTANTS[0];
