@@ -70,10 +70,10 @@ mod xchacha20;
 mod rng;
 
 #[cfg(feature = "stream-cipher")]
-pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher};
+pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher, Key, Nonce};
 
 #[cfg(feature = "legacy")]
-pub use self::legacy::ChaCha20Legacy;
+pub use self::legacy::{ChaCha20Legacy, LegacyNonce};
 
 #[cfg(feature = "rng")]
 pub use rng::{
@@ -81,7 +81,7 @@ pub use rng::{
 };
 
 #[cfg(feature = "xchacha20")]
-pub use self::xchacha20::XChaCha20;
+pub use self::xchacha20::{XChaCha20, XNonce};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
