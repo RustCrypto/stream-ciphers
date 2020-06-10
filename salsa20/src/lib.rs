@@ -47,7 +47,7 @@ mod rounds;
 mod xsalsa20;
 
 #[cfg(feature = "xsalsa20")]
-pub use self::xsalsa20::XSalsa20;
+pub use self::xsalsa20::{XNonce, XSalsa20};
 
 #[cfg(feature = "hsalsa20")]
 pub use self::xsalsa20::hsalsa20;
@@ -58,8 +58,7 @@ use crate::{
     rounds::{Rounds, R12, R20, R8},
 };
 use core::convert::TryInto;
-use stream_cipher::generic_array::typenum::{U32, U8};
-use stream_cipher::generic_array::GenericArray;
+use stream_cipher::consts::{U32, U8};
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// Size of a Salsa20 block in bytes
@@ -89,6 +88,14 @@ pub type Salsa12 = Salsa<R12>;
 /// (20 rounds; **recommended**)
 pub type Salsa20 = Salsa<R20>;
 
+/// Key type.
+///
+/// NOTE: all three round variants use the same key size.
+pub type Key = stream_cipher::Key<Salsa20>;
+
+/// Nonce type
+pub type Nonce = stream_cipher::Nonce<Salsa20>;
+
 /// The Salsa20 family of stream ciphers
 /// (implemented generically over a number of rounds).
 ///
@@ -103,8 +110,8 @@ impl<R: Rounds> NewStreamCipher for Salsa<R> {
     /// Nonce size in bytes
     type NonceSize = U8;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let block = Block::new(key.as_slice().try_into().unwrap(), (*iv).into());
+    fn new(key: &Key, nonce: &Nonce) -> Self {
+        let block = Block::new(key.as_slice().try_into().unwrap(), (*nonce).into());
         Salsa(Cipher::new(block))
     }
 }

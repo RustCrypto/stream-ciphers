@@ -9,3 +9,7 @@ members = [
     "ofb",
     "salsa20",
 ]
+
+[patch.crates-io]
+block-cipher = { git = "https://github.com/RustCrypto/traits" }
+stream-cipher = { git = "https://github.com/RustCrypto/traits" }

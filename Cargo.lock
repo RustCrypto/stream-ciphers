@@ -78,8 +78,7 @@ dependencies = [
 [[package]]
 name = "block-cipher"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f837aab23b44bf3be7e24411b599fda76b1788792e765fa077af268292e156d1"
+source = "git+https://github.com/RustCrypto/traits#00fd43d39d94705af6a83409aa943ff2e7acab07"
 dependencies = [
  "blobby",
  "generic-array",
@@ -621,8 +620,7 @@ dependencies = [
 [[package]]
 name = "stream-cipher"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97961116ec5528e0df39aa6e514377cd1572b8b4623576b371da425a87328d16"
+source = "git+https://github.com/RustCrypto/traits#00fd43d39d94705af6a83409aa943ff2e7acab07"
 dependencies = [
  "blobby",
  "block-cipher",
