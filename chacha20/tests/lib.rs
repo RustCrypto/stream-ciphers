@@ -9,8 +9,8 @@ new_seek_test!(chacha20_seek, ChaCha20, "chacha20");
 
 #[cfg(features = "xchacha20")]
 mod xchacha20 {
-    use chacha20::XChaCha20;
-    use stream_cipher::{generic_array::GenericArray, NewStreamCipher, StreamCipher};
+    use chacha20::{Key, XChaCha20, XNonce};
+    use stream_cipher::{NewStreamCipher, StreamCipher};
 
     //
     // XChaCha20 test vectors from:
@@ -102,7 +102,7 @@ mod xchacha20 {
 
     #[test]
     fn xchacha20_keystream() {
-        let mut cipher = XChaCha20::new(&GenericArray::from(KEY), &GenericArray::from(IV));
+        let mut cipher = XChaCha20::new(&Key::from(KEY), &XNonce::from(IV));
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut prefix = [0u8; 64];
@@ -115,7 +115,7 @@ mod xchacha20 {
 
     #[test]
     fn xchacha20_encryption() {
-        let mut cipher = XChaCha20::new(&GenericArray::from(KEY), &GenericArray::from(IV));
+        let mut cipher = XChaCha20::new(&Key::from(KEY), &XNonce::from(IV));
         let mut buf = PLAINTEXT.clone();
 
         // The test vectors omit the first 64-bytes of the keystream
@@ -130,10 +130,9 @@ mod xchacha20 {
 // Legacy "djb" version of ChaCha20 (64-bit nonce)
 #[cfg(feature = "legacy")]
 mod legacy {
-    use chacha20::ChaCha20Legacy;
-    use stream_cipher::{
-        generic_array::GenericArray, NewStreamCipher, StreamCipher, SyncStreamCipherSeek,
-    };
+    use chacha20::{ChaCha20Legacy, Key, LegacyNonce};
+    use stream_cipher::{new_seek_test, new_sync_test};
+    use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
     new_sync_test!(chacha20_legacy_core, ChaCha20Legacy, "chacha20-legacy");
     new_seek_test!(chacha20_legacy_seek, ChaCha20Legacy, "chacha20-legacy");
@@ -176,10 +175,8 @@ mod legacy {
         for idx in 0..256 {
             for middle in idx..256 {
                 for last in middle..256 {
-                    let mut cipher = ChaCha20Legacy::new(
-                        &GenericArray::from(KEY_LONG),
-                        &GenericArray::from(IV_LONG),
-                    );
+                    let mut cipher =
+                        ChaCha20Legacy::new(&Key::from(KEY_LONG), &LegacyNonce::from(IV_LONG));
                     let mut buf = [0; 256];
 
                     cipher.seek(idx as u64);

@@ -14,10 +14,7 @@ use core::{
     convert::TryInto,
     fmt::{self, Debug},
 };
-use stream_cipher::generic_array::{
-    typenum::{U12, U32},
-    GenericArray,
-};
+use stream_cipher::consts::{U12, U32};
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// ChaCha8 stream cipher (reduced-round variant of ChaCha20 with 8 rounds)
@@ -28,6 +25,12 @@ pub type ChaCha12 = Cipher<R12>;
 
 /// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
 pub type ChaCha20 = Cipher<R20>;
+
+/// ChaCha20 key type (NOTE:
+pub type Key = stream_cipher::Key<ChaCha20>;
+
+/// Nonce type
+pub type Nonce = stream_cipher::Nonce<ChaCha20>;
 
 /// Internal buffer
 type Buffer = [u8; BUFFER_SIZE];
@@ -70,16 +73,16 @@ impl<R: Rounds> NewStreamCipher for Cipher<R> {
     /// Nonce size in bytes
     type NonceSize = U12;
 
-    fn new(key: &GenericArray<u8, U32>, iv: &GenericArray<u8, U12>) -> Self {
+    fn new(key: &Key, nonce: &Nonce) -> Self {
         let block = Block::new(
             key.as_slice().try_into().unwrap(),
-            iv[4..12].try_into().unwrap(),
+            nonce[4..12].try_into().unwrap(),
         );
 
-        let counter_offset = (u64::from(iv[0]) & 0xff) << 32
-            | (u64::from(iv[1]) & 0xff) << 40
-            | (u64::from(iv[2]) & 0xff) << 48
-            | (u64::from(iv[3]) & 0xff) << 56;
+        let counter_offset = (u64::from(nonce[0]) & 0xff) << 32
+            | (u64::from(nonce[1]) & 0xff) << 40
+            | (u64::from(nonce[2]) & 0xff) << 48
+            | (u64::from(nonce[3]) & 0xff) << 56;
 
         Self {
             block,
