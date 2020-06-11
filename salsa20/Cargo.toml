@@ -11,7 +11,7 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-stream-cipher = "0.4"
+stream-cipher = "0.4.1"
 zeroize = { version = "1", optional = true }
 
 [dev-dependencies]
