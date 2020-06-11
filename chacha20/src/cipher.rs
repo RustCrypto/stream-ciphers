@@ -28,10 +28,14 @@ pub type ChaCha20 = Cipher<R20>;
 
 /// ChaCha20 key type (256-bits/32-bytes)
 ///
+/// Implemented as an alias for [`GenericArray`].
+///
 /// (NOTE: all variants of [`ChaCha20`] including `XChaCha20` use the same key type)
 pub type Key = stream_cipher::Key<ChaCha20>;
 
 /// Nonce type (96-bits/12-bytes)
+///
+/// Implemented as an alias for [`GenericArray`].
 pub type Nonce = stream_cipher::Nonce<ChaCha20>;
 
 /// Internal buffer
