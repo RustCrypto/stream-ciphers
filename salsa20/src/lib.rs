@@ -26,14 +26,13 @@
 //! # Usage
 //!
 //! ```
-//! use salsa20::Salsa20;
-//! use salsa20::stream_cipher::generic_array::GenericArray;
+//! use salsa20::{Salsa20, Key, Nonce};
 //! use salsa20::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
-//! let key = GenericArray::from_slice(b"an example very very secret key.");
-//! let nonce = GenericArray::from_slice(b"a nonce.");
+//! let key = Key::from_slice(b"an example very very secret key.");
+//! let nonce = Nonce::from_slice(b"a nonce.");
 //!
 //! // create cipher instance
 //! let mut cipher = Salsa20::new(&key, &nonce);
