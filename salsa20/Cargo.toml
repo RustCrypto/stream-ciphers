@@ -15,7 +15,7 @@ stream-cipher = "0.4"
 zeroize = { version = "1", optional = true }
 
 [dev-dependencies]
-stream-cipher = { version = "0.4", features = ["dev"] }
+stream-cipher = { version = "0.4.1", features = ["dev"] }
 
 [features]
 default = ["xsalsa20"]
