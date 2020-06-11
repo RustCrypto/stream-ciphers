@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.2 (2020-06-11)
+### Changed
+- Use `Key` and `Nonce` in usage docs ([#155])
+
+### Fixed
+- `stream-cipher` version requirement ([#152])
+
+[#155]: https://github.com/RustCrypto/stream-ciphers/pull/155
+[#152]: https://github.com/RustCrypto/stream-ciphers/pull/152
+
 ## 0.5.1 (2020-06-11)
 ### Added
 - Documentation improvements ([#149])
