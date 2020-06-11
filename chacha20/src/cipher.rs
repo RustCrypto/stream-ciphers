@@ -26,7 +26,9 @@ pub type ChaCha12 = Cipher<R12>;
 /// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
 pub type ChaCha20 = Cipher<R20>;
 
-/// ChaCha20 key type (NOTE:
+/// ChaCha20 key type
+///
+/// (NOTE: all variants of ChaCha20 including XChaCha20 use the same key type)
 pub type Key = stream_cipher::Key<ChaCha20>;
 
 /// Nonce type
