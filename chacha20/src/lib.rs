@@ -22,6 +22,19 @@
 //!
 //! USE AT YOUR OWN RISK!
 //!
+//! # Diagram
+//!
+//! This diagram illustrates the ChaCha quarter round function.
+//! Each round consists of four quarter-rounds:
+//!
+//! <img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/chacha20.png" width="300px">
+//!
+//! Legend:
+//!
+//! - ⊞ add
+//! - ‹‹‹ rotate
+//! - ⊕ xor
+//!
 //! # Usage
 //!
 //! ```
@@ -51,23 +64,23 @@
 //! [Salsa20]: https://docs.rs/salsa20
 
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
-
-#[cfg(feature = "stream-cipher")]
-pub use stream_cipher;
 
 mod block;
 #[cfg(feature = "stream-cipher")]
 pub(crate) mod cipher;
 #[cfg(feature = "legacy")]
 mod legacy;
+#[cfg(feature = "rng")]
+mod rng;
 mod rounds;
 #[cfg(feature = "xchacha20")]
 mod xchacha20;
 
-#[cfg(feature = "rng")]
-mod rng;
+#[cfg(feature = "stream-cipher")]
+pub use stream_cipher;
 
 #[cfg(feature = "stream-cipher")]
 pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher, Key, Nonce};

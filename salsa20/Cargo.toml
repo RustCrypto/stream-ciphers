@@ -21,3 +21,7 @@ stream-cipher = { version = "0.4.1", features = ["dev"] }
 default = ["xsalsa20"]
 hsalsa20 = ["xsalsa20"]
 xsalsa20 = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

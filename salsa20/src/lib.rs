@@ -8,6 +8,21 @@
 //! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
 //! is not verified, which can lead to serious vulnerabilities!
 //!
+//! USE AT YOUR OWN RISK!
+//!
+//! # Diagram
+//!
+//! This diagram illustrates the Salsa quarter round function.
+//! Each round consists of four quarter-rounds:
+//!
+//! <img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/salsa20.png" width="300px">
+//!
+//! Legend:
+//!
+//! - ⊞ add
+//! - ‹‹‹ rotate
+//! - ⊕ xor
+//!
 //! # Usage
 //!
 //! ```
@@ -34,6 +49,7 @@
 //! ```
 
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
