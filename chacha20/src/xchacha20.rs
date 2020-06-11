@@ -12,7 +12,7 @@ use stream_cipher::{
 };
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
-/// EXtended ChaCha20 nonce (192-bit/24-byte)
+/// EXtended ChaCha20 nonce (192-bits/24-bytes)
 #[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
 pub type XNonce = stream_cipher::Nonce<XChaCha20>;
 
