@@ -9,6 +9,7 @@ use stream_cipher::{
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// EXtended Salsa20 nonce (192-bit/24-byte)
+#[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
 pub type XNonce = stream_cipher::Nonce<XSalsa20>;
 
 /// XSalsa20 is a Salsa20 variant with an extended 192-bit (24-byte) nonce.
@@ -19,6 +20,7 @@ pub type XNonce = stream_cipher::Nonce<XSalsa20>;
 ///
 /// The `xsalsa20` Cargo feature must be enabled in order to use this
 /// (which it is by default).
+#[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
 pub struct XSalsa20(Salsa20);
 
 impl NewStreamCipher for XSalsa20 {
@@ -73,6 +75,7 @@ impl SyncStreamCipherSeek for XSalsa20 {
 /// - Nonce (`u32` x 4)
 ///
 /// It produces 256-bits of output suitable for use as a Salsa20 key
+#[cfg_attr(docsrs, doc(cfg(feature = "hsalsa20")))]
 pub fn hsalsa20(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
 

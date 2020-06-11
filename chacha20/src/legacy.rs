@@ -5,11 +5,13 @@ use stream_cipher::consts::{U32, U8};
 use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// Size of the nonce for the legacy ChaCha20 stream cipher
+#[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
 pub type LegacyNonce = stream_cipher::Nonce<ChaCha20Legacy>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 ///
 /// The `legacy` Cargo feature must be enabled to use this.
+#[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
 pub struct ChaCha20Legacy(ChaCha20);
 
 impl NewStreamCipher for ChaCha20Legacy {
