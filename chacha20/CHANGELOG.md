@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.2 (2020-06-11)
+### Added
+- Documentation improvements ([#149])
+- `Key`, `Nonce`, `XNonce`, and `LegacyNonce` type aliases ([#147])
+
+[#149]: https://github.com/RustCrypto/stream-ciphers/pull/149
+[#147]: https://github.com/RustCrypto/stream-ciphers/pull/147
+
 ## 0.4.1 (2020-06-06)
 ### Fixed
 - Links in documentation ([#142])
