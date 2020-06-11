@@ -38,14 +38,13 @@
 //! # Usage
 //!
 //! ```
-//! use chacha20::ChaCha20;
-//! use chacha20::stream_cipher::generic_array::GenericArray;
+//! use chacha20::{ChaCha20, Key, Nonce};
 //! use chacha20::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
-//! let key = GenericArray::from_slice(b"an example very very secret key.");
-//! let nonce = GenericArray::from_slice(b"secret nonce");
+//! let key = Key::from_slice(b"an example very very secret key.");
+//! let nonce = Nonce::from_slice(b"secret nonce");
 //!
 //! // create cipher instance
 //! let mut cipher = ChaCha20::new(&key, &nonce);
