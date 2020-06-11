@@ -105,10 +105,14 @@ pub type Salsa20 = Salsa<R20>;
 
 /// Key type.
 ///
-/// NOTE: all three round variants use the same key size.
+/// Implemented as an alias for [`GenericArray`].
+///
+/// (NOTE: all three round variants use the same key size)
 pub type Key = stream_cipher::Key<Salsa20>;
 
-/// Nonce type
+/// Nonce type.
+///
+/// Implemented as an alias for [`GenericArray`].
 pub type Nonce = stream_cipher::Nonce<Salsa20>;
 
 /// The Salsa20 family of stream ciphers
