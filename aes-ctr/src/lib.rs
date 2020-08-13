@@ -36,8 +36,11 @@
 //! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
 //! ```
-
 #![no_std]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
+)]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![warn(missing_docs, rust_2018_idioms)]
 
