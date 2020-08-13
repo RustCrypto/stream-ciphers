@@ -52,10 +52,10 @@
 
 pub use stream_cipher;
 
+use core::slice;
+use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
 use stream_cipher::generic_array::typenum::Unsigned;
 use stream_cipher::generic_array::GenericArray;
-use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
-use core::slice;
 use stream_cipher::{FromBlockCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
@@ -161,7 +161,6 @@ impl<C: BlockCipher> StreamCipher for Cfb<C> {
             }
             iv = iv_blocks[n].clone();
         }
-
 
         let mut chunks = data.chunks_exact_mut(bs);
         for chunk in &mut chunks {

@@ -55,10 +55,10 @@
 
 pub use stream_cipher;
 
+use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
 use stream_cipher::generic_array::typenum::Unsigned;
 use stream_cipher::generic_array::GenericArray;
-use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
-use stream_cipher::{LoopError, FromBlockCipher, SyncStreamCipher};
+use stream_cipher::{FromBlockCipher, LoopError, SyncStreamCipher};
 
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 
@@ -79,7 +79,11 @@ where
     fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let mut block = iv.clone();
         cipher.encrypt_block(&mut block);
-        Self { cipher, block, pos: 0 }
+        Self {
+            cipher,
+            block,
+            pos: 0,
+        }
     }
 }
 
@@ -93,7 +97,7 @@ impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
             self.pos += n;
             return Ok(());
         }
-        
+
         let (left, right) = { data }.split_at_mut(bs - self.pos);
         data = right;
         let mut block = self.block.clone();
@@ -110,7 +114,7 @@ impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
         xor(rem, &block[..rem.len()]);
         self.block = block;
         self.pos = rem.len();
-        
+
         Ok(())
     }
 }

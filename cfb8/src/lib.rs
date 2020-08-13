@@ -53,8 +53,8 @@
 
 pub use stream_cipher;
 
-use stream_cipher::generic_array::GenericArray;
 use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
+use stream_cipher::generic_array::GenericArray;
 use stream_cipher::{FromBlockCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
@@ -70,9 +70,11 @@ where
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-
     fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        Self { cipher, iv: iv.clone() }
+        Self {
+            cipher,
+            iv: iv.clone(),
+        }
     }
 }
 
