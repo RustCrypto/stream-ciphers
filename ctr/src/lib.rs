@@ -83,6 +83,7 @@ where
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     type BlockCipher = C;
+    type NonceSize = C::BlockSize;
 
     fn from_block_cipher(cipher: C, nonce: &Nonce) -> Self {
         Self {

@@ -24,20 +24,20 @@
 //!     8c764fa2 ce107f96 e1cf1dcd
 //! ");
 //!
-//! let mut buffer = plaintext.to_vec();
+//! let mut data = plaintext.to_vec();
 //! // encrypt plaintext
-//! AesCfb::new_var(key, iv).unwrap().encrypt(&mut buffer);
-//! assert_eq!(buffer, &ciphertext[..]);
+//! AesCfb::new_var(key, iv).unwrap().encrypt(&mut data);
+//! assert_eq!(data, &ciphertext[..]);
 //! // and decrypt it back
-//! AesCfb::new_var(key, iv).unwrap().decrypt(&mut buffer);
-//! assert_eq!(buffer, &plaintext[..]);
+//! AesCfb::new_var(key, iv).unwrap().decrypt(&mut data);
+//! assert_eq!(data, &plaintext[..]);
 //!
 //! // CFB mode can be used with streaming messages
 //! let mut cipher = AesCfb::new_var(key, iv).unwrap();
-//! for chunk in buffer.chunks_mut(3) {
+//! for chunk in data.chunks_mut(3) {
 //!     cipher.encrypt(chunk);
 //! }
-//! assert_eq!(buffer, &ciphertext[..]);
+//! assert_eq!(data, &ciphertext[..]);
 //! ```
 //!
 //! [1]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#CFB
@@ -52,11 +52,11 @@
 
 pub use stream_cipher;
 
-use block_cipher::generic_array::typenum::Unsigned;
-use block_cipher::generic_array::GenericArray;
-use block_cipher::{BlockCipher, NewBlockCipher};
 use core::slice;
-use stream_cipher::{InvalidKeyNonceLength, NewStreamCipher, StreamCipher};
+use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
+use stream_cipher::generic_array::typenum::Unsigned;
+use stream_cipher::generic_array::GenericArray;
+use stream_cipher::{FromBlockCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb<C: BlockCipher> {
@@ -67,94 +67,80 @@ pub struct Cfb<C: BlockCipher> {
 
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 type ParBlocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
-type Key<C> = GenericArray<u8, <C as NewBlockCipher>::KeySize>;
 
-impl<C> NewStreamCipher for Cfb<C>
+impl<C> FromBlockCipher for Cfb<C>
 where
     C: BlockCipher + NewBlockCipher,
 {
-    type KeySize = C::KeySize;
+    type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-    fn new(key: &Key<C>, iv: &Block<C>) -> Self {
-        let cipher = C::new(key);
+    fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let mut iv = iv.clone();
         cipher.encrypt_block(&mut iv);
         Self { cipher, iv, pos: 0 }
     }
-
-    fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
-        if Self::NonceSize::to_usize() != iv.len() {
-            Err(InvalidKeyNonceLength)
-        } else {
-            let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
-            let mut iv = GenericArray::clone_from_slice(iv);
-            cipher.encrypt_block(&mut iv);
-            Ok(Self { cipher, iv, pos: 0 })
-        }
-    }
 }
 
 impl<C: BlockCipher> StreamCipher for Cfb<C> {
-    fn encrypt(&mut self, mut buffer: &mut [u8]) {
-        let bs = C::BlockSize::to_usize();
+    fn encrypt(&mut self, mut data: &mut [u8]) {
+        let bs = C::BlockSize::USIZE;
+        let n = data.len();
 
-        let mut iv;
-        if buffer.len() < bs - self.pos {
-            xor_set1(buffer, &mut self.iv[self.pos..]);
-            self.pos += buffer.len();
+        if n < bs - self.pos {
+            xor_set1(data, &mut self.iv[self.pos..self.pos + n]);
+            self.pos += n;
             return;
-        } else {
-            let (left, right) = { buffer }.split_at_mut(bs - self.pos);
-            buffer = right;
-            iv = self.iv.clone();
-            xor_set1(left, &mut iv[self.pos..]);
+        }
+
+        let (left, right) = { data }.split_at_mut(bs - self.pos);
+        data = right;
+        let mut iv = self.iv.clone();
+        xor_set1(left, &mut iv[self.pos..]);
+        self.cipher.encrypt_block(&mut iv);
+
+        let mut chunks = data.chunks_exact_mut(bs);
+        for chunk in &mut chunks {
+            xor_set1(chunk, iv.as_mut_slice());
             self.cipher.encrypt_block(&mut iv);
         }
 
-        while buffer.len() >= bs {
-            let (block, r) = { buffer }.split_at_mut(bs);
-            buffer = r;
-            xor_set1(block, iv.as_mut_slice());
-            self.cipher.encrypt_block(&mut iv);
-        }
-
-        xor_set1(buffer, iv.as_mut_slice());
-        self.pos = buffer.len();
+        let rem = chunks.into_remainder();
+        xor_set1(rem, iv.as_mut_slice());
+        self.pos = rem.len();
         self.iv = iv;
     }
 
-    fn decrypt(&mut self, mut buffer: &mut [u8]) {
+    fn decrypt(&mut self, mut data: &mut [u8]) {
         let bs = C::BlockSize::to_usize();
         let pb = C::ParBlocks::to_usize();
+        let n = data.len();
 
-        let mut iv;
-        if buffer.len() < bs - self.pos {
-            xor_set2(buffer, &mut self.iv[self.pos..]);
-            self.pos += buffer.len();
+        if n < bs - self.pos {
+            xor_set2(data, &mut self.iv[self.pos..self.pos + n]);
+            self.pos += n;
             return;
-        } else {
-            let (left, right) = { buffer }.split_at_mut(bs - self.pos);
-            buffer = right;
-            iv = self.iv.clone();
-            xor_set2(left, &mut iv[self.pos..]);
-            self.cipher.encrypt_block(&mut iv);
         }
+        let (left, right) = { data }.split_at_mut(bs - self.pos);
+        data = right;
+        let mut iv = self.iv.clone();
+        xor_set2(left, &mut iv[self.pos..]);
+        self.cipher.encrypt_block(&mut iv);
 
         let bss = bs * pb;
-        if pb != 1 && buffer.len() >= bss {
+        if pb != 1 && data.len() >= bss {
             let mut iv_blocks: ParBlocks<C> =
-                unsafe { (&*(buffer.as_ptr() as *const ParBlocks<C>)).clone() };
+                unsafe { (&*(data.as_ptr() as *const ParBlocks<C>)).clone() };
             self.cipher.encrypt_blocks(&mut iv_blocks);
-            let (block, r) = { buffer }.split_at_mut(bs);
-            buffer = r;
+            let (block, r) = { data }.split_at_mut(bs);
+            data = r;
             xor(block, iv.as_slice());
 
-            while buffer.len() >= 2 * bss - bs {
-                let (blocks, r) = { buffer }.split_at_mut(bss);
-                buffer = r;
+            while data.len() >= 2 * bss - bs {
+                let (blocks, r) = { data }.split_at_mut(bss);
+                data = r;
                 let mut next_iv_blocks: ParBlocks<C> = unsafe {
-                    let ptr = buffer.as_ptr().offset(-(bs as isize));
+                    let ptr = data.as_ptr().offset(-(bs as isize));
                     (&*(ptr as *const ParBlocks<C>)).clone()
                 };
                 self.cipher.encrypt_blocks(&mut next_iv_blocks);
@@ -167,8 +153,8 @@ impl<C: BlockCipher> StreamCipher for Cfb<C> {
             }
 
             let n = pb - 1;
-            let (blocks, r) = { buffer }.split_at_mut(n * bs);
-            buffer = r;
+            let (blocks, r) = { data }.split_at_mut(n * bs);
+            data = r;
             let chunks = blocks.chunks_mut(bs);
             for (iv, block) in iv_blocks[..n].iter().zip(chunks) {
                 xor(block, iv.as_slice())
@@ -176,15 +162,15 @@ impl<C: BlockCipher> StreamCipher for Cfb<C> {
             iv = iv_blocks[n].clone();
         }
 
-        while buffer.len() >= bs {
-            let (block, r) = { buffer }.split_at_mut(bs);
-            buffer = r;
-            xor_set2(block, iv.as_mut_slice());
+        let mut chunks = data.chunks_exact_mut(bs);
+        for chunk in &mut chunks {
+            xor_set2(chunk, iv.as_mut_slice());
             self.cipher.encrypt_block(&mut iv);
         }
 
-        xor_set2(buffer, iv.as_mut_slice());
-        self.pos = buffer.len();
+        let rem = chunks.into_remainder();
+        xor_set2(rem, iv.as_mut_slice());
+        self.pos = rem.len();
         self.iv = iv;
     }
 }
