@@ -8,6 +8,7 @@ new_sync_test!(chacha20_core, ChaCha20, "chacha20");
 new_seek_test!(chacha20_seek, ChaCha20, "chacha20");
 
 #[cfg(features = "xchacha20")]
+#[rustfmt::skip]
 mod xchacha20 {
     use chacha20::{Key, XChaCha20, XNonce};
     use stream_cipher::{NewStreamCipher, StreamCipher};
@@ -94,6 +95,7 @@ mod xchacha20 {
 
 // Legacy "djb" version of ChaCha20 (64-bit nonce)
 #[cfg(feature = "legacy")]
+#[rustfmt::skip]
 mod legacy {
     use chacha20::{ChaCha20Legacy, Key, LegacyNonce};
     use stream_cipher::{new_seek_test, new_sync_test};
