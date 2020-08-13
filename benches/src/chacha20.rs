@@ -1,8 +1,4 @@
-//! ChaCha20 `stream-cipher` benchmark
-
-#[cfg(not(feature = "stream-cipher"))]
-compile_error!("run benchmarks with `cargo bench --all-features`");
-
+//! ChaCha20 benchmark
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use criterion_cycles_per_byte::CyclesPerByte;
 
