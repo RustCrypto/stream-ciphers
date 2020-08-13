@@ -53,10 +53,9 @@
 
 pub use stream_cipher;
 
-use block_cipher::generic_array::typenum::Unsigned;
-use block_cipher::generic_array::GenericArray;
-use block_cipher::{BlockCipher, NewBlockCipher};
-use stream_cipher::{InvalidKeyNonceLength, NewStreamCipher, StreamCipher};
+use stream_cipher::generic_array::GenericArray;
+use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
+use stream_cipher::{FromBlockCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb8<C: BlockCipher> {
@@ -64,28 +63,16 @@ pub struct Cfb8<C: BlockCipher> {
     iv: GenericArray<u8, C::BlockSize>,
 }
 
-impl<C> NewStreamCipher for Cfb8<C>
+impl<C> FromBlockCipher for Cfb8<C>
 where
     C: BlockCipher + NewBlockCipher,
 {
-    type KeySize = C::KeySize;
+    type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-    fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        Self {
-            cipher: C::new(key),
-            iv: iv.clone(),
-        }
-    }
 
-    fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
-        if Self::NonceSize::to_usize() != iv.len() {
-            Err(InvalidKeyNonceLength)
-        } else {
-            let iv = GenericArray::clone_from_slice(iv);
-            let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
-            Ok(Self { cipher, iv })
-        }
+    fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+        Self { cipher, iv: iv.clone() }
     }
 }
 

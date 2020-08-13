@@ -10,8 +10,8 @@
 
 pub use stream_cipher;
 
-use block_cipher::consts::U32;
-use block_cipher::generic_array::GenericArray;
+use stream_cipher::consts::U32;
+use stream_cipher::generic_array::GenericArray;
 use stream_cipher::{NewStreamCipher, StreamCipher};
 
 #[cfg(cargo_feature = "zeroize")]

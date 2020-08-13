@@ -55,10 +55,10 @@
 
 pub use stream_cipher;
 
-use block_cipher::generic_array::typenum::Unsigned;
-use block_cipher::generic_array::GenericArray;
-use block_cipher::{BlockCipher, NewBlockCipher};
-use stream_cipher::{InvalidKeyNonceLength, LoopError, NewStreamCipher, SyncStreamCipher};
+use stream_cipher::generic_array::typenum::Unsigned;
+use stream_cipher::generic_array::GenericArray;
+use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
+use stream_cipher::{LoopError, FromBlockCipher, SyncStreamCipher};
 
 type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
 
@@ -69,66 +69,48 @@ pub struct Ofb<C: BlockCipher> {
     pos: usize,
 }
 
-impl<C> NewStreamCipher for Ofb<C>
+impl<C> FromBlockCipher for Ofb<C>
 where
     C: BlockCipher + NewBlockCipher,
 {
-    type KeySize = C::KeySize;
+    type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-    fn new(key: &GenericArray<u8, C::KeySize>, iv: &Block<C>) -> Self {
-        let cipher = C::new(key);
+    fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let mut block = iv.clone();
         cipher.encrypt_block(&mut block);
-        Self {
-            cipher,
-            block,
-            pos: 0,
-        }
-    }
-
-    fn new_var(key: &[u8], iv: &[u8]) -> Result<Self, InvalidKeyNonceLength> {
-        if Self::NonceSize::to_usize() != iv.len() {
-            Err(InvalidKeyNonceLength)
-        } else {
-            let cipher = C::new_varkey(key).map_err(|_| InvalidKeyNonceLength)?;
-            let mut block = GenericArray::clone_from_slice(iv);
-            cipher.encrypt_block(&mut block);
-            Ok(Self {
-                cipher,
-                block,
-                pos: 0,
-            })
-        }
+        Self { cipher, block, pos: 0 }
     }
 }
 
 impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         let bs = C::BlockSize::to_usize();
-        if data.len() >= bs - self.pos {
-            let (l, r) = { data }.split_at_mut(bs - self.pos);
-            data = r;
-            xor(l, &self.block[self.pos..]);
-            self.cipher.encrypt_block(&mut self.block);
-        } else {
-            let n = data.len();
-            xor(data, &self.block[self.pos..self.pos + n]);
+        let n = data.len();
+
+        if n < bs - self.pos {
+            xor(data, &mut self.block[self.pos..self.pos + n]);
             self.pos += n;
             return Ok(());
         }
-
+        
+        let (left, right) = { data }.split_at_mut(bs - self.pos);
+        data = right;
         let mut block = self.block.clone();
-        while data.len() >= bs {
-            let (l, r) = { data }.split_at_mut(bs);
-            data = r;
-            xor(l, &block);
+        xor(left, &mut block[self.pos..]);
+        self.cipher.encrypt_block(&mut block);
+
+        let mut chunks = data.chunks_exact_mut(bs);
+        for chunk in &mut chunks {
+            xor(chunk, &block);
             self.cipher.encrypt_block(&mut block);
         }
+
+        let rem = chunks.into_remainder();
+        xor(rem, &block[..rem.len()]);
         self.block = block;
-        let n = data.len();
-        self.pos = n;
-        xor(data, &self.block[..n]);
+        self.pos = rem.len();
+        
         Ok(())
     }
 }

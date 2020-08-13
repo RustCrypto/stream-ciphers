@@ -1,6 +1,6 @@
 [package]
 name = "cfb-mode"
-version = "0.4.0"
+version = "0.5.0"
 description = "Generic Cipher Feedback (CFB) mode implementation."
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
@@ -12,10 +12,9 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-stream-cipher = "0.4"
-block-cipher = "0.7"
+stream-cipher = { version = "0.6", features = ["block-cipher"] }
 
 [dev-dependencies]
-aes = "0.4"
-stream-cipher = { version = "0.4", features = ["dev"] }
+aes = "0.5"
+stream-cipher = { version = "0.6", features = ["dev"] }
 hex-literal = "0.2"

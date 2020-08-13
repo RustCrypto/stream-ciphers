@@ -1,6 +1,6 @@
 [package]
 name = "hc-256"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Eric McCorkle <eric@metricspace.net>"]
 license = "MIT OR Apache-2.0"
 description = "HC-256 Stream Cipher"
@@ -11,10 +11,5 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-block-cipher = "0.7"
-stream-cipher = "0.4"
+stream-cipher = "0.6"
 zeroize = { version = "1", optional = true }
-
-[dev-dependencies]
-stream-cipher = { version = "0.4", features = ["dev"] }
-block-cipher = { version = "0.7", features = ["dev"] }
