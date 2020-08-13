@@ -1,0 +1,28 @@
+name: benches
+
+on:
+  pull_request:
+    paths:
+      - "benches/**"
+  push:
+    branches: master
+
+defaults:
+  run:
+    working-directory: benches
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: cargo bench --no-run

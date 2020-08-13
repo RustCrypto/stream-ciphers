@@ -22,23 +22,13 @@ stream-cipher = { version = "0.6", optional = true }
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
-stream-cipher = { version = "0.6", features = ["dev"] }
-criterion = "0.3"
-criterion-cycles-per-byte = "0.1"
+stream-cipher = { version = "0.4.1", features = ["dev"] }
 
 [features]
 default = ["xchacha20"]
 legacy = ["stream-cipher"]
 xchacha20 = ["stream-cipher"]
 rng = ["rand_core"]
-
-[[bench]]
-name = "stream_cipher"
-harness = false
-
-[[bench]]
-name = "rng"
-harness = false
 
 [package.metadata.docs.rs]
 all-features = true
