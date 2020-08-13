@@ -86,6 +86,7 @@ dependencies = [
 name = "chacha20"
 version = "0.5.0"
 dependencies = [
+ "hex-literal",
  "rand_core",
  "stream-cipher",
  "zeroize",
