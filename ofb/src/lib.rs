@@ -89,7 +89,7 @@ impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
         let n = data.len();
 
         if n < bs - self.pos {
-            xor(data, &mut self.block[self.pos..self.pos + n]);
+            xor(data, &self.block[self.pos..self.pos + n]);
             self.pos += n;
             return Ok(());
         }
@@ -97,7 +97,7 @@ impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
         let (left, right) = { data }.split_at_mut(bs - self.pos);
         data = right;
         let mut block = self.block.clone();
-        xor(left, &mut block[self.pos..]);
+        xor(left, &block[self.pos..]);
         self.cipher.encrypt_block(&mut block);
 
         let mut chunks = data.chunks_exact_mut(bs);
