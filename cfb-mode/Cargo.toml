@@ -17,4 +17,4 @@ stream-cipher = { version = "0.6", features = ["block-cipher"] }
 [dev-dependencies]
 aes = "0.5"
 stream-cipher = { version = "0.6", features = ["dev"] }
-hex-literal = "0.2"
+hex-literal = "0.3"
