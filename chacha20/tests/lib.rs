@@ -5,7 +5,7 @@ use stream_cipher::{new_seek_test, new_sync_test};
 
 // IETF version of ChaCha20 (96-bit nonce)
 new_sync_test!(chacha20_core, ChaCha20, "chacha20");
-new_seek_test!(chacha20_seek, ChaCha20, "chacha20");
+new_seek_test!(chacha20_seek, ChaCha20);
 
 #[cfg(features = "xchacha20")]
 #[rustfmt::skip]

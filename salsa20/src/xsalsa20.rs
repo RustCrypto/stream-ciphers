@@ -5,8 +5,8 @@ use core::convert::TryInto;
 use stream_cipher::{
     consts::{U16, U24, U32},
     generic_array::GenericArray,
+    LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek, OverflowError, SeekNum,
 };
-use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// EXtended Salsa20 nonce (192-bit/24-byte)
 #[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
@@ -55,12 +55,12 @@ impl SyncStreamCipher for XSalsa20 {
 }
 
 impl SyncStreamCipherSeek for XSalsa20 {
-    fn current_pos(&self) -> u64 {
-        self.0.current_pos()
+    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
+        self.0.try_current_pos()
     }
 
-    fn seek(&mut self, pos: u64) {
-        self.0.seek(pos);
+    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
+        self.0.try_seek(pos)
     }
 }
 

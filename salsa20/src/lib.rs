@@ -76,8 +76,10 @@ use crate::{
     rounds::{Rounds, R12, R20, R8},
 };
 use core::convert::TryInto;
-use stream_cipher::consts::{U32, U8};
-use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+use stream_cipher::{
+    consts::{U32, U8},
+    LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek, OverflowError, SeekNum,
+};
 
 /// Size of a Salsa20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
@@ -139,12 +141,12 @@ impl<R: Rounds> NewStreamCipher for Salsa<R> {
 }
 
 impl<R: Rounds> SyncStreamCipherSeek for Salsa<R> {
-    fn current_pos(&self) -> u64 {
-        self.0.current_pos()
+    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
+        self.0.try_current_pos()
     }
 
-    fn seek(&mut self, pos: u64) {
-        self.0.seek(pos);
+    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
+        self.0.try_seek(pos)
     }
 }
 
