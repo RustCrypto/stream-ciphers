@@ -170,9 +170,11 @@ where
 
     fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
         let res = pos.to_block_byte(C::BlockSize::U8)?;
-        self.block = self.generate_block(res.0);
         self.counter = res.0;
         self.pos = res.1;
+        if self.pos != 0 {
+            self.block = self.generate_block(self.counter);
+        }
         Ok(())
     }
 }

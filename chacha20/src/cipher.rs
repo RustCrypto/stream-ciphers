@@ -160,7 +160,9 @@ impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
         let res = pos.to_block_byte(BLOCK_SIZE as u8)?;
         self.counter = res.0;
         self.buffer_pos = res.1;
-        self.generate_block(self.counter);
+        if self.buffer_pos != 0 {
+            self.generate_block(self.counter);
+        }
         Ok(())
     }
 }

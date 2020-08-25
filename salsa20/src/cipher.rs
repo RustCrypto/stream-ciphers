@@ -85,9 +85,11 @@ impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
 
     fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
         let res = pos.to_block_byte(BLOCK_SIZE as u8)?;
-        self.block.generate(self.counter, &mut self.buffer);
         self.counter = res.0;
         self.buffer_pos = res.1;
+        if self.buffer_pos != 0 {
+            self.block.generate(self.counter, &mut self.buffer);
+        }
         Ok(())
     }
 }
