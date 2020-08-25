@@ -78,7 +78,7 @@ use crate::{
 use core::convert::TryInto;
 use stream_cipher::{
     consts::{U32, U8},
-    LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek, OverflowError, SeekNum,
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
 };
 
 /// Size of a Salsa20 block in bytes

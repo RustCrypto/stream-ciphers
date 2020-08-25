@@ -15,7 +15,7 @@ use core::{
 };
 use stream_cipher::{
     consts::{U12, U32},
-    LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek, OverflowError, SeekNum,
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
 };
 
 /// ChaCha8 stream cipher (reduced-round variant of ChaCha20 with 8 rounds)
@@ -106,10 +106,6 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
         self.check_data_len(data)?;
         let pos = self.buffer_pos as usize;
 
-        if data.len() == 0 {
-            return Ok(());
-        }
-
         let mut counter = self.counter;
         // xor with leftover bytes from the last call if any
         if pos != 0 {
@@ -117,7 +113,7 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
                 let n = pos + data.len();
                 xor(data, &self.buffer[pos..n]);
                 self.buffer_pos = n as u8;
-                return Ok(())
+                return Ok(());
             } else {
                 let (l, r) = data.split_at_mut(BUFFER_SIZE - pos);
                 data = r;
@@ -137,7 +133,7 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
         let rem = chunks.into_remainder();
         self.buffer_pos = rem.len() as u8;
         self.counter = counter;
-        if rem.len() != 0 {
+        if !rem.is_empty() {
             self.generate_block(counter);
             xor(rem, &self.buffer[..rem.len()]);
         }
@@ -168,9 +164,7 @@ impl<R: Rounds> Cipher<R> {
             return Ok(());
         }
         let blocks = 1 + (data.len() - leftover_bytes) / BLOCK_SIZE;
-        let res = self.counter
-            .checked_add(blocks as u64)
-            .ok_or(LoopError)?;
+        let res = self.counter.checked_add(blocks as u64).ok_or(LoopError)?;
         if res <= MAX_BLOCKS as u64 {
             Ok(())
         } else {

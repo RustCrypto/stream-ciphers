@@ -5,7 +5,7 @@ use core::convert::TryInto;
 use stream_cipher::{
     consts::{U16, U24, U32},
     generic_array::GenericArray,
-    LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek, OverflowError, SeekNum,
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
 };
 
 /// EXtended Salsa20 nonce (192-bit/24-byte)

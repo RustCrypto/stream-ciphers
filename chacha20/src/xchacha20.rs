@@ -9,7 +9,7 @@ use core::convert::TryInto;
 use stream_cipher::{
     consts::{U16, U24, U32},
     generic_array::GenericArray,
-    LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek, OverflowError, SeekNum,
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
 };
 
 /// EXtended ChaCha20 nonce (192-bits/24-bytes)

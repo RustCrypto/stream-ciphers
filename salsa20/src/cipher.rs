@@ -6,7 +6,7 @@
 
 use crate::{block::Block, rounds::Rounds, BLOCK_SIZE};
 use core::fmt;
-use stream_cipher::{LoopError, SyncStreamCipher, SyncStreamCipherSeek, SeekNum, OverflowError};
+use stream_cipher::{LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// Internal buffer
 type Buffer = [u8; BLOCK_SIZE];
@@ -51,7 +51,7 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
                 let n = pos + data.len();
                 xor(data, &self.buffer[pos..n]);
                 self.buffer_pos = n as u8;
-                return Ok(())
+                return Ok(());
             } else {
                 let (l, r) = data.split_at_mut(BLOCK_SIZE - pos);
                 data = r;
@@ -69,7 +69,7 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
         let rem = chunks.into_remainder();
         self.buffer_pos = rem.len() as u8;
         self.counter = counter;
-        if rem.len() != 0 {
+        if !rem.is_empty() {
             self.block.generate(counter, &mut self.buffer);
             xor(rem, &self.buffer[..rem.len()]);
         }

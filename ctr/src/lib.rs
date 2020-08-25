@@ -150,7 +150,7 @@ where
         let rem = chunks.into_remainder();
         self.pos = rem.len() as u8;
         self.counter = counter;
-        if rem.len() != 0 {
+        if !rem.is_empty() {
             self.block = self.generate_block(counter);
             xor(rem, &self.block[..rem.len()]);
         }
