@@ -4,7 +4,7 @@ use salsa20::Salsa20;
 #[cfg(feature = "xsalsa20")]
 use salsa20::XSalsa20;
 use stream_cipher::generic_array::GenericArray;
-use stream_cipher::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek, new_seek_test};
+use stream_cipher::{new_seek_test, NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
 
 new_seek_test!(salsa20_seek, Salsa20);
 #[cfg(feature = "xsalsa20")]
