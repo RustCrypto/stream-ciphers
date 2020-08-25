@@ -148,7 +148,10 @@ impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
         let (counter, pos) = if self.buffer_pos < BLOCK_SIZE as u8 {
             (self.counter, self.buffer_pos)
         } else {
-            (self.counter.checked_add(1).ok_or(OverflowError)?, self.buffer_pos - BLOCK_SIZE as u8)
+            (
+                self.counter.checked_add(1).ok_or(OverflowError)?,
+                self.buffer_pos - BLOCK_SIZE as u8,
+            )
         };
         T::from_block_byte(counter, pos, BLOCK_SIZE as u8)
     }
