@@ -19,7 +19,7 @@ ctr = { version = "0.5", path = "../ctr" }
 aes-soft = "0.5"
 
 [target.'cfg(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
-aesni = "0.8"
+aesni = "0.9"
 
 [dev-dependencies]
 stream-cipher = { version = "0.7", features = ["dev"] }
