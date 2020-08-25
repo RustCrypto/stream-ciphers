@@ -118,7 +118,7 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
                 let (l, r) = data.split_at_mut(BUFFER_SIZE - pos);
                 data = r;
                 xor(l, &self.buffer[pos..]);
-                counter += 1;
+                counter = counter.checked_add(COUNTER_INCR).unwrap();
             }
         }
 
@@ -144,7 +144,13 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
 
 impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
-        T::from_block_byte(self.counter, self.buffer_pos, BLOCK_SIZE as u8)
+        // quick and dirty fix, until ctr-like parallel block processing will be added
+        let (counter, pos) = if self.buffer_pos < BLOCK_SIZE as u8 {
+            (self.counter, self.buffer_pos)
+        } else {
+            (self.counter.checked_add(1).ok_or(OverflowError)?, self.buffer_pos - BLOCK_SIZE as u8)
+        };
+        T::from_block_byte(counter, pos, BLOCK_SIZE as u8)
     }
 
     fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
@@ -159,7 +165,7 @@ impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
 impl<R: Rounds> Cipher<R> {
     /// Check data length
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
-        let leftover_bytes = BLOCK_SIZE - self.buffer_pos as usize;
+        let leftover_bytes = BUFFER_SIZE - self.buffer_pos as usize;
         if data.len() < leftover_bytes {
             return Ok(());
         }
