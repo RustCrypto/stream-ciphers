@@ -28,7 +28,7 @@ const IV_BITS: usize = 256;
 const IV_WORDS: usize = IV_BITS / 32;
 
 /// The HC-256 stream cipher
-pub struct HC256 {
+pub struct Hc256 {
     ptable: [u32; TABLE_SIZE],
     qtable: [u32; TABLE_SIZE],
     word: u32,
@@ -36,20 +36,20 @@ pub struct HC256 {
     offset: u8,
 }
 
-impl NewStreamCipher for HC256 {
+impl NewStreamCipher for Hc256 {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
     type NonceSize = U32;
 
     fn new(key: &GenericArray<u8, Self::KeySize>, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
-        let mut out = HC256::create();
+        let mut out = Hc256::create();
         out.init(key.as_slice(), iv.as_slice());
         out
     }
 }
 
-impl StreamCipher for HC256 {
+impl StreamCipher for Hc256 {
     fn encrypt(&mut self, data: &mut [u8]) {
         self.process(data);
     }
@@ -59,9 +59,9 @@ impl StreamCipher for HC256 {
     }
 }
 
-impl HC256 {
-    fn create() -> HC256 {
-        HC256 {
+impl Hc256 {
+    fn create() -> Hc256 {
+        Hc256 {
             ptable: [0; TABLE_SIZE],
             qtable: [0; TABLE_SIZE],
             word: 0,
@@ -212,7 +212,7 @@ impl HC256 {
 }
 
 #[cfg(cargo_feature = "zeroize")]
-impl Zeroize for HC256 {
+impl Zeroize for Hc256 {
     fn zeroize(&mut self) {
         self.ptable.zeroize();
         self.qtable.zeroize();
@@ -223,7 +223,7 @@ impl Zeroize for HC256 {
 }
 
 #[cfg(cargo_feature = "zeroize")]
-impl Drop for HC256 {
+impl Drop for Hc256 {
     fn drop(&mut self) {
         self.zeroize();
     }

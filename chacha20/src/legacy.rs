@@ -1,8 +1,10 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
 use crate::cipher::{ChaCha20, Key};
-use stream_cipher::consts::{U32, U8};
-use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+use stream_cipher::{
+    consts::{U32, U8},
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+};
 
 /// Size of the nonce for the legacy ChaCha20 stream cipher
 #[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
@@ -35,11 +37,11 @@ impl SyncStreamCipher for ChaCha20Legacy {
 }
 
 impl SyncStreamCipherSeek for ChaCha20Legacy {
-    fn current_pos(&self) -> u64 {
-        self.0.current_pos()
+    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
+        self.0.try_current_pos()
     }
 
-    fn seek(&mut self, pos: u64) {
-        self.0.seek(pos);
+    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
+        self.0.try_seek(pos)
     }
 }

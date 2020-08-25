@@ -1,4 +1,4 @@
-use hc_256::HC256;
+use hc_256::Hc256;
 use stream_cipher::{generic_array::GenericArray, NewStreamCipher, StreamCipher};
 
 #[cfg(test)]
@@ -50,7 +50,7 @@ const EXPECTED_PAPER_KEY1_IV0: [u8; 64] = [
 
 #[test]
 fn test_key0_iv0() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -65,7 +65,7 @@ fn test_key0_iv0() {
 
 #[test]
 fn test_key0_iv0_offset_1() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -86,7 +86,7 @@ fn test_key0_iv0_offset_1() {
 
 #[test]
 fn test_key0_iv0_offset_2() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -107,7 +107,7 @@ fn test_key0_iv0_offset_2() {
 
 #[test]
 fn test_key0_iv0_offset_3() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -128,7 +128,7 @@ fn test_key0_iv0_offset_3() {
 
 #[test]
 fn test_key0_iv0_offset_4() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -149,7 +149,7 @@ fn test_key0_iv0_offset_4() {
 
 #[test]
 fn test_key0_iv0_offset_5() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -170,7 +170,7 @@ fn test_key0_iv0_offset_5() {
 
 #[test]
 fn test_key0_iv0_offset_6() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -191,7 +191,7 @@ fn test_key0_iv0_offset_6() {
 
 #[test]
 fn test_key0_iv0_offset_7() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -212,7 +212,7 @@ fn test_key0_iv0_offset_7() {
 
 #[test]
 fn test_key0_iv0_offset_8() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV0),
     );
@@ -233,7 +233,7 @@ fn test_key0_iv0_offset_8() {
 
 #[test]
 fn test_key1_iv0() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY1),
         &GenericArray::from(PAPER_IV0),
     );
@@ -248,7 +248,7 @@ fn test_key1_iv0() {
 
 #[test]
 fn test_key0_iv1() {
-    let mut cipher = HC256::new(
+    let mut cipher = Hc256::new(
         &GenericArray::from(PAPER_KEY0),
         &GenericArray::from(PAPER_IV1),
     );

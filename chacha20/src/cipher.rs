@@ -10,12 +10,13 @@ use crate::{
     BLOCK_SIZE, MAX_BLOCKS,
 };
 use core::{
-    cmp,
     convert::TryInto,
     fmt::{self, Debug},
 };
-use stream_cipher::consts::{U12, U32};
-use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+use stream_cipher::{
+    consts::{U12, U32},
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+};
 
 /// ChaCha8 stream cipher (reduced-round variant of ChaCha20 with 8 rounds)
 pub type ChaCha8 = Cipher<R8>;
@@ -61,7 +62,7 @@ pub struct Cipher<R: Rounds> {
     buffer: Buffer,
 
     /// Position within buffer, or `None` if the buffer is not in use
-    buffer_pos: Option<u8>,
+    buffer_pos: u8,
 
     /// Current counter value relative to the start of the keystream
     counter: u64,
@@ -93,7 +94,7 @@ impl<R: Rounds> NewStreamCipher for Cipher<R> {
         Self {
             block,
             buffer: [0u8; BUFFER_SIZE],
-            buffer_pos: None,
+            buffer_pos: 0,
             counter: 0,
             counter_offset,
         }
@@ -103,98 +104,83 @@ impl<R: Rounds> NewStreamCipher for Cipher<R> {
 impl<R: Rounds> SyncStreamCipher for Cipher<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
+        let pos = self.buffer_pos as usize;
 
+        let mut counter = self.counter;
         // xor with leftover bytes from the last call if any
-        if let Some(pos) = self.buffer_pos {
-            let pos = pos as usize;
-
-            if data.len() >= BUFFER_SIZE - pos {
-                let buf = &self.buffer[pos..];
-                let (r, l) = data.split_at_mut(buf.len());
-                data = l;
-                xor(r, buf);
-                self.buffer_pos = None;
-            } else {
-                let buf = &self.buffer[pos..pos.checked_add(data.len()).unwrap()];
-                xor(data, buf);
-                self.buffer_pos = Some(pos.checked_add(data.len()).unwrap() as u8);
+        if pos != 0 {
+            if data.len() < BUFFER_SIZE - pos {
+                let n = pos + data.len();
+                xor(data, &self.buffer[pos..n]);
+                self.buffer_pos = n as u8;
                 return Ok(());
+            } else {
+                let (l, r) = data.split_at_mut(BUFFER_SIZE - pos);
+                data = r;
+                xor(l, &self.buffer[pos..]);
+                counter = counter.checked_add(COUNTER_INCR).unwrap();
             }
         }
 
-        let mut counter = self.counter;
-
-        while data.len() >= BUFFER_SIZE {
-            let (l, r) = { data }.split_at_mut(BUFFER_SIZE);
-            data = r;
-
+        let mut chunks = data.chunks_exact_mut(BUFFER_SIZE);
+        for chunk in &mut chunks {
             // TODO(tarcieri): double check this should be checked and not wrapping
             let counter_with_offset = self.counter_offset.checked_add(counter).unwrap();
-            self.block.apply_keystream(counter_with_offset, l);
-
+            self.block.apply_keystream(counter_with_offset, chunk);
             counter = counter.checked_add(COUNTER_INCR).unwrap();
         }
 
-        if !data.is_empty() {
-            self.generate_block(counter);
-            counter = counter.checked_add(COUNTER_INCR).unwrap();
-            let n = data.len();
-            xor(data, &self.buffer[..n]);
-            self.buffer_pos = Some(n as u8);
-        }
-
+        let rem = chunks.into_remainder();
+        self.buffer_pos = rem.len() as u8;
         self.counter = counter;
+        if !rem.is_empty() {
+            self.generate_block(counter);
+            xor(rem, &self.buffer[..rem.len()]);
+        }
 
         Ok(())
     }
 }
 
 impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
-    fn current_pos(&self) -> u64 {
-        let bs = BLOCK_SIZE as u64;
-
-        if let Some(pos) = self.buffer_pos {
-            (self.counter.wrapping_sub(1) * bs)
-                .checked_add(u64::from(pos))
-                .unwrap()
+    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
+        // quick and dirty fix, until ctr-like parallel block processing will be added
+        let (counter, pos) = if self.buffer_pos < BLOCK_SIZE as u8 {
+            (self.counter, self.buffer_pos)
         } else {
-            self.counter * bs
-        }
+            (
+                self.counter.checked_add(1).ok_or(OverflowError)?,
+                self.buffer_pos - BLOCK_SIZE as u8,
+            )
+        };
+        T::from_block_byte(counter, pos, BLOCK_SIZE as u8)
     }
 
-    fn seek(&mut self, pos: u64) {
-        let bs = BLOCK_SIZE as u64;
-        self.counter = pos / bs;
-        let rem = pos % bs;
-
-        if rem == 0 {
-            self.buffer_pos = None;
-        } else {
+    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
+        let res = pos.to_block_byte(BLOCK_SIZE as u8)?;
+        self.counter = res.0;
+        self.buffer_pos = res.1;
+        if self.buffer_pos != 0 {
             self.generate_block(self.counter);
-            self.counter = self.counter.checked_add(COUNTER_INCR).unwrap();
-            self.buffer_pos = Some(rem as u8);
         }
+        Ok(())
     }
 }
 
 impl<R: Rounds> Cipher<R> {
     /// Check data length
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
-        let dlen = data.len()
-            - self
-                .buffer_pos
-                .map(|pos| cmp::min(BUFFER_SIZE - pos as usize, data.len()))
-                .unwrap_or_default();
-
-        let data_blocks = dlen / BLOCK_SIZE + if data.len() % BLOCK_SIZE != 0 { 1 } else { 0 };
-
-        if let Some(new_counter) = self.counter.checked_add(data_blocks as u64) {
-            if new_counter <= MAX_BLOCKS as u64 {
-                return Ok(());
-            }
+        let leftover_bytes = BUFFER_SIZE - self.buffer_pos as usize;
+        if data.len() < leftover_bytes {
+            return Ok(());
         }
-
-        Err(LoopError)
+        let blocks = 1 + (data.len() - leftover_bytes) / BLOCK_SIZE;
+        let res = self.counter.checked_add(blocks as u64).ok_or(LoopError)?;
+        if res <= MAX_BLOCKS as u64 {
+            Ok(())
+        } else {
+            Err(LoopError)
+        }
     }
 
     /// Generate a block, storing it in the internal buffer
