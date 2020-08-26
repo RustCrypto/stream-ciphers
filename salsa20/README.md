@@ -69,8 +69,8 @@ dual licensed as above, without any additional terms or conditions.
 [docs-link]: https://docs.rs/salsa20/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
-[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0%EF%B8%8F-red.svg
-[hazmat-link]: https://github.com/RustCrypto/meta/wiki/About-%22hazmat%22-crates
+[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
+[hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 [build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master&event=push
 [build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Asalsa20
 
