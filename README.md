@@ -14,17 +14,16 @@ received any formal cryptographic and security reviews/audits.
 **USE AT YOUR OWN RISK!**
 
 ## Crates
-| Name | Crates.io | Documentation | Build Status |
-|------|-----------|---------------|--------------|
-| `aes-ctr` | [![crates.io](https://img.shields.io/crates/v/aes-ctr.svg)](https://crates.io/crates/aes-ctr) | [![Documentation](https://docs.rs/aes-ctr/badge.svg)](https://docs.rs/aes-ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/aes-ctr/badge.svg?branch=master&event=push)
-| `cfb-mode` | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
-| `cfb8` | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
-| `chacha20` | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/chacha20/badge.svg?branch=master&event=push)
-| `ctr` | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ctr/badge.svg?branch=master&event=push)
-| `hc-256` | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/hc-256/badge.svg?branch=master&event=push)
-| `ofb` | [![crates.io](https://img.shields.io/crates/v/ofb.svg)](https://crates.io/crates/ofb) | [![Documentation](https://docs.rs/ofb/badge.svg)](https://docs.rs/ofb) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ofb/badge.svg?branch=master&event=push)
-| `salsa20` | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master)
-
+| Name         | Crates.io | Documentation | Build Status |
+|--------------|-----------|---------------|--------------|
+| [`aes-ctr`]  | [![crates.io](https://img.shields.io/crates/v/aes-ctr.svg)](https://crates.io/crates/aes-ctr) | [![Documentation](https://docs.rs/aes-ctr/badge.svg)](https://docs.rs/aes-ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/aes-ctr/badge.svg?branch=master&event=push)
+| [`cfb-mode`] | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
+| [`cfb8`]     | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
+| [`chacha20`] | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/chacha20/badge.svg?branch=master&event=push)
+| [`ctr`]      | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ctr/badge.svg?branch=master&event=push)
+| [`hc-256`]   | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/hc-256/badge.svg?branch=master&event=push)
+| [`ofb`]      | [![crates.io](https://img.shields.io/crates/v/ofb.svg)](https://crates.io/crates/ofb) | [![Documentation](https://docs.rs/ofb/badge.svg)](https://docs.rs/ofb) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ofb/badge.svg?branch=master&event=push)
+| [`salsa20`]  | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master)
 
 ## Minimum Supported Rust Version
 
@@ -43,6 +42,7 @@ Let's use AES-128-OFB to demonstrate usage of synchronous stream cipher:
 ```rust
 use aes::Aes128;
 use ofb::Ofb;
+
 // import relevant traits
 use ofb::stream_cipher::{NewStreamCipher, SyncStreamCipher};
 
@@ -55,12 +55,16 @@ let iv = b"unique init vect";
 let plaintext = b"The quick brown fox jumps over the lazy dog.";
 
 let mut buffer = plaintext.to_vec();
+
 // create cipher instance
 let mut cipher = AesOfb::new_var(key, iv)?;
+
 // apply keystream (encrypt)
 cipher.apply_keystream(&mut buffer);
+
 // and decrypt it back
 AesOfb::new_var(key, iv)?.apply_keystream(&mut buffer);
+
 // stream ciphers can be used with streaming messages
 let mut cipher = AesOfb::new_var(key, iv).unwrap();
 for chunk in buffer.chunks_mut(3) {
@@ -95,3 +99,15 @@ dual licensed as above, without any additional terms or conditions.
 
 [1]: https://en.wikipedia.org/wiki/Stream_cipher
 [2]: https://docs.rs/stream-cipher
+
+[//]: # (crates)
+
+[`aes-ctr`]: https://github.com/RustCrypto/stream-ciphers/tree/master/aes-ctr
+[`cfb-mode`]: https://github.com/RustCrypto/stream-ciphers/tree/master/cfb-mode
+[`cfb8`]: https://github.com/RustCrypto/stream-ciphers/tree/master/cfb8
+[`chacha20`]: https://github.com/RustCrypto/stream-ciphers/tree/master/chacha20
+[`ctr`]: https://github.com/RustCrypto/stream-ciphers/tree/master/ctr
+[`hc-256`]: https://github.com/RustCrypto/stream-ciphers/tree/master/hc-256
+[`ofb`]: https://github.com/RustCrypto/stream-ciphers/tree/master/ofb
+[`salsa20`]: https://github.com/RustCrypto/stream-ciphers/tree/master/salsa20
+
