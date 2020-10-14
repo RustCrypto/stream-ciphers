@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.0-pre (2020-10-14)
+### Added
+- `Ctr32BE` and `Ctr32LE` ([#170])
+
+[#170]: https://github.com/RustCrypto/stream-ciphers/pull/170
+
 ## 0.5.0 (2020-08-26)
 ### Changed
 - Bump `stream-cipher` dependency to v0.7, implement the `FromBlockCipher` trait ([#161], [#164])
