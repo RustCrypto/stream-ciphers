@@ -4,6 +4,7 @@
 [![Docs][docs-image]][docs-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
+[![Project Chat][chat-image]][chat-link]
 [![Build Status][build-image]][build-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
@@ -59,10 +60,12 @@ dual licensed as above, without any additional terms or conditions.
 [docs-link]: https://docs.rs/cfb8/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
-[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
-[hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
+[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
 [build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/cfb8/badge.svg?branch=master&event=push
 [build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Acfb8
+[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
+[hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
 [//]: # (footnotes)
 
