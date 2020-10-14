@@ -1,15 +1,17 @@
-# RustCrypto: stream ciphers
+# RustCrypto: stream ciphers ![Rust Version][rustc-image] [![Project Chat][chat-image]][chat-link] [![HAZMAT][hazmat-image]][hazmat-link]
 
 Collection of [stream cipher][1] algorithms written in pure Rust.
 
-## Warnings
+## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
-Crates in this repository do not provide any authentification! Thus ciphertext
-integrity is not verified, which can lead to serious vulnerabilities!
+Crates in this repository do not ensure ciphertexts are authentic (i.e. by
+using a MAC to verify ciphertext integrity), which can lead to serious
+vulnerabilities if used incorrectly!
 
-Crates have not yet received any formal cryptographic and security reviews.
+Aside from the `chacha20` crate, no crates in this repository have yet
+received any formal cryptographic and security reviews/audits.
 
-**USE AT YOUR OWN RISK.**
+**USE AT YOUR OWN RISK!**
 
 ## Crates
 | Name | Crates.io | Documentation | Build Status |
@@ -24,12 +26,12 @@ Crates have not yet received any formal cryptographic and security reviews.
 | `salsa20` | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master)
 
 
-### Minimum Rust version
-All crates in this repository support Rust 1.27 or higher except for the
-`chacha20` and `salsa20` crates, which require Rust 1.34+.
+## Minimum Supported Rust Version
 
-In future minimum supported Rust version can be changed, but it will be done
-with the minor version bump.
+Rust **1.41** or higher.
+
+Minimum supported Rust version can be changed in the future, but it will be
+done with a minor version bump.
 
 ## Usage
 
@@ -80,6 +82,16 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
+
+[//]: # (badges)
+
+[rustc-image]: https://img.shields.io/badge/rustc-1.41+-blue.svg
+[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
+[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
+[hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
+
+[//]: # (footnotes)
 
 [1]: https://en.wikipedia.org/wiki/Stream_cipher
 [2]: https://docs.rs/stream-cipher
