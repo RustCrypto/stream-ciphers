@@ -18,7 +18,7 @@ dependencies = [
  "aes-soft",
  "aesni 0.9.0",
  "ctr",
- "stream-cipher",
+ "stream-cipher 0.8.0-pre",
 ]
 
 [[package]]
@@ -50,7 +50,7 @@ checksum = "b6a4d655ae633a96d0acaf0fd7e76aafb8ca5732739bba37aac6f882c8fce656"
 dependencies = [
  "block-cipher",
  "opaque-debug",
- "stream-cipher",
+ "stream-cipher 0.7.1",
 ]
 
 [[package]]
@@ -80,7 +80,7 @@ version = "0.5.0"
 dependencies = [
  "aes",
  "hex-literal",
- "stream-cipher",
+ "stream-cipher 0.7.1",
 ]
 
 [[package]]
@@ -89,7 +89,7 @@ version = "0.5.0"
 dependencies = [
  "aes",
  "hex-literal",
- "stream-cipher",
+ "stream-cipher 0.7.1",
 ]
 
 [[package]]
@@ -98,7 +98,7 @@ version = "0.5.0"
 dependencies = [
  "hex-literal",
  "rand_core",
- "stream-cipher",
+ "stream-cipher 0.7.1",
  "zeroize",
 ]
 
@@ -107,7 +107,8 @@ name = "ctr"
 version = "0.5.0"
 dependencies = [
  "aes",
- "stream-cipher",
+ "hex-literal",
+ "stream-cipher 0.8.0-pre",
 ]
 
 [[package]]
@@ -124,7 +125,7 @@ dependencies = [
 name = "hc-256"
 version = "0.2.0"
 dependencies = [
- "stream-cipher",
+ "stream-cipher 0.7.1",
  "zeroize",
 ]
 
@@ -153,7 +154,7 @@ version = "0.3.0"
 dependencies = [
  "aes",
  "hex-literal",
- "stream-cipher",
+ "stream-cipher 0.7.1",
 ]
 
 [[package]]
@@ -178,7 +179,7 @@ checksum = "90bde5296fc891b0cef12a6d03ddccc162ce7b2aff54160af9338f8d40df6d19"
 name = "salsa20"
 version = "0.6.0"
 dependencies = [
- "stream-cipher",
+ "stream-cipher 0.7.1",
  "zeroize",
 ]
 
@@ -187,6 +188,17 @@ name = "stream-cipher"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c80e15f898d8d8f25db24c253ea615cc14acf418ff307822995814e7d42cfa89"
+dependencies = [
+ "blobby",
+ "block-cipher",
+ "generic-array",
+]
+
+[[package]]
+name = "stream-cipher"
+version = "0.8.0-pre"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81c22786b7392254461cf5f358c143035828bf5d95850d4adc483faf065f5b9e"
 dependencies = [
  "blobby",
  "block-cipher",
