@@ -58,7 +58,7 @@ impl<R: Rounds> Block<R> {
     }
 
     #[inline]
-    #[cfg(feature = "stream-cipher")]
+    #[cfg(feature = "cipher")]
     #[allow(clippy::cast_ptr_alignment)] // loadu/storeu support unaligned loads/stores
     pub(crate) fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);

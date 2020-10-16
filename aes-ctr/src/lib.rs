@@ -1,7 +1,7 @@
 //! AES-CTR ciphers implementation.
 //!
 //! Cipher functionality is accessed using traits from re-exported
-//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//! [`cipher`](https://docs.rs/cipher) crate.
 //!
 //! This crate will select appropriate implementation at compile time depending
 //! on target architecture and enabled target features. For the best performance
@@ -16,9 +16,11 @@
 //! # Usage example
 //! ```
 //! use aes_ctr::Aes128Ctr;
-//! use aes_ctr::stream_cipher::generic_array::GenericArray;
-//! use aes_ctr::stream_cipher::{
-//!     NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek
+//! use aes_ctr::cipher::{
+//!     generic_array::GenericArray,
+//!     stream::{
+//!         NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek
+//!     }
 //! };
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
@@ -45,7 +47,7 @@
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo_small.png")]
 #![warn(missing_docs, rust_2018_idioms)]
 
-pub use stream_cipher;
+pub use cipher;
 
 #[cfg(not(all(
     target_feature = "aes",

@@ -1,16 +1,12 @@
 //! Generic implementation of CTR mode with a 32-bit counter
 //! (big or little endian), generic over block ciphers.
 
-use core::{convert::TryInto, marker::PhantomData, mem};
-use stream_cipher::{
-    block_cipher::{Block, BlockCipher},
+use cipher::{
+    block::{Block, BlockCipher, ParBlocks},
     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
-    FromBlockCipher, LoopError, SyncStreamCipher,
+    stream::{FromBlockCipher, LoopError, SyncStreamCipher},
 };
-
-/// Internal buffer for a given block cipher
-type BlockBuffer<B> = GenericArray<Block<B>, <B as BlockCipher>::ParBlocks>;
-
+use core::{convert::TryInto, marker::PhantomData, mem};
 /// CTR mode with a 32-bit big endian counter.
 ///
 /// Used by e.g. AES-GCM.
@@ -72,7 +68,7 @@ where
     }
 }
 
-/// Implement `stream-cipher` traits for the given `Ctr32*` type
+/// Implement stream cipher traits for the given `Ctr32*` type
 macro_rules! impl_ctr32 {
     ($ctr32:tt) => {
         impl<B> SyncStreamCipher for $ctr32<B>
@@ -130,7 +126,7 @@ where
     cipher: B,
 
     /// Keystream buffer
-    buffer: BlockBuffer<B>,
+    buffer: ParBlocks<B>,
 
     /// Current CTR value
     counter_block: Block<B>,

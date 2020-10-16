@@ -6,21 +6,24 @@
 //! with no cost to performance.
 //!
 //! Cipher functionality is accessed using traits from re-exported
-//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//! [`cipher`](https://docs.rs/cipher) crate.
 //!
-//! This crate contains three variants of ChaCha20:
+//! This crate contains the following variants of the ChaCha20 core algorithm:
 //!
-//! - `ChaCha20`: standard IETF variant with 96-bit nonce
-//! - `ChaCha20Legacy`: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
-//! - `ChaCha8` / `ChaCha12`: reduced round variants of ChaCha20
-//! - `XChaCha20`: (gated under the `xchacha20` feature) 192-bit extended nonce variant
+//! - [`ChaCha20`]: standard IETF variant with 96-bit nonce
+//! - [`ChaCha20Legacy`]: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
+//! - [`ChaCha8`] / [`ChaCha12`]: reduced round variants of ChaCha20
+//! - [`XChaCha20`]: (gated under the `xchacha20` feature) 192-bit extended nonce variant
 //!
-//! # Security Warning
+//! # ⚠️ Security Warning: [Hazmat!]
 //!
 //! This crate does not ensure ciphertexts are authentic, which can lead to
 //! serious vulnerabilities if used incorrectly!
 //!
-//! USE AT YOUR OWN RISK!
+//! If in doubt, use the [`chacha20poly1305`](https://docs.rs/chacha20poly1305)
+//! crate instead, which provides an authenticated mode on top of ChaCha20.
+//!
+//! **USE AT YOUR OWN RISK!**
 //!
 //! # Diagram
 //!
@@ -39,7 +42,7 @@
 //!
 //! ```
 //! use chacha20::{ChaCha20, Key, Nonce};
-//! use chacha20::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+//! use chacha20::cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
@@ -61,6 +64,7 @@
 //!
 //! [RFC 8439]: https://tools.ietf.org/html/rfc8439
 //! [Salsa20]: https://docs.rs/salsa20
+//! [Hazmat!]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
 #![no_std]
 #![doc(
@@ -71,21 +75,21 @@
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
 mod block;
-#[cfg(feature = "stream-cipher")]
-pub(crate) mod cipher;
+#[cfg(feature = "cipher")]
+mod chacha;
 #[cfg(feature = "legacy")]
 mod legacy;
 #[cfg(feature = "rng")]
 mod rng;
 mod rounds;
 #[cfg(feature = "xchacha20")]
-mod xchacha20;
+mod xchacha;
 
-#[cfg(feature = "stream-cipher")]
-pub use stream_cipher;
+#[cfg(feature = "cipher")]
+pub use cipher;
 
-#[cfg(feature = "stream-cipher")]
-pub use self::cipher::{ChaCha12, ChaCha20, ChaCha8, Cipher, Key, Nonce};
+#[cfg(feature = "cipher")]
+pub use self::chacha::{ChaCha, ChaCha12, ChaCha20, ChaCha8, Key, Nonce};
 
 #[cfg(feature = "legacy")]
 pub use self::legacy::{ChaCha20Legacy, LegacyNonce};
@@ -96,7 +100,7 @@ pub use rng::{
 };
 
 #[cfg(feature = "xchacha20")]
-pub use self::xchacha20::{XChaCha20, XNonce};
+pub use self::xchacha::{XChaCha20, XNonce};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;

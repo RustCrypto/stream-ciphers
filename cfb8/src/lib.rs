@@ -10,7 +10,7 @@
 //! ```
 //! use aes::Aes128;
 //! use cfb8::Cfb8;
-//! use cfb8::stream_cipher::{NewStreamCipher, StreamCipher};
+//! use cfb8::cipher::{NewStreamCipher, StreamCipher};
 //! use hex_literal::hex;
 //!
 //! type AesCfb8 = Cfb8<Aes128>;
@@ -51,11 +51,13 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-pub use stream_cipher;
+pub use cipher;
 
-use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
-use stream_cipher::generic_array::GenericArray;
-use stream_cipher::{FromBlockCipher, StreamCipher};
+use cipher::{
+    block::{BlockCipher, NewBlockCipher},
+    generic_array::GenericArray,
+    stream::{FromBlockCipher, Nonce, StreamCipher},
+};
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb8<C: BlockCipher> {
@@ -70,7 +72,7 @@ where
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-    fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+    fn from_block_cipher(cipher: C, iv: &Nonce<Self>) -> Self {
         Self {
             cipher,
             iv: iv.clone(),

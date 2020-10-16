@@ -12,9 +12,9 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-stream-cipher = { version = "0.8.0-pre", features = ["block-cipher"] }
+cipher = "0.2"
 
 [dev-dependencies]
-aes = "0.5"
+aes = "0.6"
 hex-literal = "0.2"
-stream-cipher = { version = "0.8.0-pre", features = ["block-cipher", "dev"] }
+cipher = { version = "0.2", features = ["dev"] }

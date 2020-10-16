@@ -1,14 +1,14 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
-use crate::cipher::{ChaCha20, Key};
-use stream_cipher::{
+use crate::chacha::{ChaCha20, Key};
+use cipher::stream::{
     consts::{U32, U8},
     LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
 };
 
 /// Size of the nonce for the legacy ChaCha20 stream cipher
 #[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
-pub type LegacyNonce = stream_cipher::Nonce<ChaCha20Legacy>;
+pub type LegacyNonce = cipher::stream::Nonce<ChaCha20Legacy>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 ///

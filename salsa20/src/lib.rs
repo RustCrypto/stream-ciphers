@@ -1,7 +1,7 @@
 //! The Salsa20 stream cipher.
 //!
 //! Cipher functionality is accessed using traits from re-exported
-//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//! [`cipher`](https://docs.rs/cipher) crate.
 //!
 //! # Security Warning
 //!
@@ -27,7 +27,7 @@
 //!
 //! ```
 //! use salsa20::{Salsa20, Key, Nonce};
-//! use salsa20::stream_cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+//! use salsa20::cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
@@ -56,30 +56,32 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
-pub use stream_cipher;
+pub use cipher;
 
 mod block;
-mod cipher;
 mod rounds;
+mod salsa;
 #[cfg(feature = "xsalsa20")]
-mod xsalsa20;
+mod xsalsa;
 
 #[cfg(feature = "xsalsa20")]
-pub use self::xsalsa20::{XNonce, XSalsa20};
+pub use self::xsalsa::{XNonce, XSalsa20};
 
 #[cfg(feature = "hsalsa20")]
-pub use self::xsalsa20::hsalsa20;
+pub use self::xsalsa::hsalsa20;
 
 use crate::{
     block::Block,
-    cipher::Cipher,
     rounds::{Rounds, R12, R20, R8},
+    salsa::SalsaCore,
+};
+use cipher::{
+    consts::{U32, U8},
+    stream::{
+        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
 };
 use core::convert::TryInto;
-use stream_cipher::{
-    consts::{U32, U8},
-    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-};
 
 /// Size of a Salsa20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
@@ -113,19 +115,19 @@ pub type Salsa20 = Salsa<R20>;
 /// Implemented as an alias for [`GenericArray`].
 ///
 /// (NOTE: all three round variants use the same key size)
-pub type Key = stream_cipher::Key<Salsa20>;
+pub type Key = cipher::stream::Key<Salsa20>;
 
 /// Nonce type.
 ///
 /// Implemented as an alias for [`GenericArray`].
-pub type Nonce = stream_cipher::Nonce<Salsa20>;
+pub type Nonce = cipher::stream::Nonce<Salsa20>;
 
 /// The Salsa20 family of stream ciphers
 /// (implemented generically over a number of rounds).
 ///
 /// We recommend you use the [`Salsa20`] (a.k.a. Salsa20/20) variant.
 #[derive(Debug)]
-pub struct Salsa<R: Rounds>(Cipher<R>);
+pub struct Salsa<R: Rounds>(SalsaCore<R>);
 
 impl<R: Rounds> NewStreamCipher for Salsa<R> {
     /// Key size in bytes
@@ -136,7 +138,7 @@ impl<R: Rounds> NewStreamCipher for Salsa<R> {
 
     fn new(key: &Key, nonce: &Nonce) -> Self {
         let block = Block::new(key.as_slice().try_into().unwrap(), (*nonce).into());
-        Salsa(Cipher::new(block))
+        Salsa(SalsaCore::new(block))
     }
 }
 

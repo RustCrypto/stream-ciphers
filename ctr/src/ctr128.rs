@@ -1,14 +1,16 @@
 //! Generic implementation of CTR mode for block cipher with 128-bit block size.
 
-use core::{convert::TryInto, fmt, mem};
-use stream_cipher::{
-    block_cipher::{BlockCipher, NewBlockCipher},
+use cipher::{
+    block::{Block, BlockCipher, NewBlockCipher, ParBlocks},
     generic_array::{
         typenum::{Unsigned, U16},
         ArrayLength, GenericArray,
     },
-    FromBlockCipher, LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    stream::{
+        FromBlockCipher, LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
 };
+use core::{convert::TryInto, fmt, mem};
 
 #[inline(always)]
 fn xor(buf: &mut [u8], key: &[u8]) {
@@ -18,8 +20,6 @@ fn xor(buf: &mut [u8], key: &[u8]) {
     }
 }
 
-type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
-type Blocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
 type Nonce = GenericArray<u8, U16>;
 
 /// CTR mode of operation for 128-bit block ciphers
@@ -141,10 +141,10 @@ where
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     #[inline(always)]
-    fn generate_par_blocks(&self, counter: u64) -> Blocks<C> {
+    fn generate_par_blocks(&self, counter: u64) -> ParBlocks<C> {
         let mut block = self.nonce;
         block[1] = block[1].wrapping_add(counter);
-        let mut blocks: Blocks<C> = unsafe { mem::zeroed() };
+        let mut blocks: ParBlocks<C> = unsafe { mem::zeroed() };
         for b in blocks.iter_mut() {
             let block_be = conv_be(block);
             *b = unsafe { mem::transmute_copy(&block_be) };
@@ -195,7 +195,7 @@ fn conv_be(val: [u64; 2]) -> [u64; 2] {
 }
 
 #[inline(always)]
-fn to_slice<C: BlockCipher>(blocks: &Blocks<C>) -> &[u8] {
+fn to_slice<C: BlockCipher>(blocks: &ParBlocks<C>) -> &[u8] {
     let blocks_len = C::BlockSize::to_usize() * C::ParBlocks::to_usize();
     unsafe { core::slice::from_raw_parts(blocks.as_ptr() as *const u8, blocks_len) }
 }
