@@ -1,6 +1,6 @@
 [package]
 name = "aes-ctr"
-version = "0.6.0-pre"
+version = "0.6.0"
 description = "AES-CTR stream ciphers"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
@@ -15,7 +15,7 @@ edition = "2018"
 cipher = "0.2"
 
 [target.'cfg(not(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86"))))'.dependencies]
-ctr = { version = "0.6.0-pre", path = "../ctr" }
+ctr = { version = "0.6", path = "../ctr" }
 aes-soft = "0.6"
 
 [target.'cfg(all(target_feature = "aes", target_feature = "sse2", target_feature = "ssse3", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
