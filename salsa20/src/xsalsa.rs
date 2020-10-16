@@ -1,6 +1,6 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use crate::{block::quarter_round, Key, Salsa20, CONSTANTS, IV_SIZE};
+use crate::{block::quarter_round, Key, Nonce, Salsa20, CONSTANTS};
 use cipher::{
     consts::{U16, U24, U32},
     generic_array::GenericArray,
@@ -35,10 +35,10 @@ impl NewStreamCipher for XSalsa20 {
     #[allow(unused_mut, clippy::let_and_return)]
     fn new(key: &Key, nonce: &XNonce) -> Self {
         let mut subkey = hsalsa20(key, nonce[..16].as_ref().into());
-        let mut padded_nonce = [0u8; IV_SIZE];
+        let mut padded_nonce = Nonce::default();
         padded_nonce.copy_from_slice(&nonce[16..]);
 
-        let mut result = XSalsa20(Salsa20::new(&subkey, &padded_nonce.into()));
+        let mut result = XSalsa20(Salsa20::new(&subkey, &padded_nonce));
 
         #[cfg(feature = "zeroize")]
         {

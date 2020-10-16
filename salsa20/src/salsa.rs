@@ -4,15 +4,54 @@
 
 // TODO(tarcieri): figure out how to unify this with the `ctr` crate (see #95)
 
-use crate::{block::Block, rounds::Rounds, BLOCK_SIZE};
-use cipher::stream::{LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek};
+use crate::{
+    block::Block,
+    rounds::{Rounds, R12, R20, R8},
+    BLOCK_SIZE,
+};
+use cipher::{
+    consts::{U32, U8},
+    stream::{
+        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
+};
 use core::fmt;
+
+#[cfg(docsrs)]
+use cipher::generic_array::GenericArray;
+
+/// Key type.
+///
+/// Implemented as an alias for [`GenericArray`].
+///
+/// (NOTE: all three round variants use the same key size)
+pub type Key = cipher::stream::Key<Salsa20>;
+
+/// Nonce type.
+///
+/// Implemented as an alias for [`GenericArray`].
+pub type Nonce = cipher::stream::Nonce<Salsa20>;
+
+/// Salsa20/8 stream cipher
+/// (reduced-round variant of Salsa20 with 8 rounds, *not recommended*)
+pub type Salsa8 = Salsa<R8>;
+
+/// Salsa20/12 stream cipher
+/// (reduced-round variant of Salsa20 with 12 rounds, *not recommended*)
+pub type Salsa12 = Salsa<R12>;
+
+/// Salsa20/20 stream cipher
+/// (20 rounds; **recommended**)
+pub type Salsa20 = Salsa<R20>;
 
 /// Internal buffer
 type Buffer = [u8; BLOCK_SIZE];
 
-/// The Salsa20 core function
-pub(crate) struct SalsaCore<R: Rounds> {
+/// The Salsa20 family of stream ciphers
+/// (implemented generically over a number of rounds).
+///
+/// We recommend you use the [`Salsa20`] (a.k.a. Salsa20/20) variant.
+pub struct Salsa<R: Rounds> {
     /// Salsa block function initialized with a key and IV
     block: Block<R>,
 
@@ -26,9 +65,16 @@ pub(crate) struct SalsaCore<R: Rounds> {
     counter: u64,
 }
 
-impl<R: Rounds> SalsaCore<R> {
-    /// Create new CTR mode cipher from the given block and starting counter
-    pub fn new(block: Block<R>) -> Self {
+impl<R: Rounds> NewStreamCipher for Salsa<R> {
+    /// Key size in bytes
+    type KeySize = U32;
+
+    /// Nonce size in bytes
+    type NonceSize = U8;
+
+    fn new(key: &Key, nonce: &Nonce) -> Self {
+        let block = Block::new(key, nonce);
+
         Self {
             block,
             buffer: [0u8; BLOCK_SIZE],
@@ -38,7 +84,7 @@ impl<R: Rounds> SalsaCore<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipher for SalsaCore<R> {
+impl<R: Rounds> SyncStreamCipher for Salsa<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
         let pos = self.buffer_pos as usize;
@@ -78,7 +124,7 @@ impl<R: Rounds> SyncStreamCipher for SalsaCore<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipherSeek for SalsaCore<R> {
+impl<R: Rounds> SyncStreamCipherSeek for Salsa<R> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         T::from_block_byte(self.counter, self.buffer_pos, BLOCK_SIZE as u8)
     }
@@ -94,7 +140,7 @@ impl<R: Rounds> SyncStreamCipherSeek for SalsaCore<R> {
     }
 }
 
-impl<R: Rounds> SalsaCore<R> {
+impl<R: Rounds> Salsa<R> {
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         let leftover_bytes = BLOCK_SIZE - self.buffer_pos as usize;
         if data.len() < leftover_bytes {
@@ -108,7 +154,7 @@ impl<R: Rounds> SalsaCore<R> {
     }
 }
 
-impl<R: Rounds> fmt::Debug for SalsaCore<R> {
+impl<R: Rounds> fmt::Debug for Salsa<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Cipher {{ .. }}")
     }

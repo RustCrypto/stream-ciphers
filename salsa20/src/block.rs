@@ -1,6 +1,6 @@
 //! The Salsa20 block function.
 
-use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
+use crate::{rounds::Rounds, Key, Nonce, BLOCK_SIZE, CONSTANTS, STATE_WORDS};
 use core::{convert::TryInto, marker::PhantomData, mem};
 
 /// The Salsa20 block function
@@ -18,7 +18,7 @@ pub(crate) struct Block<R: Rounds> {
 
 impl<R: Rounds> Block<R> {
     /// Initialize block function with the given key and IV
-    pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
+    pub(crate) fn new(key: &Key, iv: &Nonce) -> Self {
         #[allow(unsafe_code)]
         let mut state: [u32; STATE_WORDS] = unsafe { mem::zeroed() };
         state[0] = CONSTANTS[0];
