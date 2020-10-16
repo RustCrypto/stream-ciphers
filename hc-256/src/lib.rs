@@ -8,11 +8,11 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-pub use stream_cipher;
+pub use cipher;
 
-use stream_cipher::consts::U32;
-use stream_cipher::generic_array::GenericArray;
-use stream_cipher::{NewStreamCipher, StreamCipher};
+use cipher::stream::consts::U32;
+use cipher::stream::generic_array::GenericArray;
+use cipher::stream::{NewStreamCipher, StreamCipher};
 
 #[cfg(cargo_feature = "zeroize")]
 use std::ops::Drop;

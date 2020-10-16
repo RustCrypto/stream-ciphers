@@ -1,6 +1,6 @@
 [package]
 name = "ofb"
-version = "0.3.0"
+version = "0.4.0-pre"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Generic Output Feedback (OFB) mode implementation."
@@ -12,9 +12,9 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-stream-cipher = { version = "0.7", features = ["block-cipher"] }
+cipher = "0.2"
 
 [dev-dependencies]
-aes = "0.5"
-stream-cipher = { version = "0.7", features = ["dev"] }
+aes = "0.6"
+cipher = { version = "0.2", features = ["dev"] }
 hex-literal = "0.2"

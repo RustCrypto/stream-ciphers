@@ -68,7 +68,7 @@ impl<R: Rounds> Block<R> {
 
     /// Apply generated keystream to the output buffer
     #[inline]
-    #[cfg(feature = "stream-cipher")]
+    #[cfg(feature = "cipher")]
     pub(crate) fn apply_keystream(&mut self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);
         self.counter_setup(counter);

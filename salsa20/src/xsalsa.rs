@@ -1,16 +1,18 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
 use crate::{block::quarter_round, Key, Salsa20, CONSTANTS, IV_SIZE};
-use core::convert::TryInto;
-use stream_cipher::{
+use cipher::{
     consts::{U16, U24, U32},
     generic_array::GenericArray,
-    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    stream::{
+        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
 };
+use core::convert::TryInto;
 
 /// EXtended Salsa20 nonce (192-bit/24-byte)
 #[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
-pub type XNonce = stream_cipher::Nonce<XSalsa20>;
+pub type XNonce = cipher::stream::Nonce<XSalsa20>;
 
 /// XSalsa20 is a Salsa20 variant with an extended 192-bit (24-byte) nonce.
 ///

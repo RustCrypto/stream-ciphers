@@ -1,29 +1,29 @@
 //! Generic implementations of CTR mode for block ciphers.
 //!
 //! Mode functionality is accessed using traits from re-exported
-//! [`stream-cipher`](https://docs.rs/stream-cipher) crate.
+//! [`cipher`](https://docs.rs/cipher) crate.
 //!
-//! # Security Warning
+//! # ⚠️ Security Warning: [Hazmat!]
+//!
 //! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
 //! is not verified, which can lead to serious vulnerabilities!
 //!
 //! # `Ctr128` Usage Example
+//!
 //! ```
-//! use ctr::stream_cipher::generic_array::GenericArray;
-//! use ctr::stream_cipher::{
-//!     NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek
-//! };
+//! use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! // `aes` crate provides AES block cipher implementation
 //! type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
 //!
-//! # fn main() {
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
-//! let key = GenericArray::from_slice(b"very secret key.");
-//! let nonce = GenericArray::from_slice(b"and secret nonce");
+//! let key = b"very secret key.";
+//! let nonce = b"and secret nonce";
+//!
 //! // create cipher instance
-//! let mut cipher = Aes128Ctr::new(&key, &nonce);
+//! let mut cipher = Aes128Ctr::new(key.into(), nonce.into());
+//!
 //! // apply keystream (encrypt)
 //! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [6, 245, 126, 124, 180, 146, 37]);
@@ -32,8 +32,9 @@
 //! cipher.seek(0);
 //! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
-//! # }
 //! ```
+//!
+//! [Hazmat!]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
 #![no_std]
 #![doc(
@@ -49,4 +50,4 @@ pub use crate::{
     ctr128::Ctr128,
     ctr32::{Ctr32BE, Ctr32LE},
 };
-pub use stream_cipher;
+pub use cipher;

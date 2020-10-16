@@ -10,7 +10,7 @@
 //! ```
 //! use aes::Aes128;
 //! use cfb_mode::Cfb;
-//! use cfb_mode::stream_cipher::{NewStreamCipher, StreamCipher};
+//! use cfb_mode::cipher::{NewStreamCipher, StreamCipher};
 //! use hex_literal::hex;
 //!
 //! type AesCfb = Cfb<Aes128>;
@@ -50,13 +50,14 @@
 )]
 #![warn(missing_docs, rust_2018_idioms)]
 
-pub use stream_cipher;
+pub use cipher;
 
+use cipher::{
+    block::{BlockCipher, NewBlockCipher, ParBlocks},
+    generic_array::{typenum::Unsigned, GenericArray},
+    stream::{FromBlockCipher, StreamCipher},
+};
 use core::slice;
-use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
-use stream_cipher::generic_array::typenum::Unsigned;
-use stream_cipher::generic_array::GenericArray;
-use stream_cipher::{FromBlockCipher, StreamCipher};
 
 /// CFB self-synchronizing stream cipher instance.
 pub struct Cfb<C: BlockCipher> {
@@ -64,9 +65,6 @@ pub struct Cfb<C: BlockCipher> {
     iv: GenericArray<u8, C::BlockSize>,
     pos: usize,
 }
-
-type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
-type ParBlocks<C> = GenericArray<Block<C>, <C as BlockCipher>::ParBlocks>;
 
 impl<C> FromBlockCipher for Cfb<C>
 where

@@ -1,5 +1,5 @@
+use cipher::stream::{generic_array::GenericArray, NewStreamCipher, StreamCipher};
 use hc_256::Hc256;
-use stream_cipher::{generic_array::GenericArray, NewStreamCipher, StreamCipher};
 
 #[cfg(test)]
 const KEY_BYTES: usize = 256 / 8;

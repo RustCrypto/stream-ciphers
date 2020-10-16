@@ -34,8 +34,7 @@ done with a minor version bump.
 
 ## Usage
 
-Crates functionality is expressed in terms of traits defined in the
-[`stream-cipher`][2] crate.
+Crates functionality is expressed in terms of traits defined in the [`cipher`][2] crate.
 
 Let's use AES-128-OFB to demonstrate usage of synchronous stream cipher:
 
@@ -44,7 +43,7 @@ use aes::Aes128;
 use ofb::Ofb;
 
 // import relevant traits
-use ofb::stream_cipher::{NewStreamCipher, SyncStreamCipher};
+use ofb::cipher::{NewStreamCipher, SyncStreamCipher};
 
 // OFB mode implementation is generic over block ciphers
 // we will create a type alias for convenience
@@ -98,7 +97,7 @@ dual licensed as above, without any additional terms or conditions.
 [//]: # (footnotes)
 
 [1]: https://en.wikipedia.org/wiki/Stream_cipher
-[2]: https://docs.rs/stream-cipher
+[2]: https://docs.rs/cipher
 
 [//]: # (crates)
 

@@ -11,7 +11,7 @@
 //! use aes::Aes128;
 //! use hex_literal::hex;
 //! use ofb::Ofb;
-//! use ofb::stream_cipher::{NewStreamCipher, SyncStreamCipher};
+//! use ofb::cipher::{NewStreamCipher, SyncStreamCipher};
 //!
 //! type AesOfb = Ofb<Aes128>;
 //!
@@ -53,14 +53,13 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-pub use stream_cipher;
+pub use cipher;
 
-use stream_cipher::block_cipher::{BlockCipher, NewBlockCipher};
-use stream_cipher::generic_array::typenum::Unsigned;
-use stream_cipher::generic_array::GenericArray;
-use stream_cipher::{FromBlockCipher, LoopError, SyncStreamCipher};
-
-type Block<C> = GenericArray<u8, <C as BlockCipher>::BlockSize>;
+use cipher::{
+    block::{Block, BlockCipher, NewBlockCipher},
+    generic_array::typenum::Unsigned,
+    stream::{FromBlockCipher, LoopError, Nonce, SyncStreamCipher},
+};
 
 /// OFB self-synchronizing stream cipher instance.
 pub struct Ofb<C: BlockCipher> {
@@ -76,7 +75,7 @@ where
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-    fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
+    fn from_block_cipher(cipher: C, iv: &Nonce<Self>) -> Self {
         let mut block = iv.clone();
         cipher.encrypt_block(&mut block);
         Self {

@@ -2,19 +2,21 @@
 
 use crate::{
     block::soft::quarter_round,
-    cipher::{ChaCha20, Key},
+    chacha::{ChaCha20, Key},
     CONSTANTS,
 };
-use core::convert::TryInto;
-use stream_cipher::{
+use cipher::{
     consts::{U16, U24, U32},
     generic_array::GenericArray,
-    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    stream::{
+        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
 };
+use core::convert::TryInto;
 
 /// EXtended ChaCha20 nonce (192-bits/24-bytes)
 #[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
-pub type XNonce = stream_cipher::Nonce<XChaCha20>;
+pub type XNonce = cipher::stream::Nonce<XChaCha20>;
 
 /// XChaCha20 is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
 ///

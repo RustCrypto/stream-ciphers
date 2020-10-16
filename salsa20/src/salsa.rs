@@ -5,15 +5,15 @@
 // TODO(tarcieri): figure out how to unify this with the `ctr` crate (see #95)
 
 use crate::{block::Block, rounds::Rounds, BLOCK_SIZE};
+use cipher::stream::{LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek};
 use core::fmt;
-use stream_cipher::{LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek};
 
 /// Internal buffer
 type Buffer = [u8; BLOCK_SIZE];
 
-/// ChaCha20 as a counter mode stream cipher
-pub(crate) struct Cipher<R: Rounds> {
-    /// ChaCha20 block function initialized with a key and IV
+/// The Salsa20 core function
+pub(crate) struct SalsaCore<R: Rounds> {
+    /// Salsa block function initialized with a key and IV
     block: Block<R>,
 
     /// Buffer containing previous block function output
@@ -26,7 +26,7 @@ pub(crate) struct Cipher<R: Rounds> {
     counter: u64,
 }
 
-impl<R: Rounds> Cipher<R> {
+impl<R: Rounds> SalsaCore<R> {
     /// Create new CTR mode cipher from the given block and starting counter
     pub fn new(block: Block<R>) -> Self {
         Self {
@@ -38,7 +38,7 @@ impl<R: Rounds> Cipher<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipher for Cipher<R> {
+impl<R: Rounds> SyncStreamCipher for SalsaCore<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
         let pos = self.buffer_pos as usize;
@@ -78,7 +78,7 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
+impl<R: Rounds> SyncStreamCipherSeek for SalsaCore<R> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         T::from_block_byte(self.counter, self.buffer_pos, BLOCK_SIZE as u8)
     }
@@ -94,7 +94,7 @@ impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
     }
 }
 
-impl<R: Rounds> Cipher<R> {
+impl<R: Rounds> SalsaCore<R> {
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         let leftover_bytes = BLOCK_SIZE - self.buffer_pos as usize;
         if data.len() < leftover_bytes {
@@ -108,7 +108,7 @@ impl<R: Rounds> Cipher<R> {
     }
 }
 
-impl<R: Rounds> fmt::Debug for Cipher<R> {
+impl<R: Rounds> fmt::Debug for SalsaCore<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Cipher {{ .. }}")
     }

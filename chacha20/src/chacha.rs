@@ -9,35 +9,38 @@ use crate::{
     rounds::{Rounds, R12, R20, R8},
     BLOCK_SIZE, MAX_BLOCKS,
 };
+use cipher::stream::{
+    consts::{U12, U32},
+    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+};
 use core::{
     convert::TryInto,
     fmt::{self, Debug},
 };
-use stream_cipher::{
-    consts::{U12, U32},
-    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-};
+
+#[cfg(docsrs)]
+use cipher::generic_array::GenericArray;
 
 /// ChaCha8 stream cipher (reduced-round variant of ChaCha20 with 8 rounds)
-pub type ChaCha8 = Cipher<R8>;
+pub type ChaCha8 = ChaCha<R8>;
 
 /// ChaCha12 stream cipher (reduced-round variant of ChaCha20 with 12 rounds)
-pub type ChaCha12 = Cipher<R12>;
+pub type ChaCha12 = ChaCha<R12>;
 
 /// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
-pub type ChaCha20 = Cipher<R20>;
+pub type ChaCha20 = ChaCha<R20>;
 
 /// ChaCha20 key type (256-bits/32-bytes)
 ///
 /// Implemented as an alias for [`GenericArray`].
 ///
 /// (NOTE: all variants of [`ChaCha20`] including `XChaCha20` use the same key type)
-pub type Key = stream_cipher::Key<ChaCha20>;
+pub type Key = cipher::stream::Key<ChaCha20>;
 
 /// Nonce type (96-bits/12-bytes)
 ///
 /// Implemented as an alias for [`GenericArray`].
-pub type Nonce = stream_cipher::Nonce<ChaCha20>;
+pub type Nonce = cipher::stream::Nonce<ChaCha20>;
 
 /// Internal buffer
 type Buffer = [u8; BUFFER_SIZE];
@@ -54,7 +57,7 @@ const COUNTER_INCR: u64 = (BUFFER_SIZE as u64) / (BLOCK_SIZE as u64);
 /// a specific number of rounds.
 ///
 /// Generally [`ChaCha20`] is preferred.
-pub struct Cipher<R: Rounds> {
+pub struct ChaCha<R: Rounds> {
     /// ChaCha20 block function initialized with a key and IV
     block: Block<R>,
 
@@ -73,7 +76,7 @@ pub struct Cipher<R: Rounds> {
     counter_offset: u64,
 }
 
-impl<R: Rounds> NewStreamCipher for Cipher<R> {
+impl<R: Rounds> NewStreamCipher for ChaCha<R> {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -101,7 +104,7 @@ impl<R: Rounds> NewStreamCipher for Cipher<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipher for Cipher<R> {
+impl<R: Rounds> SyncStreamCipher for ChaCha<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
         let pos = self.buffer_pos as usize;
@@ -142,7 +145,7 @@ impl<R: Rounds> SyncStreamCipher for Cipher<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
+impl<R: Rounds> SyncStreamCipherSeek for ChaCha<R> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         // quick and dirty fix, until ctr-like parallel block processing will be added
         let (counter, pos) = if self.buffer_pos < BLOCK_SIZE as u8 {
@@ -167,7 +170,7 @@ impl<R: Rounds> SyncStreamCipherSeek for Cipher<R> {
     }
 }
 
-impl<R: Rounds> Cipher<R> {
+impl<R: Rounds> ChaCha<R> {
     /// Check data length
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         let leftover_bytes = BUFFER_SIZE - self.buffer_pos as usize;
@@ -192,7 +195,7 @@ impl<R: Rounds> Cipher<R> {
     }
 }
 
-impl<R: Rounds> Debug for Cipher<R> {
+impl<R: Rounds> Debug for ChaCha<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Cipher {{ .. }}")
     }
