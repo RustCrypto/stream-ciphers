@@ -116,7 +116,8 @@ impl<R: Rounds> SyncStreamCipher for Salsa<R> {
         self.buffer_pos = rem.len() as u8;
         self.counter = counter;
         if !rem.is_empty() {
-            self.block.generate(counter, &mut self.buffer);
+            self.block.counter_setup(counter);
+            self.block.generate(&mut self.buffer);
             xor(rem, &self.buffer[..rem.len()]);
         }
 
@@ -134,7 +135,8 @@ impl<R: Rounds> SyncStreamCipherSeek for Salsa<R> {
         self.counter = res.0;
         self.buffer_pos = res.1;
         if self.buffer_pos != 0 {
-            self.block.generate(self.counter, &mut self.buffer);
+            self.block.counter_setup(self.counter);
+            self.block.generate(&mut self.buffer);
         }
         Ok(())
     }

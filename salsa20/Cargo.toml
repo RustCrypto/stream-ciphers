@@ -19,9 +19,10 @@ cipher = { version = "0.2", features = ["dev"] }
 
 [features]
 default = ["xsalsa20"]
+expose-core = []
 hsalsa20 = ["xsalsa20"]
 xsalsa20 = []
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["hsalsa20", "xsalsa20"]
 rustdoc-args = ["--cfg", "docsrs"]

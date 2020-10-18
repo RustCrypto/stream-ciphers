@@ -8,7 +8,7 @@ use core::{convert::TryInto, marker::PhantomData, mem};
 /// While Salsa20 is a stream cipher, not a block cipher, its core
 /// primitive is a function which acts on a 512-bit block
 // TODO(tarcieri): zeroize? need to make sure we're actually copying first
-pub(crate) struct Block<R: Rounds> {
+pub struct Block<R: Rounds> {
     /// Internal state of the block function
     state: [u32; STATE_WORDS],
 
@@ -18,7 +18,7 @@ pub(crate) struct Block<R: Rounds> {
 
 impl<R: Rounds> Block<R> {
     /// Initialize block function with the given key and IV
-    pub(crate) fn new(key: &Key, iv: &Nonce) -> Self {
+    pub fn new(key: &Key, iv: &Nonce) -> Self {
         #[allow(unsafe_code)]
         let mut state: [u32; STATE_WORDS] = unsafe { mem::zeroed() };
         state[0] = CONSTANTS[0];
@@ -50,9 +50,8 @@ impl<R: Rounds> Block<R> {
     }
 
     /// Generate output, overwriting data already in the buffer
-    pub(crate) fn generate(&mut self, counter: u64, output: &mut [u8]) {
+    pub fn generate(&mut self, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BLOCK_SIZE);
-        self.counter_setup(counter);
 
         let mut state = self.state;
         self.rounds(&mut state);
@@ -63,7 +62,7 @@ impl<R: Rounds> Block<R> {
     }
 
     /// Apply generated keystream to the output buffer
-    pub(crate) fn apply_keystream(&mut self, counter: u64, output: &mut [u8]) {
+    pub fn apply_keystream(&mut self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BLOCK_SIZE);
         self.counter_setup(counter);
 
@@ -78,7 +77,7 @@ impl<R: Rounds> Block<R> {
     }
 
     #[inline]
-    fn counter_setup(&mut self, counter: u64) {
+    pub(crate) fn counter_setup(&mut self, counter: u64) {
         self.state[8] = (counter & 0xffff_ffff) as u32;
         self.state[9] = ((counter >> 32) & 0xffff_ffff) as u32;
     }
@@ -102,6 +101,15 @@ impl<R: Rounds> Block<R> {
 
         for (s1, s0) in state.iter_mut().zip(&self.state) {
             *s1 = s1.wrapping_add(*s0);
+        }
+    }
+}
+
+impl<R: Rounds> From<[u32; STATE_WORDS]> for Block<R> {
+    fn from(state: [u32; STATE_WORDS]) -> Block<R> {
+        Self {
+            state,
+            rounds: PhantomData,
         }
     }
 }
