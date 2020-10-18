@@ -66,11 +66,17 @@ mod xsalsa;
 
 pub use crate::salsa::{Key, Nonce, Salsa, Salsa12, Salsa20, Salsa8};
 
-#[cfg(feature = "xsalsa20")]
-pub use crate::xsalsa::{XNonce, XSalsa20};
+#[cfg(feature = "expose-core")]
+pub use crate::{
+    block::Block,
+    rounds::{R12, R20, R8},
+};
 
 #[cfg(feature = "hsalsa20")]
 pub use crate::xsalsa::hsalsa20;
+
+#[cfg(feature = "xsalsa20")]
+pub use crate::xsalsa::{XNonce, XSalsa20};
 
 /// Size of a Salsa20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
