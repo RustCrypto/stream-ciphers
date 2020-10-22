@@ -1,0 +1,16 @@
+[package]
+name = "rabbit"
+description = """
+An implementation of the Rabbit Stream Cipher Algorithm with support of no_std environment.
+"""
+version = "0.1.0"
+authors = ["AIkorsky <aikorsky@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/RustCrypto/stream-ciphers"
+keywords = ["crypto", "rabbit", "stream-cipher", "trait"]
+categories = ["cryptography", "no-std"]
+readme = "README.md"
+edition = "2018"
+
+[dependencies]
+cipher = "0.2"
