@@ -346,7 +346,7 @@ impl Rabbit {
     /// Returns `true` if keystream length is enough to encrypt `required` number of bytes.
     fn check_keystream_len(&self, required: usize) -> bool {
         let blocks_required = required / MESSAGE_BLOCK_BYTE_LEN;
-        let blocks_remainig = u64::MAX - self.block_num;
+        let blocks_remainig = u64::max_value() - self.block_num;
         match blocks_remainig.cmp(&(blocks_required as u64)) {
             core::cmp::Ordering::Greater => true,
             core::cmp::Ordering::Equal => {
