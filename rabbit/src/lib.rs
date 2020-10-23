@@ -83,7 +83,7 @@ fn setup_key(state: &mut State, key: [u8; KEY_BYTE_LEN]) {
     }
 
     for j in 0..8 {
-        state.counter_vars[j] = state.counter_vars[j] ^ state.state_vars[(j + 4) % 8];
+        state.counter_vars[j] ^= state.state_vars[(j + 4) % 8];
     }
 }
 
@@ -94,14 +94,14 @@ fn setup_iv(state: &mut State, iv: [u8; IV_BYTE_LEN]) {
     let i1 = (i0 >> 16) | (i2 & 0xFFFF0000);
     let i3 = (i2 << 16) | (i0 & 0x0000FFFF);
 
-    state.counter_vars[0] = state.counter_vars[0] ^ i0;
-    state.counter_vars[1] = state.counter_vars[1] ^ i1;
-    state.counter_vars[2] = state.counter_vars[2] ^ i2;
-    state.counter_vars[3] = state.counter_vars[3] ^ i3;
-    state.counter_vars[4] = state.counter_vars[4] ^ i0;
-    state.counter_vars[5] = state.counter_vars[5] ^ i1;
-    state.counter_vars[6] = state.counter_vars[6] ^ i2;
-    state.counter_vars[7] = state.counter_vars[7] ^ i3;
+    state.counter_vars[0] ^= i0;
+    state.counter_vars[1] ^= i1;
+    state.counter_vars[2] ^= i2;
+    state.counter_vars[3] ^= i3;
+    state.counter_vars[4] ^= i0;
+    state.counter_vars[5] ^= i1;
+    state.counter_vars[6] ^= i2;
+    state.counter_vars[7] ^= i3;
 
     for _ in 0..4 {
         next_state(state);
@@ -110,6 +110,7 @@ fn setup_iv(state: &mut State, iv: [u8; IV_BYTE_LEN]) {
 
 /// RFC 4503. 2.5.  Counter System (page 3).
 fn counter_update(state: &mut State) {
+    #[allow(clippy::needless_range_loop)]
     for j in 0..8 {
         let temp = state.counter_vars[j] as u64 + A[j] as u64 + state.carry_bit as u64;
         state.carry_bit = ((temp / WORDSIZE) as u8) & 0b1;
@@ -123,6 +124,7 @@ fn next_state(state: &mut State) {
 
     counter_update(state);
 
+    #[allow(clippy::needless_range_loop)]
     for j in 0..8 {
         let u_plus_v = state.state_vars[j] as u64 + state.counter_vars[j] as u64;
         let square_uv = (u_plus_v % WORDSIZE) * (u_plus_v % WORDSIZE);
@@ -319,7 +321,7 @@ impl Rabbit {
         self.block_idx = (self.block_idx + 1) % MESSAGE_BLOCK_BYTE_LEN;
         if self.block_idx == 0 {
             next_state(&mut self.state);
-            self.block = extract(&mut self.state);
+            self.block = extract(&self.state);
             self.block_num += 1;
         }
 
@@ -339,7 +341,7 @@ impl Rabbit {
     fn get_s_block(&mut self) -> [u8; 16] {
         debug_assert_eq!(self.block_idx, 0, "Block is partially consumed");
         next_state(&mut self.state);
-        let s = extract(&mut self.state);
+        let s = extract(&self.state);
         self.block_num += 1;
         replace(&mut self.block, s)
     }
