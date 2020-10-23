@@ -15,7 +15,7 @@ use cipher::{
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
-use core::{cmp::min, mem::replace};
+use core::{cmp::min, fmt, mem::replace};
 
 /// RFC 4503. 2.3.  Key Setup Scheme (page 2).
 pub const KEY_BYTE_LEN: usize = 16;
@@ -58,6 +58,12 @@ struct State {
     state_vars: [u32; 8],
     counter_vars: [u32; 8],
     carry_bit: u8,
+}
+
+impl fmt::Debug for State {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("State { ... }")
+    }
 }
 
 /// RFC 4503. 2.3.  Key Setup Scheme (page 2).
@@ -214,6 +220,12 @@ pub struct Rabbit {
     block: [u8; 16],
     block_idx: usize,
     block_num: u64,
+}
+
+impl fmt::Debug for Rabbit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Rabbit { ... }")
+    }
 }
 
 impl Rabbit {
