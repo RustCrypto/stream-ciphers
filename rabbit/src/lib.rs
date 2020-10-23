@@ -13,6 +13,8 @@ use cipher::{
     NewStreamCipher, SyncStreamCipher,
 };
 
+use core::{cmp::min, mem::replace};
+
 /// RFC 4503. 2.3.  Key Setup Scheme (page 2).
 pub const KEY_BYTE_LEN: usize = 16;
 /// RFC 4503. 2.4.  IV Setup Scheme (page 2-3).
@@ -115,7 +117,7 @@ fn counter_update(state: &mut State) {
     }
 }
 
-/// RFC 4503. 2.6.  Next-State Function (page 3-4).
+/// RFC 4503. 2.6. Next-State Function (page 3-4).
 fn next_state(state: &mut State) {
     let mut g = [0u32; 8];
 
@@ -145,7 +147,7 @@ fn next_state(state: &mut State) {
     state.state_vars[7] = g[7].wrapping_add(g[6].rotate_left(8)).wrapping_add(g[5]);
 }
 
-/// RFC 4503. 2.7.  Extraction Scheme (page 4).
+/// RFC 4503. 2.7. Extraction Scheme (page 4).
 fn extract(state: &State) -> [u8; 16] {
     let mut s = [0u8; 16];
 
@@ -182,9 +184,9 @@ fn extract(state: &State) -> [u8; 16] {
 pub struct Rabbit {
     master_state: State,
     state: State,
-    buf: [u8; 16],
-    buf_idx: u8,
-    buf_num: u64,
+    block: [u8; 16],
+    block_idx: usize,
+    block_num: u64,
 }
 
 impl Rabbit {
@@ -192,45 +194,46 @@ impl Rabbit {
     ///
     /// See RFC 4503 3.2. Initialization Vector (page 5).
     pub fn setup_without_iv(key: [u8; KEY_BYTE_LEN]) -> Rabbit {
-        let mut state = Default::default();
-        setup_key(&mut state, key);
+        let mut master_state = Default::default();
+        setup_key(&mut master_state, key);
+        let mut state = master_state.clone();
+        next_state(&mut state);
         Rabbit {
-            master_state: state.clone(),
+            master_state,
+            block: extract(&state),
             state,
-            buf: [0; 16],
-            buf_idx: 0x10,
-            buf_num: 0,
+            block_idx: 0,
+            block_num: 0,
         }
     }
 
     /// Creates an empty rabbit state, then setups the given `key` and `iv` on it.
     pub fn setup(key: [u8; KEY_BYTE_LEN], iv: [u8; IV_BYTE_LEN]) -> Rabbit {
-        let mut state = Default::default();
-        setup_key(&mut state, key);
-        let master_state = state.clone();
-        setup_iv(&mut state, iv);
-        Rabbit {
-            master_state,
-            state,
-            buf: [0; 16],
-            buf_idx: 0x10,
-            buf_num: 0,
-        }
+        let mut this = Self::setup_without_iv(key);
+        this.state = this.master_state.clone();
+        setup_iv(&mut this.state, iv);
+        next_state(&mut this.state);
+        this.block = extract(&this.state);
+        this
     }
 
-    /// Restores master state.
+    /// Restores master state (iv will be lost).
     pub fn reset(&mut self) {
         self.state = self.master_state.clone();
-        self.buf_idx = 0x10;
-        self.buf_num = 0;
+        next_state(&mut self.state);
+        self.block = extract(&self.state);
+        self.block_idx = 0;
+        self.block_num = 0;
     }
 
     /// Restores master state, than setups initialization vector `iv` on it.
     pub fn reinit(&mut self, iv: [u8; IV_BYTE_LEN]) {
         self.state = self.master_state.clone();
-        self.buf_idx = 0x10;
-        self.buf_num = 0;
         setup_iv(&mut self.state, iv);
+        next_state(&mut self.state);
+        self.block = extract(&self.state);
+        self.block_idx = 0;
+        self.block_num = 0;
     }
 
     /// Encrypts bytes of `data` inplace.
@@ -244,8 +247,37 @@ impl Rabbit {
             return false;
         }
 
-        for i in 0..data.len() {
+        let prefix_len = min(
+            (MESSAGE_BLOCK_BYTE_LEN - (self.block_idx as usize)) % MESSAGE_BLOCK_BYTE_LEN,
+            data.len(),
+        );
+        let num_blocks = (data.len() - prefix_len) / MESSAGE_BLOCK_BYTE_LEN;
+        let suffix_len = (data.len() - prefix_len) % MESSAGE_BLOCK_BYTE_LEN;
+
+        let mut i = 0;
+        let mut block_buf = [0_u8; MESSAGE_BLOCK_BYTE_LEN];
+
+        for _ in 0..prefix_len {
             data[i] ^= self.get_s_byte();
+            i += 1;
+        }
+
+        for _ in 0..num_blocks {
+            block_buf.copy_from_slice(&data[i..i + MESSAGE_BLOCK_BYTE_LEN]);
+
+            let lhs = u128::from_le_bytes(block_buf);
+            let mut rhs = u128::from_le_bytes(self.get_s_block());
+
+            rhs ^= lhs;
+
+            (&mut data[i..i + MESSAGE_BLOCK_BYTE_LEN]).copy_from_slice(&rhs.to_le_bytes());
+
+            i += MESSAGE_BLOCK_BYTE_LEN;
+        }
+
+        for _ in 0..suffix_len {
+            data[i] ^= self.get_s_byte();
+            i += 1;
         }
 
         true
@@ -260,13 +292,13 @@ impl Rabbit {
     /// Returns `true` if keystream length is enough to encrypt `required` number of bytes.
     fn check_keystream_len(&self, required: usize) -> bool {
         let blocks_required = required / MESSAGE_BLOCK_BYTE_LEN;
-        let blocks_remainig = u64::MAX - self.buf_num;
+        let blocks_remainig = u64::MAX - self.block_num;
         match blocks_remainig.cmp(&(blocks_required as u64)) {
             core::cmp::Ordering::Greater => true,
             core::cmp::Ordering::Equal => {
                 let bytes_required = required % MESSAGE_BLOCK_BYTE_LEN;
-                let bytes_remining = 0x10 - self.buf_idx;
-                match bytes_remining.cmp(&(bytes_required as u8)) {
+                let bytes_remining = 0x10 - self.block_idx;
+                match bytes_remining.cmp(&bytes_required) {
                     core::cmp::Ordering::Equal | core::cmp::Ordering::Greater => true,
                     core::cmp::Ordering::Less => false,
                 }
@@ -282,16 +314,34 @@ impl Rabbit {
     /// Make sure to call this only if there is enough bytes in the keystream
     /// (see [`Rabbit::check_keystream_len`], RFC 4503 3.1. Message Length (page 5)).
     fn get_s_byte(&mut self) -> u8 {
-        if self.buf_idx == 0x10 {
+        let byte = self.block[self.block_idx as usize];
+
+        self.block_idx = (self.block_idx + 1) % MESSAGE_BLOCK_BYTE_LEN;
+        if self.block_idx == 0 {
             next_state(&mut self.state);
-            let s = extract(&mut self.state);
-            self.buf = s;
-            self.buf_idx = 0;
-            self.buf_num += 1;
+            self.block = extract(&mut self.state);
+            self.block_num += 1;
         }
-        let byte = self.buf[self.buf_idx as usize];
-        self.buf_idx += 1;
+
         byte
+    }
+
+    /// Will consume the next block of the keystream. The keystream will be moved one block further.
+    ///
+    /// # Requires
+    ///
+    /// *   `self.buf_idx == 0`
+    ///
+    /// # Security Considerations
+    ///
+    /// Make sure to call this only if there is enough bytes in the keystream
+    /// (see [`Rabbit::check_keystream_len`], RFC 4503 3.1. Message Length (page 5)).
+    fn get_s_block(&mut self) -> [u8; 16] {
+        debug_assert_eq!(self.block_idx, 0, "Block is partially consumed");
+        next_state(&mut self.state);
+        let s = extract(&mut self.state);
+        self.block_num += 1;
+        replace(&mut self.block, s)
     }
 }
 
@@ -316,7 +366,7 @@ impl SyncStreamCipher for Rabbit {
 
 #[cfg(test)]
 mod test {
-    use super::{extract, next_state, setup_iv, setup_key, Rabbit};
+    use super::*;
 
     macro_rules! test_raw {
         ($name:ident $wrap_name:ident $stream_name:ident
@@ -374,10 +424,24 @@ mod test {
                     $s1a, $s1b, $s1c, $s1d, $s1e, $s1f, $s20, $s21, $s22, $s23, $s24, $s25, $s26,
                     $s27, $s28, $s29, $s2a, $s2b, $s2c, $s2d, $s2e, $s2f,
                 ];
-                let mut d = [0; 48];
-                let mut rabbit = Rabbit::setup_without_iv(key);
-                rabbit.encrypt_inplace(&mut d);
-                assert_eq!(&s[..], &d[..]);
+
+                let mut d;
+
+                for n in 0..48 {
+                    let s = &s[0..n];
+
+                    d = [0; 48];
+                    let mut rabbit = Rabbit::setup_without_iv(key);
+                    rabbit.encrypt_inplace(&mut d[0..n]);
+                    assert_eq!(&s[..], &d[0..n]);
+                    assert_eq!(rabbit.block_num, (s.len() / MESSAGE_BLOCK_BYTE_LEN) as u64);
+
+                    d = [0; 48];
+                    rabbit.reset();
+                    rabbit.encrypt_inplace(&mut d[0..n]);
+                    assert_eq!(&s[..], &d[0..n]);
+                    assert_eq!(rabbit.block_num, (s.len() / MESSAGE_BLOCK_BYTE_LEN) as u64);
+                }
             }
         };
         ($name:ident $wrap_name:ident $stream_name:ident
@@ -440,10 +504,24 @@ mod test {
                     $s1a, $s1b, $s1c, $s1d, $s1e, $s1f, $s20, $s21, $s22, $s23, $s24, $s25, $s26,
                     $s27, $s28, $s29, $s2a, $s2b, $s2c, $s2d, $s2e, $s2f,
                 ];
-                let mut d = [0; 48];
-                let mut rabbit = Rabbit::setup(key, iv);
-                rabbit.encrypt_inplace(&mut d);
-                assert_eq!(&s[..], &d[..]);
+
+                let mut d;
+
+                for n in 0..48 {
+                    let s = &s[0..n];
+
+                    d = [0; 48];
+                    let mut rabbit = Rabbit::setup(key, iv);
+                    rabbit.encrypt_inplace(&mut d[0..n]);
+                    assert_eq!(&s[..], &d[0..n]);
+                    assert_eq!(rabbit.block_num, (s.len() / MESSAGE_BLOCK_BYTE_LEN) as u64);
+
+                    d = [0; 48];
+                    rabbit.reinit(iv);
+                    rabbit.encrypt_inplace(&mut d[0..n]);
+                    assert_eq!(&s[..], &d[0..n]);
+                    assert_eq!(rabbit.block_num, (s.len() / MESSAGE_BLOCK_BYTE_LEN) as u64);
+                }
             }
         };
     }
