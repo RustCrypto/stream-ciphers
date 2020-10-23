@@ -31,7 +31,7 @@ const A: [u32; 8] = [
 /// Rabbit Stream Cipher Key.
 pub type Key = cipher::stream::Key<Rabbit>;
 
-/// Rabbit Stream Cipher Initialization Vector. See RFC 4503 3.2.  Initialization Vector (page 5).
+/// Rabbit Stream Cipher Initialization Vector. See RFC 4503 3.2. Initialization Vector (page 5).
 ///
 /// > It is possible to run Rabbit without the IV setup.  However, in this
 /// > case, the generator must never be reset under the same key, since
@@ -175,7 +175,7 @@ fn extract(state: &State) -> [u8; 16] {
     s[0xE] = s127_112 as u8;
     s[0xF] = (s127_112 >> 8) as u8;
 
-    return s;
+    s
 }
 
 /// Rabbit stream cipher state.
@@ -188,8 +188,10 @@ pub struct Rabbit {
 }
 
 impl Rabbit {
-    /// Setupы given `key` on an empty rabbit state.
-    pub fn new(key: [u8; KEY_BYTE_LEN]) -> Rabbit {
+    /// Creates an empty rabbit state, then setups the given `key` on it.
+    ///
+    /// See RFC 4503 3.2. Initialization Vector (page 5).
+    pub fn setup_without_iv(key: [u8; KEY_BYTE_LEN]) -> Rabbit {
         let mut state = Default::default();
         setup_key(&mut state, key);
         Rabbit {
@@ -201,8 +203,8 @@ impl Rabbit {
         }
     }
 
-    /// Setupы given `key` on an empty rabbit state, then setupы initialization vector `iv` on it.
-    pub fn new_iv(key: [u8; KEY_BYTE_LEN], iv: [u8; IV_BYTE_LEN]) -> Rabbit {
+    /// Creates an empty rabbit state, then setups the given `key` and `iv` on it.
+    pub fn setup(key: [u8; KEY_BYTE_LEN], iv: [u8; IV_BYTE_LEN]) -> Rabbit {
         let mut state = Default::default();
         setup_key(&mut state, key);
         let master_state = state.clone();
@@ -241,10 +243,12 @@ impl Rabbit {
         if !self.check_keystream_len(data.len()) {
             return false;
         }
+
         for i in 0..data.len() {
             data[i] ^= self.get_s_byte();
         }
-        return true;
+
+        true
     }
 
     /// Decrypts bytes of `data` inplace (see [`Rabbit::encrypt_inplace`]).
@@ -271,7 +275,7 @@ impl Rabbit {
         }
     }
 
-    /// Will consume next byte of the keystream. Keystream will be moved one byte furhter.
+    /// Will consume the next byte of the keystream. The keystream will be moved one byte further.
     ///
     /// # Security Considerations
     ///
@@ -296,7 +300,7 @@ impl NewStreamCipher for Rabbit {
     type NonceSize = U8;
 
     fn new(key: &cipher::stream::Key<Self>, iv: &cipher::stream::Nonce<Self>) -> Self {
-        Self::new_iv((*key).into(), (*iv).into())
+        Self::setup((*key).into(), (*iv).into())
     }
 }
 
@@ -371,7 +375,7 @@ mod test {
                     $s27, $s28, $s29, $s2a, $s2b, $s2c, $s2d, $s2e, $s2f,
                 ];
                 let mut d = [0; 48];
-                let mut rabbit = Rabbit::new(key);
+                let mut rabbit = Rabbit::setup_without_iv(key);
                 rabbit.encrypt_inplace(&mut d);
                 assert_eq!(&s[..], &d[..]);
             }
@@ -437,7 +441,7 @@ mod test {
                     $s27, $s28, $s29, $s2a, $s2b, $s2c, $s2d, $s2e, $s2f,
                 ];
                 let mut d = [0; 48];
-                let mut rabbit = Rabbit::new_iv(key, iv);
+                let mut rabbit = Rabbit::setup(key, iv);
                 rabbit.encrypt_inplace(&mut d);
                 assert_eq!(&s[..], &d[..]);
             }
