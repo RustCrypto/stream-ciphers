@@ -12,6 +12,8 @@ use cipher::{
     stream::LoopError,
     NewStreamCipher, SyncStreamCipher,
 };
+#[cfg(feature = "zeroize")]
+use zeroize::Zeroize;
 
 use core::{cmp::min, mem::replace};
 
@@ -49,7 +51,9 @@ pub type Key = cipher::stream::Key<Rabbit>;
 pub type Iv = cipher::stream::Nonce<Rabbit>;
 
 /// RFC 4503. 2.2.  Inner State (page 2).
-#[derive(Default, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize))]
+#[cfg_attr(feature = "zeroize", zeroize(drop))]
 struct State {
     state_vars: [u32; 8],
     counter_vars: [u32; 8],
@@ -59,6 +63,7 @@ struct State {
 /// RFC 4503. 2.3.  Key Setup Scheme (page 2).
 fn setup_key(state: &mut State, key: [u8; KEY_BYTE_LEN]) {
     let mut k = [0u16; 8];
+
     k[0] = (key[0x0] as u16) | ((key[0x1] as u16) << 8);
     k[1] = (key[0x2] as u16) | ((key[0x3] as u16) << 8);
     k[2] = (key[0x4] as u16) | ((key[0x5] as u16) << 8);
@@ -78,6 +83,9 @@ fn setup_key(state: &mut State, key: [u8; KEY_BYTE_LEN]) {
         }
     }
 
+    #[cfg(feature = "zeroize")]
+    k.zeroize();
+
     for _ in 0..4 {
         next_state(state);
     }
@@ -89,19 +97,24 @@ fn setup_key(state: &mut State, key: [u8; KEY_BYTE_LEN]) {
 
 /// RFC 4503. 2.4.  IV Setup Scheme (page 2-3).
 fn setup_iv(state: &mut State, iv: [u8; IV_BYTE_LEN]) {
-    let i0 = iv[0] as u32 | (iv[1] as u32) << 8 | (iv[2] as u32) << 16 | (iv[3] as u32) << 24;
-    let i2 = iv[4] as u32 | (iv[5] as u32) << 8 | (iv[6] as u32) << 16 | (iv[7] as u32) << 24;
-    let i1 = (i0 >> 16) | (i2 & 0xFFFF0000);
-    let i3 = (i2 << 16) | (i0 & 0x0000FFFF);
+    let mut i = [0_u32; 4];
 
-    state.counter_vars[0] ^= i0;
-    state.counter_vars[1] ^= i1;
-    state.counter_vars[2] ^= i2;
-    state.counter_vars[3] ^= i3;
-    state.counter_vars[4] ^= i0;
-    state.counter_vars[5] ^= i1;
-    state.counter_vars[6] ^= i2;
-    state.counter_vars[7] ^= i3;
+    i[0] = iv[0] as u32 | (iv[1] as u32) << 8 | (iv[2] as u32) << 16 | (iv[3] as u32) << 24;
+    i[2] = iv[4] as u32 | (iv[5] as u32) << 8 | (iv[6] as u32) << 16 | (iv[7] as u32) << 24;
+    i[1] = (i[0] >> 16) | (i[2] & 0xFFFF0000);
+    i[3] = (i[2] << 16) | (i[0] & 0x0000FFFF);
+
+    state.counter_vars[0] ^= i[0];
+    state.counter_vars[1] ^= i[1];
+    state.counter_vars[2] ^= i[2];
+    state.counter_vars[3] ^= i[3];
+    state.counter_vars[4] ^= i[0];
+    state.counter_vars[5] ^= i[1];
+    state.counter_vars[6] ^= i[2];
+    state.counter_vars[7] ^= i[3];
+
+    #[cfg(feature = "zeroize")]
+    i.zeroize();
 
     for _ in 0..4 {
         next_state(state);
@@ -110,11 +123,13 @@ fn setup_iv(state: &mut State, iv: [u8; IV_BYTE_LEN]) {
 
 /// RFC 4503. 2.5.  Counter System (page 3).
 fn counter_update(state: &mut State) {
-    #[allow(clippy::needless_range_loop)]
+    #[allow(unused_mut, clippy::needless_range_loop)]
     for j in 0..8 {
-        let temp = state.counter_vars[j] as u64 + A[j] as u64 + state.carry_bit as u64;
+        let mut temp = state.counter_vars[j] as u64 + A[j] as u64 + state.carry_bit as u64;
         state.carry_bit = ((temp / WORDSIZE) as u8) & 0b1;
         state.counter_vars[j] = (temp % WORDSIZE) as u32;
+        #[cfg(feature = "zeroize")]
+        temp.zeroize();
     }
 }
 
@@ -147,42 +162,52 @@ fn next_state(state: &mut State) {
         .wrapping_add(g[5].rotate_left(16))
         .wrapping_add(g[4].rotate_left(16));
     state.state_vars[7] = g[7].wrapping_add(g[6].rotate_left(8)).wrapping_add(g[5]);
+
+    #[cfg(feature = "zeroize")]
+    g.zeroize();
 }
 
 /// RFC 4503. 2.7. Extraction Scheme (page 4).
 fn extract(state: &State) -> [u8; 16] {
     let mut s = [0u8; 16];
 
-    let s15_0 = ((state.state_vars[0]) ^ (state.state_vars[5] >> 16)) as u16;
-    let s31_16 = ((state.state_vars[0] >> 16) ^ (state.state_vars[3])) as u16;
-    let s47_32 = ((state.state_vars[2]) ^ (state.state_vars[7] >> 16)) as u16;
-    let s63_48 = ((state.state_vars[2] >> 16) ^ (state.state_vars[5])) as u16;
-    let s79_64 = ((state.state_vars[4]) ^ (state.state_vars[1] >> 16)) as u16;
-    let s95_80 = ((state.state_vars[4] >> 16) ^ (state.state_vars[7])) as u16;
-    let s111_96 = ((state.state_vars[6]) ^ (state.state_vars[3] >> 16)) as u16;
-    let s127_112 = ((state.state_vars[6] >> 16) ^ (state.state_vars[1])) as u16;
+    let mut tmp = [0_u16; 8];
 
-    s[0x0] = s15_0 as u8;
-    s[0x1] = (s15_0 >> 8) as u8;
-    s[0x2] = s31_16 as u8;
-    s[0x3] = (s31_16 >> 8) as u8;
-    s[0x4] = s47_32 as u8;
-    s[0x5] = (s47_32 >> 8) as u8;
-    s[0x6] = s63_48 as u8;
-    s[0x7] = (s63_48 >> 8) as u8;
-    s[0x8] = s79_64 as u8;
-    s[0x9] = (s79_64 >> 8) as u8;
-    s[0xA] = s95_80 as u8;
-    s[0xB] = (s95_80 >> 8) as u8;
-    s[0xC] = s111_96 as u8;
-    s[0xD] = (s111_96 >> 8) as u8;
-    s[0xE] = s127_112 as u8;
-    s[0xF] = (s127_112 >> 8) as u8;
+    tmp[0] = ((state.state_vars[0]) ^ (state.state_vars[5] >> 16)) as u16;
+    tmp[1] = ((state.state_vars[0] >> 16) ^ (state.state_vars[3])) as u16;
+    tmp[2] = ((state.state_vars[2]) ^ (state.state_vars[7] >> 16)) as u16;
+    tmp[3] = ((state.state_vars[2] >> 16) ^ (state.state_vars[5])) as u16;
+    tmp[4] = ((state.state_vars[4]) ^ (state.state_vars[1] >> 16)) as u16;
+    tmp[5] = ((state.state_vars[4] >> 16) ^ (state.state_vars[7])) as u16;
+    tmp[6] = ((state.state_vars[6]) ^ (state.state_vars[3] >> 16)) as u16;
+    tmp[7] = ((state.state_vars[6] >> 16) ^ (state.state_vars[1])) as u16;
+
+    s[0x0] = tmp[0] as u8;
+    s[0x1] = (tmp[0] >> 8) as u8;
+    s[0x2] = tmp[1] as u8;
+    s[0x3] = (tmp[1] >> 8) as u8;
+    s[0x4] = tmp[2] as u8;
+    s[0x5] = (tmp[2] >> 8) as u8;
+    s[0x6] = tmp[3] as u8;
+    s[0x7] = (tmp[3] >> 8) as u8;
+    s[0x8] = tmp[4] as u8;
+    s[0x9] = (tmp[4] >> 8) as u8;
+    s[0xA] = tmp[5] as u8;
+    s[0xB] = (tmp[5] >> 8) as u8;
+    s[0xC] = tmp[6] as u8;
+    s[0xD] = (tmp[6] >> 8) as u8;
+    s[0xE] = tmp[7] as u8;
+    s[0xF] = (tmp[7] >> 8) as u8;
+
+    #[cfg(feature = "zeroize")]
+    tmp.zeroize();
 
     s
 }
 
 /// Rabbit stream cipher state.
+#[cfg_attr(feature = "zeroize", derive(Zeroize))]
+#[cfg_attr(feature = "zeroize", zeroize(drop))]
 pub struct Rabbit {
     master_state: State,
     state: State,
@@ -195,9 +220,13 @@ impl Rabbit {
     /// Creates an empty rabbit state, then setups the given `key` on it.
     ///
     /// See RFC 4503 3.2. Initialization Vector (page 5).
-    pub fn setup_without_iv(key: [u8; KEY_BYTE_LEN]) -> Rabbit {
+    #[allow(unused_mut)]
+    pub fn setup_without_iv(mut key: [u8; KEY_BYTE_LEN]) -> Rabbit {
         let mut master_state = Default::default();
         setup_key(&mut master_state, key);
+        #[cfg(feature = "zeroize")]
+        key.zeroize();
+
         let mut state = master_state.clone();
         next_state(&mut state);
         Rabbit {
@@ -210,10 +239,14 @@ impl Rabbit {
     }
 
     /// Creates an empty rabbit state, then setups the given `key` and `iv` on it.
-    pub fn setup(key: [u8; KEY_BYTE_LEN], iv: [u8; IV_BYTE_LEN]) -> Rabbit {
+    #[allow(unused_mut)]
+    pub fn setup(key: [u8; KEY_BYTE_LEN], mut iv: [u8; IV_BYTE_LEN]) -> Rabbit {
         let mut this = Self::setup_without_iv(key);
         this.state = this.master_state.clone();
         setup_iv(&mut this.state, iv);
+        #[cfg(feature = "zeroize")]
+        iv.zeroize();
+
         next_state(&mut this.state);
         this.block = extract(&this.state);
         this
@@ -229,9 +262,13 @@ impl Rabbit {
     }
 
     /// Restores master state, than setups initialization vector `iv` on it.
-    pub fn reinit(&mut self, iv: [u8; IV_BYTE_LEN]) {
+    #[allow(unused_mut)]
+    pub fn reinit(&mut self, mut iv: [u8; IV_BYTE_LEN]) {
         self.state = self.master_state.clone();
         setup_iv(&mut self.state, iv);
+        #[cfg(feature = "zeroize")]
+        iv.zeroize();
+
         next_state(&mut self.state);
         self.block = extract(&self.state);
         self.block_idx = 0;
@@ -277,6 +314,9 @@ impl Rabbit {
             i += MESSAGE_BLOCK_BYTE_LEN;
         }
 
+        #[cfg(feature = "zeroize")]
+        block_buf.zeroize();
+
         for _ in 0..suffix_len {
             data[i] ^= self.get_s_byte();
             i += 1;
@@ -320,6 +360,8 @@ impl Rabbit {
 
         self.block_idx = (self.block_idx + 1) % MESSAGE_BLOCK_BYTE_LEN;
         if self.block_idx == 0 {
+            #[cfg(feature = "zeroize")]
+            self.block.zeroize();
             next_state(&mut self.state);
             self.block = extract(&self.state);
             self.block_num += 1;
@@ -341,9 +383,8 @@ impl Rabbit {
     fn get_s_block(&mut self) -> [u8; 16] {
         debug_assert_eq!(self.block_idx, 0, "Block is partially consumed");
         next_state(&mut self.state);
-        let s = extract(&self.state);
         self.block_num += 1;
-        replace(&mut self.block, s)
+        replace(&mut self.block, extract(&self.state))
     }
 }
 

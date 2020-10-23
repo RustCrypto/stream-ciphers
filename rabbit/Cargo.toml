@@ -14,3 +14,7 @@ edition = "2018"
 
 [dependencies]
 cipher = "0.2"
+zeroize = { version = "1", optional = true, features = ["zeroize_derive"] }
+
+[features]
+default = []
