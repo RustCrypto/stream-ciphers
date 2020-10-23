@@ -7,5 +7,6 @@ members = [
     "ctr",
     "hc-256",
     "ofb",
+    "rabbit",
     "salsa20",
 ]
