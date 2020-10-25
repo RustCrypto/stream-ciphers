@@ -23,6 +23,7 @@ received any formal cryptographic and security reviews/audits.
 | [`ctr`]      | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ctr/badge.svg?branch=master&event=push)
 | [`hc-256`]   | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/hc-256/badge.svg?branch=master&event=push)
 | [`ofb`]      | [![crates.io](https://img.shields.io/crates/v/ofb.svg)](https://crates.io/crates/ofb) | [![Documentation](https://docs.rs/ofb/badge.svg)](https://docs.rs/ofb) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/ofb/badge.svg?branch=master&event=push)
+| [`rabbit`]  | [![crates.io](https://img.shields.io/crates/v/rabbit.svg)](https://crates.io/crates/rabbit) | [![Documentation](https://docs.rs/rabbit/badge.svg)](https://docs.rs/rabbit) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/rabbit/badge.svg?branch=master)
 | [`salsa20`]  | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/salsa20/badge.svg?branch=master)
 
 ## Minimum Supported Rust Version
@@ -108,5 +109,6 @@ dual licensed as above, without any additional terms or conditions.
 [`ctr`]: https://github.com/RustCrypto/stream-ciphers/tree/master/ctr
 [`hc-256`]: https://github.com/RustCrypto/stream-ciphers/tree/master/hc-256
 [`ofb`]: https://github.com/RustCrypto/stream-ciphers/tree/master/ofb
+[`rabbit`]: https://github.com/RustCrypto/stream-ciphers/tree/master/rabbit
 [`salsa20`]: https://github.com/RustCrypto/stream-ciphers/tree/master/salsa20
 
