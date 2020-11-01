@@ -1,3 +1,3 @@
 #![feature(test)]
 
-cipher::bench_sync!(rabbit::Rabbit);
+cipher::stream_cipher_sync_bench!(rabbit::Rabbit);

@@ -1,3 +1,3 @@
 #![feature(test)]
 
-cipher::bench_sync!(aes_ctr::Aes192Ctr);
+cipher::stream_cipher_sync_bench!(aes_ctr::Aes192Ctr);
