@@ -1,3 +1,3 @@
 #![feature(test)]
 
-cipher::bench_async!(cfb8::Cfb8<aes::Aes128>);
+cipher::stream_cipher_async_bench!(cfb8::Cfb8<aes::Aes128>);

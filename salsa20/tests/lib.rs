@@ -6,9 +6,9 @@ use salsa20::Salsa20;
 #[cfg(feature = "xsalsa20")]
 use salsa20::XSalsa20;
 
-cipher::new_seek_test!(salsa20_seek, Salsa20);
+cipher::stream_cipher_seek_test!(salsa20_seek, Salsa20);
 #[cfg(feature = "xsalsa20")]
-cipher::new_seek_test!(xsalsa20_seek, XSalsa20);
+cipher::stream_cipher_seek_test!(xsalsa20_seek, XSalsa20);
 
 #[cfg(test)]
 const KEY_BYTES: usize = 32;

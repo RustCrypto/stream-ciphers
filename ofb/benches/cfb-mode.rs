@@ -1,3 +1,3 @@
 #![feature(test)]
 
-cipher::bench_sync!(ofb::Ofb<aes::Aes128>);
+cipher::stream_cipher_sync_bench!(ofb::Ofb<aes::Aes128>);

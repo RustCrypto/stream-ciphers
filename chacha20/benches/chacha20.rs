@@ -1,4 +1,4 @@
 #![cfg(feature = "cipher")]
 #![feature(test)]
 
-cipher::bench_sync!(chacha20::ChaCha20);
+cipher::stream_cipher_sync_bench!(chacha20::ChaCha20);

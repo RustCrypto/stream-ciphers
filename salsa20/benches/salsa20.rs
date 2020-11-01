@@ -1,3 +1,3 @@
 #![feature(test)]
 
-cipher::bench_sync!(salsa20::Salsa20);
+cipher::stream_cipher_sync_bench!(salsa20::Salsa20);
