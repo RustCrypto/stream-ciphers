@@ -23,9 +23,9 @@ dependencies = [
 
 [[package]]
 name = "aes-soft"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e39964420d0ab27e20c12b348bf901ef3f69e43694dd25ca4dbafe050781a7fe"
+checksum = "4e8bdbc97ba3854ecf597a3b69d7bd30a719dee72d22ce6313c84dbf2c8f2694"
 dependencies = [
  "cipher",
  "opaque-debug",
