@@ -36,6 +36,7 @@ jobs:
           target: ${{ matrix.target }}
           override: true
       - run: cargo build --release --target ${{ matrix.target }}
+      - run: cargo build --release --target ${{ matrix.target }} --features zeroize
 
   test:
     runs-on: ubuntu-latest
