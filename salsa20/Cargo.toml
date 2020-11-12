@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 cipher = "0.2"
-zeroize = { version = "1", default-features = false, optional = true }
+zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
 cipher = { version = "0.2", features = ["dev"] }
