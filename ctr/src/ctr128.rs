@@ -1,7 +1,7 @@
 //! Generic implementation of CTR mode for block cipher with 128-bit block size.
 
 use cipher::{
-    block::{Block, BlockCipher, NewBlockCipher, ParBlocks},
+    block::{Block, BlockCipher, BlockEncrypt, NewBlockCipher, ParBlocks},
     generic_array::{
         typenum::{Unsigned, U16},
         ArrayLength, GenericArray,
@@ -25,7 +25,7 @@ type Nonce = GenericArray<u8, U16>;
 /// CTR mode of operation for 128-bit block ciphers
 pub struct Ctr128<C>
 where
-    C: BlockCipher<BlockSize = U16>,
+    C: BlockCipher<BlockSize = U16> + BlockEncrypt,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     cipher: C,
@@ -37,7 +37,7 @@ where
 
 impl<C> FromBlockCipher for Ctr128<C>
 where
-    C: BlockCipher<BlockSize = U16> + NewBlockCipher,
+    C: BlockCipher<BlockSize = U16> + BlockEncrypt + NewBlockCipher,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     type BlockCipher = C;
@@ -59,7 +59,7 @@ where
 
 impl<C> SyncStreamCipher for Ctr128<C>
 where
-    C: BlockCipher<BlockSize = U16>,
+    C: BlockCipher<BlockSize = U16> + BlockEncrypt,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
@@ -117,7 +117,7 @@ where
 
 impl<C> SyncStreamCipherSeek for Ctr128<C>
 where
-    C: BlockCipher<BlockSize = U16>,
+    C: BlockCipher<BlockSize = U16> + BlockEncrypt,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
@@ -137,7 +137,7 @@ where
 
 impl<C> Ctr128<C>
 where
-    C: BlockCipher<BlockSize = U16>,
+    C: BlockCipher<BlockSize = U16> + BlockEncrypt,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     #[inline(always)]
@@ -181,7 +181,7 @@ where
 
 impl<C> fmt::Debug for Ctr128<C>
 where
-    C: BlockCipher<BlockSize = U16> + fmt::Debug,
+    C: BlockCipher<BlockSize = U16> + BlockEncrypt + fmt::Debug,
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {

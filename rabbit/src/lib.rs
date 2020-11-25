@@ -8,7 +8,7 @@
 
 pub use cipher;
 use cipher::{
-    stream::consts::{U16, U8},
+    consts::{U16, U8},
     stream::LoopError,
     NewStreamCipher, SyncStreamCipher,
 };

@@ -53,14 +53,14 @@
 pub use cipher;
 
 use cipher::{
-    block::{BlockCipher, NewBlockCipher, ParBlocks},
+    block::{BlockCipher, BlockEncrypt, NewBlockCipher, ParBlocks},
     generic_array::{typenum::Unsigned, GenericArray},
     stream::{FromBlockCipher, StreamCipher},
 };
 use core::slice;
 
 /// CFB self-synchronizing stream cipher instance.
-pub struct Cfb<C: BlockCipher> {
+pub struct Cfb<C: BlockCipher + BlockEncrypt> {
     cipher: C,
     iv: GenericArray<u8, C::BlockSize>,
     pos: usize,
@@ -68,7 +68,7 @@ pub struct Cfb<C: BlockCipher> {
 
 impl<C> FromBlockCipher for Cfb<C>
 where
-    C: BlockCipher + NewBlockCipher,
+    C: BlockCipher + BlockEncrypt + NewBlockCipher,
 {
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
@@ -80,7 +80,7 @@ where
     }
 }
 
-impl<C: BlockCipher> StreamCipher for Cfb<C> {
+impl<C: BlockCipher + BlockEncrypt> StreamCipher for Cfb<C> {
     fn encrypt(&mut self, mut data: &mut [u8]) {
         let bs = C::BlockSize::USIZE;
         let n = data.len();

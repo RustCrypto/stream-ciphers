@@ -10,9 +10,11 @@
 
 pub use cipher;
 
-use cipher::stream::consts::U32;
-use cipher::stream::generic_array::GenericArray;
-use cipher::stream::{NewStreamCipher, StreamCipher};
+use cipher::{
+    consts::U32,
+    generic_array::GenericArray,
+    stream::{NewStreamCipher, StreamCipher},
+};
 
 #[cfg(cargo_feature = "zeroize")]
 use std::ops::Drop;
