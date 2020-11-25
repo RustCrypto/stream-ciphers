@@ -2,7 +2,7 @@
 //! (big or little endian), generic over block ciphers.
 
 use cipher::{
-    block::{Block, BlockCipher, ParBlocks},
+    block::{Block, BlockCipher, BlockEncrypt, ParBlocks},
     generic_array::{typenum::Unsigned, ArrayLength, GenericArray},
     stream::{FromBlockCipher, LoopError, SyncStreamCipher},
 };
@@ -12,7 +12,7 @@ use core::{convert::TryInto, marker::PhantomData, mem};
 /// Used by e.g. AES-GCM.
 pub struct Ctr32BE<B>
 where
-    B: BlockCipher,
+    B: BlockCipher + BlockEncrypt,
     B::ParBlocks: ArrayLength<GenericArray<u8, B::BlockSize>>,
     Block<B>: Copy,
 {
@@ -24,7 +24,7 @@ where
 /// Used by e.g. AES-GCM-SIV.
 pub struct Ctr32LE<B>
 where
-    B: BlockCipher,
+    B: BlockCipher + BlockEncrypt,
     B::ParBlocks: ArrayLength<GenericArray<u8, B::BlockSize>>,
     Block<B>: Copy,
 {
@@ -33,7 +33,7 @@ where
 
 impl<B> FromBlockCipher for Ctr32BE<B>
 where
-    B: BlockCipher,
+    B: BlockCipher + BlockEncrypt,
     B::ParBlocks: ArrayLength<Block<B>>,
     Block<B>: Copy,
 {
@@ -50,7 +50,7 @@ where
 
 impl<B> FromBlockCipher for Ctr32LE<B>
 where
-    B: BlockCipher,
+    B: BlockCipher + BlockEncrypt,
     B::ParBlocks: ArrayLength<Block<B>>,
     Block<B>: Copy,
 {
@@ -73,7 +73,7 @@ macro_rules! impl_ctr32 {
     ($ctr32:tt) => {
         impl<B> SyncStreamCipher for $ctr32<B>
         where
-            B: BlockCipher,
+            B: BlockCipher + BlockEncrypt,
             B::ParBlocks: ArrayLength<Block<B>>,
             Block<B>: Copy,
         {
@@ -87,7 +87,7 @@ macro_rules! impl_ctr32 {
 
         impl<B> $ctr32<B>
         where
-            B: BlockCipher,
+            B: BlockCipher + BlockEncrypt,
             B::ParBlocks: ArrayLength<Block<B>>,
             Block<B>: Copy,
         {
@@ -117,7 +117,7 @@ impl_ctr32!(Ctr32LE);
 /// block ciphers and endianness.
 struct Ctr32<B, E>
 where
-    B: BlockCipher,
+    B: BlockCipher + BlockEncrypt,
     B::ParBlocks: ArrayLength<Block<B>>,
     E: Endianness<B>,
     Block<B>: Copy,
@@ -140,7 +140,7 @@ where
 
 impl<B, E> Ctr32<B, E>
 where
-    B: BlockCipher,
+    B: BlockCipher + BlockEncrypt,
     B::ParBlocks: ArrayLength<GenericArray<u8, B::BlockSize>>,
     E: Endianness<B>,
     Block<B>: Copy,

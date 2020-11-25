@@ -1,4 +1,7 @@
-use cipher::stream::{generic_array::GenericArray, NewStreamCipher, StreamCipher};
+use cipher::{
+    generic_array::GenericArray,
+    stream::{NewStreamCipher, StreamCipher},
+};
 use hc_256::Hc256;
 
 #[cfg(test)]

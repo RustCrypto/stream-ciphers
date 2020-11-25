@@ -1,9 +1,11 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
 use crate::chacha::{ChaCha20, Key};
-use cipher::stream::{
+use cipher::{
     consts::{U32, U8},
-    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    stream::{
+        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
 };
 
 /// Size of the nonce for the legacy ChaCha20 stream cipher

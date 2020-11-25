@@ -9,9 +9,11 @@ use crate::{
     rounds::{Rounds, R12, R20, R8},
     BLOCK_SIZE, MAX_BLOCKS,
 };
-use cipher::stream::{
+use cipher::{
     consts::{U12, U32},
-    LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    stream::{
+        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
 };
 use core::{
     convert::TryInto,

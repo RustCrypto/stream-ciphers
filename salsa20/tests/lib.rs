@@ -1,7 +1,9 @@
 //! Salsa20 tests
 
-use cipher::stream::generic_array::GenericArray;
-use cipher::stream::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
+use cipher::{
+    generic_array::GenericArray,
+    stream::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek},
+};
 use salsa20::Salsa20;
 #[cfg(feature = "xsalsa20")]
 use salsa20::XSalsa20;

@@ -56,7 +56,7 @@
 pub use cipher;
 
 use cipher::{
-    block::{Block, BlockCipher, NewBlockCipher},
+    block::{Block, BlockCipher, BlockEncrypt, NewBlockCipher},
     generic_array::typenum::Unsigned,
     stream::{FromBlockCipher, LoopError, Nonce, SyncStreamCipher},
 };
@@ -70,7 +70,7 @@ pub struct Ofb<C: BlockCipher> {
 
 impl<C> FromBlockCipher for Ofb<C>
 where
-    C: BlockCipher + NewBlockCipher,
+    C: BlockCipher + BlockEncrypt + NewBlockCipher,
 {
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
@@ -86,7 +86,7 @@ where
     }
 }
 
-impl<C: BlockCipher> SyncStreamCipher for Ofb<C> {
+impl<C: BlockCipher + BlockEncrypt> SyncStreamCipher for Ofb<C> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         let bs = C::BlockSize::to_usize();
         let n = data.len();
