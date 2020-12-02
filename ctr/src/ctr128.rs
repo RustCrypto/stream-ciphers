@@ -30,8 +30,8 @@ where
 {
     cipher: C,
     block: Block<C>,
-    nonce: [u64; 2],
-    counter: u64,
+    nonce: u128,
+    counter: u128,
     pos: u8,
 }
 
@@ -46,10 +46,11 @@ where
     fn from_block_cipher(cipher: C, nonce: &Nonce) -> Self {
         Self {
             cipher,
-            nonce: [
-                u64::from_be_bytes(nonce[..8].try_into().unwrap()),
-                u64::from_be_bytes(nonce[8..].try_into().unwrap()),
-            ],
+            nonce: u128::from_be_bytes(
+                nonce[..]
+                    .try_into()
+                    .expect("nonce is 16 bytes, cannot fail"),
+            ),
             counter: 0,
             block: Default::default(),
             pos: 0,
@@ -89,7 +90,7 @@ where
             let mut chunks = data.chunks_exact_mut(bs * pb);
             for chunk in &mut chunks {
                 let blocks = self.generate_par_blocks(counter);
-                counter += pb as u64;
+                counter += pb as u128;
                 xor(chunk, to_slice::<C>(&blocks));
             }
             chunks.into_remainder()
@@ -141,14 +142,12 @@ where
     C::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
 {
     #[inline(always)]
-    fn generate_par_blocks(&self, counter: u64) -> ParBlocks<C> {
-        let mut block = self.nonce;
-        block[1] = block[1].wrapping_add(counter);
+    fn generate_par_blocks(&self, counter: u128) -> ParBlocks<C> {
+        let mut block = self.nonce.wrapping_add(counter);
         let mut blocks: ParBlocks<C> = unsafe { mem::zeroed() };
         for b in blocks.iter_mut() {
-            let block_be = conv_be(block);
-            *b = unsafe { mem::transmute_copy(&block_be) };
-            block[1] = block[1].wrapping_add(1);
+            *b = unsafe { mem::transmute_copy(&block.to_be()) };
+            block = block.wrapping_add(1);
         }
 
         self.cipher.encrypt_blocks(&mut blocks);
@@ -157,10 +156,9 @@ where
     }
 
     #[inline(always)]
-    fn generate_block(&self, counter: u64) -> Block<C> {
-        let mut block = self.nonce;
-        block[1] = block[1].wrapping_add(counter);
-        let mut block: Block<C> = unsafe { mem::transmute(conv_be(block)) };
+    fn generate_block(&self, counter: u128) -> Block<C> {
+        let block = self.nonce.wrapping_add(counter);
+        let mut block: Block<C> = unsafe { mem::transmute(block.to_be()) };
         self.cipher.encrypt_block(&mut block);
         block
     }
@@ -173,7 +171,7 @@ where
         }
         let blocks = 1 + (data.len() - leftover_bytes) / bs;
         self.counter
-            .checked_add(blocks as u64)
+            .checked_add(blocks as u128)
             .ok_or(LoopError)
             .map(|_| ())
     }
@@ -187,11 +185,6 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Ctr128-{:?}", self.cipher)
     }
-}
-
-#[inline(always)]
-fn conv_be(val: [u64; 2]) -> [u64; 2] {
-    [val[0].to_be(), val[1].to_be()]
 }
 
 #[inline(always)]
