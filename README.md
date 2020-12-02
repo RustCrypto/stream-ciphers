@@ -16,7 +16,6 @@ received any formal cryptographic and security reviews/audits.
 ## Crates
 | Name         | Crates.io | Documentation | Build Status |
 |--------------|-----------|---------------|--------------|
-| [`aes-ctr`]  | [![crates.io](https://img.shields.io/crates/v/aes-ctr.svg)](https://crates.io/crates/aes-ctr) | [![Documentation](https://docs.rs/aes-ctr/badge.svg)](https://docs.rs/aes-ctr) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/aes-ctr/badge.svg?branch=master&event=push)
 | [`cfb-mode`] | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
 | [`cfb8`]     | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/cfb-mode/badge.svg?branch=master&event=push)
 | [`chacha20`] | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | ![build](https://github.com/RustCrypto/stream-ciphers/workflows/chacha20/badge.svg?branch=master&event=push)
@@ -102,7 +101,6 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (crates)
 
-[`aes-ctr`]: https://github.com/RustCrypto/stream-ciphers/tree/master/aes-ctr
 [`cfb-mode`]: https://github.com/RustCrypto/stream-ciphers/tree/master/cfb-mode
 [`cfb8`]: https://github.com/RustCrypto/stream-ciphers/tree/master/cfb8
 [`chacha20`]: https://github.com/RustCrypto/stream-ciphers/tree/master/chacha20
