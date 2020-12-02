@@ -7,6 +7,7 @@ use cipher::{
     stream::{FromBlockCipher, LoopError, SyncStreamCipher},
 };
 use core::{convert::TryInto, marker::PhantomData, mem};
+
 /// CTR mode with a 32-bit big endian counter.
 ///
 /// Used by e.g. AES-GCM.
