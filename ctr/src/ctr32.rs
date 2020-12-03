@@ -32,46 +32,26 @@ where
     ctr: Ctr32<B, LittleEndian>,
 }
 
-impl<B> FromBlockCipher for Ctr32BE<B>
-where
-    B: BlockCipher + BlockEncrypt,
-    B::ParBlocks: ArrayLength<Block<B>>,
-    Block<B>: Copy,
-{
-    type BlockCipher = B;
-    type NonceSize = B::BlockSize;
-
-    #[inline]
-    fn from_block_cipher(cipher: B, nonce: &Block<B>) -> Self {
-        Self {
-            ctr: Ctr32::new(cipher, *nonce),
-        }
-    }
-}
-
-impl<B> FromBlockCipher for Ctr32LE<B>
-where
-    B: BlockCipher + BlockEncrypt,
-    B::ParBlocks: ArrayLength<Block<B>>,
-    Block<B>: Copy,
-{
-    type BlockCipher = B;
-    type NonceSize = B::BlockSize;
-
-    #[inline]
-    fn from_block_cipher(cipher: B, nonce: &Block<B>) -> Self {
-        let mut counter_block = *nonce;
-        counter_block[15] |= 0x80;
-
-        Self {
-            ctr: Ctr32::new(cipher, counter_block),
-        }
-    }
-}
-
 /// Implement stream cipher traits for the given `Ctr32*` type
 macro_rules! impl_ctr32 {
     ($ctr32:tt) => {
+        impl<B> FromBlockCipher for $ctr32<B>
+        where
+            B: BlockCipher + BlockEncrypt,
+            B::ParBlocks: ArrayLength<Block<B>>,
+            Block<B>: Copy,
+        {
+            type BlockCipher = B;
+            type NonceSize = B::BlockSize;
+
+            #[inline]
+            fn from_block_cipher(cipher: B, nonce: &Block<B>) -> Self {
+                Self {
+                    ctr: Ctr32::new(cipher, *nonce),
+                }
+            }
+        }
+
         impl<B> SyncStreamCipher for $ctr32<B>
         where
             B: BlockCipher + BlockEncrypt,
