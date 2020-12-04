@@ -46,7 +46,7 @@
 pub use cipher;
 use cipher::{
     block::{Block, BlockEncrypt, BlockCipher, ParBlocks},
-    generic_array::{GenericArray, typenum::{Unsigned, U16}},
+    generic_array::{GenericArray, ArrayLength, typenum::{Unsigned, U16}},
     stream::{FromBlockCipher, LoopError, SyncStreamCipher, SeekNum, SyncStreamCipherSeek, OverflowError},
 };
 use core::fmt;
@@ -73,6 +73,7 @@ pub type Ctr32LE<B> = Ctr<B, flavors::Ctr32LE>;
 pub struct Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
 {
@@ -86,6 +87,7 @@ where
 impl<B, F> Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
 {
@@ -106,6 +108,7 @@ where
 impl<B, F> FromBlockCipher for Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
 {
@@ -129,6 +132,7 @@ where
 impl<B, F> SyncStreamCipher for Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
 {
@@ -193,6 +197,7 @@ where
 impl<B, F> SyncStreamCipherSeek for Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
 {
@@ -216,6 +221,7 @@ where
 impl<B, F> fmt::Debug for Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize = U16> + fmt::Debug,
+    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor + fmt::Debug,
 {
