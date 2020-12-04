@@ -14,7 +14,7 @@
 //! use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 //!
 //! // `aes` crate provides AES block cipher implementation
-//! type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
+//! type Aes128Ctr = ctr::Ctr128BE<aes::Aes128>;
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!
@@ -45,9 +45,8 @@
 
 pub use cipher;
 use cipher::{
-    block::{Block, BlockCipher, ParBlocks},
-    generic_array::{ArrayLength, GenericArray},
-    generic_array::typenum::{Unsigned, Quot},
+    block::{Block, BlockEncrypt, BlockCipher, ParBlocks},
+    generic_array::{GenericArray, typenum::{Unsigned, U16}},
     stream::{FromBlockCipher, LoopError, SyncStreamCipher, SeekNum, SyncStreamCipherSeek, OverflowError},
 };
 use core::fmt;
@@ -56,16 +55,29 @@ use core::ops::Div;
 pub mod flavors;
 use flavors::CtrFlavor;
 
+/// CTR mode with 128-bit big endian counter.
+pub type Ctr128BE<B> = Ctr<B, flavors::Ctr128BE>;
+/// CTR mode with 128-bit little endian counter.
+pub type Ctr128LE<B> = Ctr<B, flavors::Ctr128LE>;
+/// CTR mode with 64-bit big endian counter.
+pub type Ctr64BE<B> = Ctr<B, flavors::Ctr64BE>;
+/// CTR mode with 64-bit little endian counter.
+pub type Ctr64LE<B> = Ctr<B, flavors::Ctr64LE>;
+/// CTR mode with 32-bit big endian counter.
+pub type Ctr32BE<B> = Ctr<B, flavors::Ctr32BE>;
+/// CTR mode with 32-bit little endian counter.
+pub type Ctr32LE<B> = Ctr<B, flavors::Ctr32LE>;
+
 /// Generic CTR block mode isntance.
+#[derive(Clone)]
 pub struct Ctr<B, F>
 where
-    B: BlockCipher,
+    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
     B::BlockSize: Div<F::Size>,
-    Quot<B::BlockSize, F::Size>: ArrayLength<F>,
     F: CtrFlavor,
 {
     cipher: B,
-    nonce: GenericArray<F, Quot<B::BlockSize, F::Size>>,
+    nonce: GenericArray<F, F::Size>,
     counter: F,
     buffer: Block<B>,
     buf_pos: u8,
@@ -73,9 +85,8 @@ where
 
 impl<B, F> Ctr<B, F>
 where
-    B: BlockCipher,
+    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
     B::BlockSize: Div<F::Size>,
-    Quot<B::BlockSize, F::Size>: ArrayLength<F>,
     F: CtrFlavor,
 {
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
@@ -94,9 +105,8 @@ where
 
 impl<B, F> FromBlockCipher for Ctr<B, F>
 where
-    B: BlockCipher,
+    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
     B::BlockSize: Div<F::Size>,
-    Quot<B::BlockSize, F::Size>: ArrayLength<F>,
     F: CtrFlavor,
 {
     type BlockCipher = B;
@@ -118,9 +128,8 @@ where
 
 impl<B, F> SyncStreamCipher for Ctr<B, F>
 where
-    B: BlockCipher,
+    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
     B::BlockSize: Div<F::Size>,
-    Quot<B::BlockSize, F::Size>: ArrayLength<F>,
     F: CtrFlavor,
 {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
@@ -129,7 +138,7 @@ where
         let pos = self.buf_pos as usize;
         debug_assert!(bs > pos);
 
-        let mut counter = self.counter;
+        let mut counter = self.counter.clone();
         if pos != 0 {
             if data.len() < bs - pos {
                 let n = pos + data.len();
@@ -155,7 +164,7 @@ where
                     counter.increment();
                 }
 
-                self.cipher.encrypt_blocks(&mut blocks);
+                self.cipher.encrypt_par_blocks(&mut blocks);
                 xor(chunk, to_slice::<B>(&blocks));
             }
             data = chunks.into_remainder();
@@ -171,9 +180,8 @@ where
 
         let rem = chunks.into_remainder();
         if !rem.is_empty() {
-            let mut block = counter.generate_block(&self.nonce);
-            counter.increment();
-            self.cipher.encrypt_block(&mut block);
+            self.buffer = counter.generate_block(&self.nonce);
+            self.cipher.encrypt_block(&mut self.buffer);
             xor(rem, &self.buffer[..rem.len()]);
         }
         self.buf_pos = rem.len() as u8;
@@ -184,23 +192,20 @@ where
 
 impl<B, F> SyncStreamCipherSeek for Ctr<B, F>
 where
-    B: BlockCipher,
+    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
     B::BlockSize: Div<F::Size>,
-    Quot<B::BlockSize, F::Size>: ArrayLength<F>,
     F: CtrFlavor,
 {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
-        let c = F::Backend::from(self.counter);
-        T::from_block_byte(c, self.buf_pos, B::BlockSize::U8)
+        T::from_block_byte(self.counter.to_backend(), self.buf_pos, B::BlockSize::U8)
     }
 
     fn try_seek<S: SeekNum>(&mut self, pos: S) -> Result<(), LoopError> {
         let res: (F::Backend, u8) = pos.to_block_byte(B::BlockSize::U8)?;
-        self.counter = res.0.into();
+        self.counter = F::from_backend(res.0);
         self.buf_pos = res.1;
         if self.buf_pos != 0 {
             let mut block = self.counter.generate_block(&self.nonce);
-            self.counter.increment();
             self.cipher.encrypt_block(&mut block);
             self.buffer = block;
         }
@@ -210,9 +215,8 @@ where
 
 impl<B, F> fmt::Debug for Ctr<B, F>
 where
-    B: BlockCipher + fmt::Debug,
+    B: BlockEncrypt + BlockCipher<BlockSize = U16> + fmt::Debug,
     B::BlockSize: Div<F::Size>,
-    Quot<B::BlockSize, F::Size>: ArrayLength<F>,
     F: CtrFlavor + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
@@ -229,7 +233,7 @@ fn xor(buf: &mut [u8], key: &[u8]) {
 }
 
 #[inline(always)]
-fn to_slice<C: BlockCipher>(blocks: &ParBlocks<C>) -> &[u8] {
+fn to_slice<C: BlockEncrypt>(blocks: &ParBlocks<C>) -> &[u8] {
     let blocks_len = C::BlockSize::to_usize() * C::ParBlocks::to_usize();
     unsafe { core::slice::from_raw_parts(blocks.as_ptr() as *const u8, blocks_len) }
 }
