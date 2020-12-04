@@ -108,6 +108,18 @@ where
             .ok_or(LoopError)
             .map(|_| ())
     }
+
+    /// Seek to the given block
+    // TODO: replace with a trait-based method
+    pub fn seek_block(&mut self, block: F::Backend) {
+        self.counter = F::from_backend(block);
+    }
+
+    /// Return number of the current block
+    // TODO: replace with a trait-based method
+    pub fn current_block(&self) -> F::Backend {
+        self.counter.to_backend()
+    }
 }
 
 impl<B, F> FromBlockCipher for Ctr<B, F>

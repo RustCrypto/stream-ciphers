@@ -23,7 +23,7 @@ fn nonce(bytes: &[u8; 16]) -> GenericArray<u8, U16> {
 #[test]
 fn counter_incr() {
     let mut ctr = Aes128Ctr::new(KEY.into(), &nonce(NONCE1));
-    // assert_eq!(ctr.current_ctr(), 0);
+    assert_eq!(ctr.current_block(), 0);
 
     let mut buffer = [0u8; 64];
     ctr.apply_keystream(&mut buffer);
@@ -38,17 +38,16 @@ fn counter_incr() {
     );
 }
 
-/*
 #[test]
 fn counter_seek() {
     let mut ctr = Aes128Ctr::new(KEY.into(), &nonce(NONCE1));
-    ctr.seek_ctr(1);
-    assert_eq!(ctr.current_ctr(), 1);
+    ctr.seek_block(1);
+    assert_eq!(ctr.current_block(), 1);
 
     let mut buffer = [0u8; 64];
     ctr.apply_keystream(&mut buffer);
 
-    assert_eq!(ctr.current_ctr(), 5);
+    assert_eq!(ctr.current_block(), 5);
     assert_eq!(
         &buffer[..],
         &hex!(
@@ -57,7 +56,6 @@ fn counter_seek() {
         )[..]
     );
 }
-*/
 
 #[test]
 fn keystream_xor() {
@@ -77,12 +75,12 @@ fn keystream_xor() {
 #[test]
 fn counter_wrap() {
     let mut ctr = Aes128Ctr::new(KEY.into(), &nonce(NONCE2));
-    // assert_eq!(ctr.current_ctr(), 0);
+    assert_eq!(ctr.current_block(), 0);
 
     let mut buffer = [0u8; 64];
     ctr.apply_keystream(&mut buffer);
 
-    // assert_eq!(ctr.current_ctr(), 4);
+    assert_eq!(ctr.current_block(), 4);
     assert_eq!(
         &buffer[..],
         &hex!(
