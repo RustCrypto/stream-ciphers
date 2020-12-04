@@ -45,9 +45,14 @@
 
 pub use cipher;
 use cipher::{
-    block::{Block, BlockEncrypt, BlockCipher, ParBlocks},
-    generic_array::{GenericArray, ArrayLength, typenum::{Unsigned, U16}},
-    stream::{FromBlockCipher, LoopError, SyncStreamCipher, SeekNum, SyncStreamCipherSeek, OverflowError},
+    block::{Block, BlockCipher, BlockEncrypt, ParBlocks},
+    generic_array::{
+        typenum::{Unsigned, U16},
+        ArrayLength, GenericArray,
+    },
+    stream::{
+        FromBlockCipher, LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
+    },
 };
 use core::fmt;
 use core::ops::Div;
@@ -72,7 +77,7 @@ pub type Ctr32LE<B> = Ctr<B, flavors::Ctr32LE>;
 #[derive(Clone)]
 pub struct Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
     B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
@@ -86,7 +91,7 @@ where
 
 impl<B, F> Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
     B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
@@ -107,7 +112,7 @@ where
 
 impl<B, F> FromBlockCipher for Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
     B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
@@ -128,10 +133,9 @@ where
     }
 }
 
-
 impl<B, F> SyncStreamCipher for Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
     B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,
@@ -156,7 +160,7 @@ where
                 counter.increment();
             }
         }
-        
+
         // Process blocks in parallel if cipher supports it
         let pb = B::ParBlocks::USIZE;
         if pb != 1 {
@@ -196,7 +200,7 @@ where
 
 impl<B, F> SyncStreamCipherSeek for Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize=U16>,
+    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
     B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
     B::BlockSize: Div<F::Size>,
     F: CtrFlavor,

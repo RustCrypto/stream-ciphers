@@ -1,6 +1,9 @@
 //! 64-bit counter falvors.
 use super::CtrFlavor;
-use cipher::generic_array::{GenericArray, typenum::{U2, U16}};
+use cipher::generic_array::{
+    typenum::{U16, U2},
+    GenericArray,
+};
 use core::convert::TryInto;
 
 /// 64-bit big endian counter flavor.
@@ -13,10 +16,7 @@ impl CtrFlavor for Ctr64BE {
     type Backend = u64;
 
     #[inline]
-    fn generate_block(
-        &self,
-        nonce: &GenericArray<Self, Self::Size>,
-    ) -> GenericArray<u8, U16> {
+    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
         let mut res = GenericArray::<u8, U16>::default();
         let ctr = self.0.wrapping_add(nonce[1].0);
         res[..8].copy_from_slice(&nonce[0].0.to_ne_bytes());
@@ -29,16 +29,16 @@ impl CtrFlavor for Ctr64BE {
         [
             Self(u64::from_ne_bytes(block[..8].try_into().unwrap())),
             Self(u64::from_be_bytes(block[8..].try_into().unwrap())),
-        ].into()
+        ]
+        .into()
     }
 
     #[inline]
     fn checked_add(&self, rhs: usize) -> Option<Self> {
-        rhs
-            .try_into()
+        rhs.try_into()
             .ok()
             .and_then(|rhs| self.0.checked_add(rhs))
-            .map(|v| Self(v))
+            .map(Self)
     }
 
     #[inline]
@@ -67,10 +67,7 @@ impl CtrFlavor for Ctr64LE {
     type Backend = u64;
 
     #[inline]
-    fn generate_block(
-        &self,
-        nonce: &GenericArray<Self, Self::Size>,
-    ) -> GenericArray<u8, U16> {
+    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
         let mut res = GenericArray::<u8, U16>::default();
         let ctr = self.0.wrapping_add(nonce[0].0);
         res[..8].copy_from_slice(&ctr.to_le_bytes());
@@ -83,16 +80,16 @@ impl CtrFlavor for Ctr64LE {
         [
             Self(u64::from_le_bytes(block[..8].try_into().unwrap())),
             Self(u64::from_ne_bytes(block[8..].try_into().unwrap())),
-        ].into()
+        ]
+        .into()
     }
 
     #[inline]
     fn checked_add(&self, rhs: usize) -> Option<Self> {
-        rhs
-            .try_into()
+        rhs.try_into()
             .ok()
             .and_then(|rhs| self.0.checked_add(rhs))
-            .map(|v| Self(v))
+            .map(Self)
     }
 
     #[inline]

@@ -1,6 +1,9 @@
 //! 128-bit counter falvors.
 use super::CtrFlavor;
-use cipher::generic_array::{GenericArray, typenum::{U1, U16}};
+use cipher::generic_array::{
+    typenum::{U1, U16},
+    GenericArray,
+};
 use core::convert::TryInto;
 
 /// 128-bit big endian counter flavor.
@@ -13,10 +16,7 @@ impl CtrFlavor for Ctr128BE {
     type Backend = u128;
 
     #[inline]
-    fn generate_block(
-        &self,
-        nonce: &GenericArray<Self, Self::Size>,
-    ) -> GenericArray<u8, U16> {
+    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
         self.0.wrapping_add(nonce[0].0).to_be_bytes().into()
     }
 
@@ -27,11 +27,10 @@ impl CtrFlavor for Ctr128BE {
 
     #[inline]
     fn checked_add(&self, rhs: usize) -> Option<Self> {
-        rhs
-            .try_into()
+        rhs.try_into()
             .ok()
             .and_then(|rhs| self.0.checked_add(rhs))
-            .map(|v| Self(v))
+            .map(Self)
     }
 
     #[inline]
@@ -60,10 +59,7 @@ impl CtrFlavor for Ctr128LE {
     type Backend = u128;
 
     #[inline]
-    fn generate_block(
-        &self,
-        nonce: &GenericArray<Self, Self::Size>,
-    ) -> GenericArray<u8, U16> {
+    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
         self.0.wrapping_add(nonce[0].0).to_be_bytes().into()
     }
 
@@ -74,11 +70,10 @@ impl CtrFlavor for Ctr128LE {
 
     #[inline]
     fn checked_add(&self, rhs: usize) -> Option<Self> {
-        rhs
-            .try_into()
+        rhs.try_into()
             .ok()
             .and_then(|rhs| self.0.checked_add(rhs))
-            .map(|v| Self(v))
+            .map(Self)
     }
 
     #[inline]

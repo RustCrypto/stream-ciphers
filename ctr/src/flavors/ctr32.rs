@@ -1,6 +1,9 @@
 //! 32-bit counter falvors.
 use super::CtrFlavor;
-use cipher::generic_array::{GenericArray, typenum::{U4, U16}};
+use cipher::generic_array::{
+    typenum::{U16, U4},
+    GenericArray,
+};
 use core::convert::TryInto;
 
 /// 32-bit big endian counter flavor.
@@ -13,10 +16,7 @@ impl CtrFlavor for Ctr32BE {
     type Backend = u32;
 
     #[inline]
-    fn generate_block(
-        &self,
-        nonce: &GenericArray<Self, Self::Size>,
-    ) -> GenericArray<u8, U16> {
+    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
         let mut res = GenericArray::<u8, U16>::default();
         let ctr = self.0.wrapping_add(nonce[3].0);
         res[0..4].copy_from_slice(&nonce[0].0.to_ne_bytes());
@@ -33,16 +33,16 @@ impl CtrFlavor for Ctr32BE {
             Self(u32::from_ne_bytes(block[4..8].try_into().unwrap())),
             Self(u32::from_ne_bytes(block[8..12].try_into().unwrap())),
             Self(u32::from_be_bytes(block[12..16].try_into().unwrap())),
-        ].into()
+        ]
+        .into()
     }
 
     #[inline]
     fn checked_add(&self, rhs: usize) -> Option<Self> {
-        rhs
-            .try_into()
+        rhs.try_into()
             .ok()
             .and_then(|rhs| self.0.checked_add(rhs))
-            .map(|v| Self(v))
+            .map(Self)
     }
 
     #[inline]
@@ -71,10 +71,7 @@ impl CtrFlavor for Ctr32LE {
     type Backend = u32;
 
     #[inline]
-    fn generate_block(
-        &self,
-        nonce: &GenericArray<Self, Self::Size>,
-    ) -> GenericArray<u8, U16> {
+    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
         let mut res = GenericArray::<u8, U16>::default();
         let ctr = self.0.wrapping_add(nonce[0].0);
         res[0..4].copy_from_slice(&ctr.to_le_bytes());
@@ -91,16 +88,16 @@ impl CtrFlavor for Ctr32LE {
             Self(u32::from_ne_bytes(block[4..8].try_into().unwrap())),
             Self(u32::from_ne_bytes(block[8..12].try_into().unwrap())),
             Self(u32::from_ne_bytes(block[12..16].try_into().unwrap())),
-        ].into()
+        ]
+        .into()
     }
 
     #[inline]
     fn checked_add(&self, rhs: usize) -> Option<Self> {
-        rhs
-            .try_into()
+        rhs.try_into()
             .ok()
             .and_then(|rhs| self.0.checked_add(rhs))
-            .map(|v| Self(v))
+            .map(Self)
     }
 
     #[inline]
