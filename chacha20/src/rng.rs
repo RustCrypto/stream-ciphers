@@ -8,6 +8,7 @@ use crate::{
     rounds::{R12, R20, R8},
     KEY_SIZE, MAX_BLOCKS,
 };
+use core::convert::TryInto;
 
 macro_rules! impl_chacha_rng {
     ($name:ident, $core:ident, $rounds:ident, $doc:expr) => {
@@ -75,10 +76,13 @@ macro_rules! impl_chacha_rng {
             fn generate(&mut self, results: &mut Self::Results) {
                 assert!(self.counter <= MAX_BLOCKS as u64, "maximum number of allowed ChaCha blocks exceeded");
 
-                // TODO(tarcieri): eliminate unsafety (replace w\ `[u8; BLOCK_SIZE]`)
-                self.block.generate(self.counter, unsafe {
-                    &mut *(results.as_mut_ptr() as *mut [u8; BUFFER_SIZE])
-                });
+                let mut buffer = [0u8; BUFFER_SIZE];
+                self.block.generate(self.counter, &mut buffer);
+
+                for (n, chunk) in results.iter_mut().zip(buffer.chunks_exact(4)) {
+                    *n = u32::from_le_bytes(chunk.try_into().unwrap());
+                }
+
                 self.counter += 1;
             }
         }
