@@ -18,7 +18,7 @@ pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
 /// The ChaCha20 block function (SSE2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
 #[derive(Clone)]
-pub(crate) struct Block<R: Rounds> {
+pub(crate) struct State<R: Rounds> {
     v0: __m128i,
     v1: __m128i,
     v2: __m128i,
@@ -26,7 +26,7 @@ pub(crate) struct Block<R: Rounds> {
     rounds: PhantomData<R>,
 }
 
-impl<R: Rounds> Block<R> {
+impl<R: Rounds> State<R> {
     /// Initialize block function with the given key size, IV, and number of rounds
     #[inline]
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
@@ -189,7 +189,7 @@ unsafe fn add_xor_rot(v0: &mut __m128i, v1: &mut __m128i, v2: &mut __m128i, v3: 
 mod tests {
     use super::*;
     use crate::rounds::R20;
-    use crate::{block::soft::Block as SoftBlock, BLOCK_SIZE};
+    use crate::{backend::soft, BLOCK_SIZE};
     use core::convert::TryInto;
 
     // random inputs for testing
@@ -264,10 +264,10 @@ mod tests {
     #[test]
     fn generate_vs_scalar_impl() {
         let mut soft_result = [0u8; BLOCK_SIZE];
-        SoftBlock::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut soft_result);
+        soft::State::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut soft_result);
 
         let mut simd_result = [0u8; BLOCK_SIZE];
-        Block::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut simd_result);
+        State::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut simd_result);
 
         assert_eq!(&soft_result[..], &simd_result[..])
     }

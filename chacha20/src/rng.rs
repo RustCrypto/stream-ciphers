@@ -4,7 +4,7 @@ use rand_core::block::{BlockRng, BlockRngCore};
 use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
 
 use crate::{
-    block::{Block, BUFFER_SIZE},
+    backend::{State, BUFFER_SIZE},
     rounds::{R12, R20, R8},
     KEY_SIZE, MAX_BLOCKS,
 };

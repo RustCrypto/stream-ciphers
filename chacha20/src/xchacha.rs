@@ -1,7 +1,7 @@
 //! XChaCha20 is an extended nonce variant of ChaCha20
 
 use crate::{
-    block::soft::quarter_round,
+    backend::soft::quarter_round,
     chacha::{ChaCha20, Key},
     CONSTANTS,
 };

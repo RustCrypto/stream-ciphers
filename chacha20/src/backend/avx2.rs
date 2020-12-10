@@ -23,7 +23,7 @@ pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE * 2;
 /// The ChaCha20 block function (AVX2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
 #[derive(Clone)]
-pub(crate) struct Block<R: Rounds> {
+pub(crate) struct State<R: Rounds> {
     v0: __m256i,
     v1: __m256i,
     v2: __m256i,
@@ -31,7 +31,7 @@ pub(crate) struct Block<R: Rounds> {
     rounds: PhantomData<R>,
 }
 
-impl<R: Rounds> Block<R> {
+impl<R: Rounds> State<R> {
     /// Initialize block function with the given key size, IV, and number of rounds
     #[inline]
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
