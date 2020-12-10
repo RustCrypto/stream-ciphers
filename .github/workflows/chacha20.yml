@@ -7,6 +7,9 @@ on:
       - "Cargo.*"
   push:
     branches: master
+    paths:
+      - "chacha20/**"
+      - "Cargo.*"
 
 defaults:
   run:
@@ -41,41 +44,145 @@ jobs:
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features xchacha20
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features cipher,force-soft,legacy,rng,xchacha20,zeroize
 
-  test:
+  # Tests for runtime AVX2 detection
+  autodetect:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust:
-          - 1.41.0 # MSRV
-          - stable
+        include:
+          # 32-bit Linux
+          - target: i686-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+            deps: sudo apt install gcc-multilib
+          - target: i686-unknown-linux-gnu
+            rust: stable
+            deps: sudo apt install gcc-multilib
+
+          # 64-bit Linux
+          - target: x86_64-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+          - target: x86_64-unknown-linux-gnu
+            rust: stable
     steps:
       - uses: actions/checkout@v1
-      - name: Cache cargo registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
-      - name: Cache cargo index
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('Cargo.lock') }}
-      - name: Cache cargo build
-        uses: actions/cache@v1
-        with:
-          path: target
-          key: ${{ runner.os }}-rust-${{ matrix.toolchain }}-${{ matrix.target }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
       - uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
           override: true
-      - run: cargo test --release
-      - name: "Run cargo test --release (SSE2)"
-        env:
-          RUSTFLAGS: "-Ctarget-feature=+sse2 -Dwarnings"
-        run: cargo test --release
-      - name: "Run cargo test --release (AVX2)"
-        env:
-          RUSTFLAGS: "-Ctarget-feature=+avx2 -Dwarnings"
-        run: cargo test --release
+          profile: minimal
+      - run: ${{ matrix.deps }}
+      - run: cargo check --target ${{ matrix.target }} --all-features
+      - run: cargo test --target ${{ matrix.target }} --release
+      - run: cargo test --target ${{ matrix.target }} --release --features std
+      - run: cargo test --target ${{ matrix.target }} --release --features rng
+      - run: cargo test --target ${{ matrix.target }} --release --features zeroize
+      - run: cargo test --target ${{ matrix.target }} --release --features std,rng,zeroize
+
+  # Tests for the AVX2 backend
+  avx2:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Ctarget-cpu=haswell -Dwarnings # Enables `avx2` target feature
+    strategy:
+      matrix:
+        include:
+          # 32-bit Linux
+          - target: i686-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+            deps: sudo apt install gcc-multilib
+          - target: i686-unknown-linux-gnu
+            rust: stable
+            deps: sudo apt install gcc-multilib
+
+          # 64-bit Linux
+          - target: x86_64-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+          - target: x86_64-unknown-linux-gnu
+            rust: stable
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+      - run: ${{ matrix.deps }}
+      - run: cargo check --target ${{ matrix.target }} --all-features
+      - run: cargo test --target ${{ matrix.target }} --release
+      - run: cargo test --target ${{ matrix.target }} --release --features force-soft
+      - run: cargo test --target ${{ matrix.target }} --release --features std
+      - run: cargo test --target ${{ matrix.target }} --release --features rng
+      - run: cargo test --target ${{ matrix.target }} --release --features zeroize
+      - run: cargo test --target ${{ matrix.target }} --release --all-features
+
+  # Tests for the portable software backend
+  soft:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # 32-bit Linux
+          - target: i686-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+            deps: sudo apt install gcc-multilib
+          - target: i686-unknown-linux-gnu
+            rust: stable
+            deps: sudo apt install gcc-multilib
+
+          # 64-bit Linux
+          - target: x86_64-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+          - target: x86_64-unknown-linux-gnu
+            rust: stable
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+      - run: ${{ matrix.deps }}
+      - run: cargo check --target ${{ matrix.target }} --all-features
+      - run: cargo test --target ${{ matrix.target }} --release --features force-soft
+      - run: cargo test --target ${{ matrix.target }} --release --features force-soft,std
+      - run: cargo test --target ${{ matrix.target }} --release --features force-soft,rng
+      - run: cargo test --target ${{ matrix.target }} --release --features force-soft,rng,zeroize
+      - run: cargo test --target ${{ matrix.target }} --release --all-features
+
+  # Cross-compiled tests
+  cross:
+    strategy:
+      matrix:
+        include:
+          # ARM64
+          - target: aarch64-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+          - target: aarch64-unknown-linux-gnu
+            rust: stable
+
+          # PPC32
+          # TODO(tarcieri): debug (big endian-related?) test failures
+          #- target: powerpc-unknown-linux-gnu
+          #  rust: 1.41.0 # MSRV
+          #- target: powerpc-unknown-linux-gnu
+          #  rust: stable
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: ${{ matrix.deps }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+      - run: cargo install cross
+      - run: cross test --target ${{ matrix.target }} --release
+      - run: cross test --target ${{ matrix.target }} --release --features force-soft
+      - run: cross test --target ${{ matrix.target }} --release --features rng
+      - run: cross test --target ${{ matrix.target }} --release --features std
+      - run: cross test --target ${{ matrix.target }} --release --all-features
