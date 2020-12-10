@@ -12,7 +12,7 @@ use crate::{
 macro_rules! impl_chacha_rng {
     ($name:ident, $core:ident, $rounds:ident, $doc:expr) => {
         #[doc = $doc]
-        #[derive(Clone, Debug)]
+        #[derive(Clone)]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $name(BlockRng<$core>);
 
@@ -51,10 +51,10 @@ macro_rules! impl_chacha_rng {
         impl CryptoRng for $name {}
 
         #[doc = "Core random number generator, for use with [`rand_core::block::BlockRng`]"]
-        #[derive(Clone, Debug)]
+        #[derive(Clone)]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $core {
-            block: Block<$rounds>,
+            block: State<$rounds>,
             counter: u64,
         }
 
@@ -63,7 +63,7 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let block = Block::new(&seed, Default::default());
+                let block = State::new(&seed, Default::default());
                 Self { block, counter: 0 }
             }
         }
@@ -75,7 +75,7 @@ macro_rules! impl_chacha_rng {
             fn generate(&mut self, results: &mut Self::Results) {
                 assert!(self.counter <= MAX_BLOCKS as u64, "maximum number of allowed ChaCha blocks exceeded");
 
-                // TODO(tarcieri): eliminate unsafety (replace w\ [u8; BLOCK_SIZE)
+                // TODO(tarcieri): eliminate unsafety (replace w\ `[u8; BLOCK_SIZE]`)
                 self.block.generate(self.counter, unsafe {
                     &mut *(results.as_mut_ptr() as *mut [u8; BUFFER_SIZE])
                 });

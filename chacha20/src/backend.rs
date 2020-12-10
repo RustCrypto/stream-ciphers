@@ -2,50 +2,24 @@
 //!
 //! <https://tools.ietf.org/html/rfc8439#section-2.3>
 
-// TODO(tarcieri): figure out what circumstances these occur in
-#![allow(unused_imports)]
+use cfg_if::cfg_if;
 
-pub(crate) mod soft;
+cfg_if! {
+    if #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "sse2",
+        not(feature = "force-soft")
+    ))] {
+        pub(crate) mod autodetect;
+        pub(crate) mod avx2;
+        pub(crate) mod sse2;
 
-use crate::rounds::Rounds;
+        pub(crate) use self::autodetect::{State, BUFFER_SIZE};
 
-#[cfg(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "sse2",
-    not(target_feature = "avx2")
-))]
-mod sse2;
-
-#[cfg(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "avx2"
-))]
-mod avx2;
-
-#[cfg(not(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    any(target_feature = "sse2", target_feature = "avx2")
-)))]
-pub(crate) use self::soft::{State, BUFFER_SIZE};
-
-#[cfg(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "sse2",
-    not(target_feature = "avx2")
-))]
-pub(crate) use self::sse2::{State, BUFFER_SIZE};
-
-#[cfg(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "avx2"
-))]
-pub(crate) use self::avx2::{State, BUFFER_SIZE};
-
-use core::fmt::{self, Debug};
-
-/// Common debug impl for all blocks
-impl<R: Rounds> Debug for State<R> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.write_str("State {{  .. }}")
+        #[cfg(feature = "xchacha20")]
+        pub(crate) mod soft;
+    } else {
+        pub(crate) mod soft;
+        pub(crate) use self::soft::{State, BUFFER_SIZE};
     }
 }

@@ -5,16 +5,20 @@
 //! Portable implementation which does not rely on architecture-specific
 //! intrinsics.
 
-use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE, STATE_WORDS};
+use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
 use core::{convert::TryInto, marker::PhantomData};
 
 /// Size of buffers passed to `generate` and `apply_keystream` for this backend
+#[allow(dead_code)]
 pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
+
+/// Number of 32-bit words in the ChaCha20 state
+const STATE_WORDS: usize = 16;
 
 /// The ChaCha20 block function (portable software implementation)
 // TODO(tarcieri): zeroize?
-#[allow(dead_code)]
 #[derive(Clone)]
+#[allow(dead_code)]
 pub(crate) struct State<R: Rounds> {
     /// Internal state of the block function
     state: [u32; STATE_WORDS],

@@ -10,19 +10,16 @@
 
 use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
 use core::{convert::TryInto, marker::PhantomData};
+use super::autodetect::BUFFER_SIZE;
 
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
-/// Size of buffers passed to `generate` and `apply_keystream` for this
-/// backend, which operates on two blocks in parallel for optimal performance.
-pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE * 2;
-
 /// The ChaCha20 block function (AVX2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(crate) struct State<R: Rounds> {
     v0: __m256i,
     v1: __m256i,

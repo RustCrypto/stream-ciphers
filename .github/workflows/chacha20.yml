@@ -31,14 +31,15 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
           override: true
-      - run: cargo build --no-default-features --release --target ${{ matrix.target }}
-        env:
-          CARGO_INCREMENTAL: 0
-          RUSTFLAGS: -D warnings
+          profile: minimal
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features cipher
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features legacy
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rng
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features xchacha20
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features cipher,force-soft,legacy,rng,xchacha20,zeroize
 
   test:
     runs-on: ubuntu-latest
