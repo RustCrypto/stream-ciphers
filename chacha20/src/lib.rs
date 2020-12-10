@@ -115,8 +115,5 @@ pub const MAX_BLOCKS: usize = core::u32::MAX as usize;
 /// Number of bytes in the core (non-extended) ChaCha20 IV
 const IV_SIZE: usize = 8;
 
-/// Number of 32-bit words in the ChaCha20 state
-const STATE_WORDS: usize = 16;
-
 /// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];

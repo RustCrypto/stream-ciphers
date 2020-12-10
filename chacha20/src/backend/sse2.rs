@@ -4,20 +4,18 @@
 //!
 //! SSE2-optimized implementation for x86/x86-64 CPUs.
 
-use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
+use crate::{rounds::Rounds, CONSTANTS, IV_SIZE, BLOCK_SIZE, KEY_SIZE};
 use core::{convert::TryInto, marker::PhantomData};
+use super::autodetect::BUFFER_SIZE;
 
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
-/// Size of buffers passed to `generate` and `apply_keystream` for this backend
-pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
-
 /// The ChaCha20 block function (SSE2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(crate) struct State<R: Rounds> {
     v0: __m128i,
     v1: __m128i,
@@ -49,11 +47,13 @@ impl<R: Rounds> State<R> {
     pub(crate) fn generate(&self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);
 
-        unsafe {
-            let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
-            let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
-            store(v0, v1, v2, v3, output)
+        for (i, chunk) in output.chunks_exact_mut(BLOCK_SIZE).enumerate() {
+            unsafe {
+                let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
+                let mut v3 = iv_setup(self.iv, counter.checked_add(i as u64).unwrap());
+                self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+                store(v0, v1, v2, v3, chunk)
+            }
         }
     }
 
@@ -63,15 +63,17 @@ impl<R: Rounds> State<R> {
     pub(crate) fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);
 
-        unsafe {
-            let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
-            let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+        for (i, chunk) in output.chunks_exact_mut(BLOCK_SIZE).enumerate() {
+            unsafe {
+                let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
+                let mut v3 = iv_setup(self.iv, counter.checked_add(i as u64).unwrap());
+                self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
 
-            for (chunk, a) in output.chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
-                let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(*a, b);
-                _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
+                for (ch, a) in chunk.chunks_exact_mut(0x10).zip(&[v0, v1, v2, v3]) {
+                    let b = _mm_loadu_si128(ch.as_ptr() as *const __m128i);
+                    let out = _mm_xor_si128(*a, b);
+                    _mm_storeu_si128(ch.as_mut_ptr() as *mut __m128i, out);
+                }
             }
         }
     }
@@ -263,12 +265,12 @@ mod tests {
 
     #[test]
     fn generate_vs_scalar_impl() {
-        let mut soft_result = [0u8; BLOCK_SIZE];
+        let mut soft_result = [0u8; soft::BUFFER_SIZE];
         soft::State::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut soft_result);
 
-        let mut simd_result = [0u8; BLOCK_SIZE];
+        let mut simd_result = [0u8; BUFFER_SIZE];
         State::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut simd_result);
 
-        assert_eq!(&soft_result[..], &simd_result[..])
+        assert_eq!(&soft_result[..], &simd_result[..soft::BUFFER_SIZE])
     }
 }
