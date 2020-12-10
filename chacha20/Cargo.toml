@@ -34,6 +34,7 @@ default = ["xchacha20"]
 force-soft = []
 legacy = ["cipher"]
 rng = ["rand_core"]
+std = ["cipher/std"]
 xchacha20 = ["cipher"]
 
 [package.metadata.docs.rs]
