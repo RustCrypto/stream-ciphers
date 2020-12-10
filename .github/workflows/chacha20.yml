@@ -164,11 +164,10 @@ jobs:
             rust: stable
 
           # PPC32
-          # TODO(tarcieri): debug (big endian-related?) test failures
-          #- target: powerpc-unknown-linux-gnu
-          #  rust: 1.41.0 # MSRV
-          #- target: powerpc-unknown-linux-gnu
-          #  rust: stable
+          - target: powerpc-unknown-linux-gnu
+            rust: 1.41.0 # MSRV
+          - target: powerpc-unknown-linux-gnu
+            rust: stable
 
     runs-on: ubuntu-latest
     steps:
