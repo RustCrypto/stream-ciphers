@@ -15,7 +15,7 @@ pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE;
 // TODO(tarcieri): zeroize?
 #[allow(dead_code)]
 #[derive(Clone)]
-pub(crate) struct Block<R: Rounds> {
+pub(crate) struct State<R: Rounds> {
     /// Internal state of the block function
     state: [u32; STATE_WORDS],
 
@@ -24,7 +24,7 @@ pub(crate) struct Block<R: Rounds> {
 }
 
 #[allow(dead_code)]
-impl<R: Rounds> Block<R> {
+impl<R: Rounds> State<R> {
     /// Initialize block function with the given key, IV, and number of rounds
     pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
         let state = [

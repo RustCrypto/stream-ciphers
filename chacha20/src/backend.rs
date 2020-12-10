@@ -26,26 +26,26 @@ mod avx2;
     any(target_arch = "x86", target_arch = "x86_64"),
     any(target_feature = "sse2", target_feature = "avx2")
 )))]
-pub(crate) use self::soft::{Block, BUFFER_SIZE};
+pub(crate) use self::soft::{State, BUFFER_SIZE};
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
     target_feature = "sse2",
     not(target_feature = "avx2")
 ))]
-pub(crate) use self::sse2::{Block, BUFFER_SIZE};
+pub(crate) use self::sse2::{State, BUFFER_SIZE};
 
 #[cfg(all(
     any(target_arch = "x86", target_arch = "x86_64"),
     target_feature = "avx2"
 ))]
-pub(crate) use self::avx2::{Block, BUFFER_SIZE};
+pub(crate) use self::avx2::{State, BUFFER_SIZE};
 
 use core::fmt::{self, Debug};
 
 /// Common debug impl for all blocks
-impl<R: Rounds> Debug for Block<R> {
+impl<R: Rounds> Debug for State<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.write_str("Block {{  .. }}")
+        f.write_str("State {{  .. }}")
     }
 }

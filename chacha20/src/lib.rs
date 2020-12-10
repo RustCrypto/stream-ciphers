@@ -74,7 +74,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
-mod block;
+mod backend;
 #[cfg(feature = "cipher")]
 mod chacha;
 #[cfg(feature = "legacy")]
@@ -89,10 +89,10 @@ mod xchacha;
 pub use cipher;
 
 #[cfg(feature = "cipher")]
-pub use self::chacha::{ChaCha, ChaCha12, ChaCha20, ChaCha8, Key, Nonce};
+pub use crate::chacha::{ChaCha, ChaCha12, ChaCha20, ChaCha8, Key, Nonce};
 
 #[cfg(feature = "legacy")]
-pub use self::legacy::{ChaCha20Legacy, LegacyNonce};
+pub use crate::legacy::{ChaCha20Legacy, LegacyNonce};
 
 #[cfg(feature = "rng")]
 pub use rng::{
