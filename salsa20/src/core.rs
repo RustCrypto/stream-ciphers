@@ -1,23 +1,20 @@
-//! The Salsa20 block function.
+//! The Salsa20 core function.
 
 use crate::{rounds::Rounds, Key, Nonce, BLOCK_SIZE, CONSTANTS, STATE_WORDS};
 use core::{convert::TryInto, marker::PhantomData, mem};
 
-/// The Salsa20 block function
-///
-/// While Salsa20 is a stream cipher, not a block cipher, its core
-/// primitive is a function which acts on a 512-bit block
-// TODO(tarcieri): zeroize? need to make sure we're actually copying first
-pub struct Block<R: Rounds> {
-    /// Internal state of the block function
+/// The Salsa20 core function.
+// TODO(tarcieri): zeroize support
+pub struct Core<R: Rounds> {
+    /// Internal state of the core function
     state: [u32; STATE_WORDS],
 
     /// Number of rounds to perform
     rounds: PhantomData<R>,
 }
 
-impl<R: Rounds> Block<R> {
-    /// Initialize block function with the given key and IV
+impl<R: Rounds> Core<R> {
+    /// Initialize core function with the given key and IV
     pub fn new(key: &Key, iv: &Nonce) -> Self {
         #[allow(unsafe_code)]
         let mut state: [u32; STATE_WORDS] = unsafe { mem::zeroed() };
@@ -105,8 +102,8 @@ impl<R: Rounds> Block<R> {
     }
 }
 
-impl<R: Rounds> From<[u32; STATE_WORDS]> for Block<R> {
-    fn from(state: [u32; STATE_WORDS]) -> Block<R> {
+impl<R: Rounds> From<[u32; STATE_WORDS]> for Core<R> {
+    fn from(state: [u32; STATE_WORDS]) -> Core<R> {
         Self {
             state,
             rounds: PhantomData,

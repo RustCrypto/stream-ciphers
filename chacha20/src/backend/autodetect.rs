@@ -11,38 +11,40 @@ pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE * 2;
 
 cpuid_bool::new!(avx2_cpuid, "avx2");
 
-pub struct State<R: Rounds> {
+/// The ChaCha20 core function.
+pub struct Core<R: Rounds> {
     inner: Inner<R>,
     token: avx2_cpuid::InitToken,
 }
 
 union Inner<R: Rounds> {
-    avx2: avx2::State<R>,
-    sse2: sse2::State<R>,
+    avx2: avx2::Core<R>,
+    sse2: sse2::Core<R>,
 }
 
-impl<R: Rounds> State<R> {
-    /// Initialize ChaCha block function with the given key size, IV, and
+impl<R: Rounds> Core<R> {
+    /// Initialize ChaCha core function with the given key size, IV, and
     /// number of rounds.
     #[inline]
-    pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
+    pub fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
         let (token, avx2_present) = avx2_cpuid::init_get();
 
         let inner = if avx2_present {
             Inner {
-                avx2: avx2::State::new(key, iv),
+                avx2: avx2::Core::new(key, iv),
             }
         } else {
             Inner {
-                sse2: sse2::State::new(key, iv),
+                sse2: sse2::Core::new(key, iv),
             }
         };
 
         Self { inner, token }
     }
 
+    /// Generate output, overwriting data already in the buffer
     #[inline]
-    pub(crate) fn generate(&self, counter: u64, output: &mut [u8]) {
+    pub fn generate(&self, counter: u64, output: &mut [u8]) {
         if self.token.get() {
             unsafe { self.inner.avx2.generate(counter, output) }
         } else {
@@ -50,9 +52,10 @@ impl<R: Rounds> State<R> {
         }
     }
 
+    /// Apply generated keystream to the output buffer
     #[inline]
     #[cfg(feature = "cipher")]
-    pub(crate) fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
+    pub fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
         if self.token.get() {
             unsafe { self.inner.avx2.apply_keystream(counter, output) }
         } else {
@@ -61,7 +64,7 @@ impl<R: Rounds> State<R> {
     }
 }
 
-impl<R: Rounds> Clone for State<R> {
+impl<R: Rounds> Clone for Core<R> {
     fn clone(&self) -> Self {
         let inner = if self.token.get() {
             Inner {

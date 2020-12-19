@@ -31,6 +31,7 @@ hex-literal = "0.2"
 
 [features]
 default = ["xchacha20"]
+expose-core = []
 force-soft = []
 legacy = ["cipher"]
 rng = ["rand_core"]
@@ -38,5 +39,5 @@ std = ["cipher/std"]
 xchacha20 = ["cipher"]
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["legacy", "rng", "std", "xchacha20"]
 rustdoc-args = ["--cfg", "docsrs"]

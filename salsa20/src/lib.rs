@@ -58,7 +58,7 @@
 
 pub use cipher;
 
-mod block;
+mod core;
 mod rounds;
 mod salsa;
 #[cfg(feature = "xsalsa20")]
@@ -68,7 +68,7 @@ pub use crate::salsa::{Key, Nonce, Salsa, Salsa12, Salsa20, Salsa8};
 
 #[cfg(feature = "expose-core")]
 pub use crate::{
-    block::Block,
+    core::Core,
     rounds::{R12, R20, R8},
 };
 
