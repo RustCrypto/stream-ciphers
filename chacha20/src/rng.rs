@@ -4,7 +4,7 @@ use rand_core::block::{BlockRng, BlockRngCore};
 use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
 
 use crate::{
-    backend::{State, BUFFER_SIZE},
+    backend::{Core, BUFFER_SIZE},
     rounds::{R12, R20, R8},
     KEY_SIZE, MAX_BLOCKS,
 };
@@ -55,7 +55,7 @@ macro_rules! impl_chacha_rng {
         #[derive(Clone)]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $core {
-            block: State<$rounds>,
+            block: Core<$rounds>,
             counter: u64,
         }
 
@@ -64,7 +64,7 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let block = State::new(&seed, Default::default());
+                let block = Core::new(&seed, Default::default());
                 Self { block, counter: 0 }
             }
         }

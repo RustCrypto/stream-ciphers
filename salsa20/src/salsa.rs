@@ -5,7 +5,7 @@
 // TODO(tarcieri): figure out how to unify this with the `ctr` crate (see #95)
 
 use crate::{
-    block::Block,
+    core::Core,
     rounds::{Rounds, R12, R20, R8},
     BLOCK_SIZE,
 };
@@ -52,10 +52,10 @@ type Buffer = [u8; BLOCK_SIZE];
 ///
 /// We recommend you use the [`Salsa20`] (a.k.a. Salsa20/20) variant.
 pub struct Salsa<R: Rounds> {
-    /// Salsa block function initialized with a key and IV
-    block: Block<R>,
+    /// Salsa core function initialized with a key and IV
+    block: Core<R>,
 
-    /// Buffer containing previous block function output
+    /// Buffer containing previous output
     buffer: Buffer,
 
     /// Position within buffer, or `None` if the buffer is not in use
@@ -73,7 +73,7 @@ impl<R: Rounds> NewStreamCipher for Salsa<R> {
     type NonceSize = U8;
 
     fn new(key: &Key, nonce: &Nonce) -> Self {
-        let block = Block::new(key, nonce);
+        let block = Core::new(key, nonce);
 
         Self {
             block,

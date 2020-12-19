@@ -5,7 +5,7 @@
 // TODO(tarcieri): figure out how to unify this with the `ctr` crate (see #95)
 
 use crate::{
-    backend::{State, BUFFER_SIZE},
+    backend::{Core, BUFFER_SIZE},
     rounds::{Rounds, R12, R20, R8},
     BLOCK_SIZE, MAX_BLOCKS,
 };
@@ -60,10 +60,10 @@ const COUNTER_INCR: u64 = (BUFFER_SIZE as u64) / (BLOCK_SIZE as u64);
 ///
 /// Generally [`ChaCha20`] is preferred.
 pub struct ChaCha<R: Rounds> {
-    /// ChaCha20 block function initialized with a key and IV
-    block: State<R>,
+    /// ChaCha20 core function initialized with a key and IV
+    block: Core<R>,
 
-    /// Buffer containing previous block function output
+    /// Buffer containing previous output
     buffer: Buffer,
 
     /// Position within buffer, or `None` if the buffer is not in use
@@ -86,7 +86,7 @@ impl<R: Rounds> NewStreamCipher for ChaCha<R> {
     type NonceSize = U12;
 
     fn new(key: &Key, nonce: &Nonce) -> Self {
-        let block = State::new(
+        let block = Core::new(
             key.as_slice().try_into().unwrap(),
             nonce[4..12].try_into().unwrap(),
         );

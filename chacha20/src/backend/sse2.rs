@@ -1,4 +1,4 @@
-//! The ChaCha20 block function. Defined in RFC 8439 Section 2.3.
+//! The ChaCha20 core function. Defined in RFC 8439 Section 2.3.
 //!
 //! <https://tools.ietf.org/html/rfc8439#section-2.3>
 //!
@@ -13,10 +13,10 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
-/// The ChaCha20 block function (SSE2 accelerated implementation for x86/x86_64)
+/// The ChaCha20 core function (SSE2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
 #[derive(Copy, Clone)]
-pub(crate) struct State<R: Rounds> {
+pub struct Core<R: Rounds> {
     v0: __m128i,
     v1: __m128i,
     v2: __m128i,
@@ -24,10 +24,10 @@ pub(crate) struct State<R: Rounds> {
     rounds: PhantomData<R>,
 }
 
-impl<R: Rounds> State<R> {
-    /// Initialize block function with the given key size, IV, and number of rounds
+impl<R: Rounds> Core<R> {
+    /// Initialize core function with the given key size, IV, and number of rounds
     #[inline]
-    pub(crate) fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
+    pub fn new(key: &[u8; KEY_SIZE], iv: [u8; IV_SIZE]) -> Self {
         let (v0, v1, v2) = unsafe { key_setup(key) };
         let iv = [
             i32::from_le_bytes(iv[4..].try_into().unwrap()),
@@ -44,7 +44,7 @@ impl<R: Rounds> State<R> {
     }
 
     #[inline]
-    pub(crate) fn generate(&self, counter: u64, output: &mut [u8]) {
+    pub fn generate(&self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);
 
         for (i, chunk) in output.chunks_exact_mut(BLOCK_SIZE).enumerate() {
@@ -60,7 +60,7 @@ impl<R: Rounds> State<R> {
     #[inline]
     #[cfg(feature = "cipher")]
     #[allow(clippy::cast_ptr_alignment)] // loadu/storeu support unaligned loads/stores
-    pub(crate) fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
+    pub fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
         debug_assert_eq!(output.len(), BUFFER_SIZE);
 
         for (i, chunk) in output.chunks_exact_mut(BLOCK_SIZE).enumerate() {
@@ -266,10 +266,10 @@ mod tests {
     #[test]
     fn generate_vs_scalar_impl() {
         let mut soft_result = [0u8; soft::BUFFER_SIZE];
-        soft::State::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut soft_result);
+        soft::Core::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut soft_result);
 
         let mut simd_result = [0u8; BUFFER_SIZE];
-        State::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut simd_result);
+        Core::<R20>::new(&R_KEY, R_IV).generate(R_CNT, &mut simd_result);
 
         assert_eq!(&soft_result[..], &simd_result[..soft::BUFFER_SIZE])
     }

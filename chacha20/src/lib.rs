@@ -91,6 +91,12 @@ pub use cipher;
 #[cfg(feature = "cipher")]
 pub use crate::chacha::{ChaCha, ChaCha12, ChaCha20, ChaCha8, Key, Nonce};
 
+#[cfg(feature = "expose-core")]
+pub use crate::{
+    backend::Core,
+    rounds::{R12, R20, R8},
+};
+
 #[cfg(feature = "legacy")]
 pub use crate::legacy::{ChaCha20Legacy, LegacyNonce};
 

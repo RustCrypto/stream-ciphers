@@ -1,6 +1,6 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use crate::{block::quarter_round, Key, Nonce, Salsa20, CONSTANTS};
+use crate::{core::quarter_round, Key, Nonce, Salsa20, CONSTANTS};
 use cipher::{
     consts::{U16, U24, U32},
     generic_array::GenericArray,
