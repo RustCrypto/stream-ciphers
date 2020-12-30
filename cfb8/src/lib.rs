@@ -26,14 +26,14 @@
 //!
 //! let mut data = plaintext.to_vec();
 //! // encrypt plaintext
-//! AesCfb8::new_var(key, iv).unwrap().encrypt(&mut data);
+//! AesCfb8::new_from_slices(key, iv).unwrap().encrypt(&mut data);
 //! assert_eq!(data, &ciphertext[..]);
 //! // and decrypt it back
-//! AesCfb8::new_var(key, iv).unwrap().decrypt(&mut data);
+//! AesCfb8::new_from_slices(key, iv).unwrap().decrypt(&mut data);
 //! assert_eq!(data, &plaintext[..]);
 //!
 //! // CFB mode can be used with streaming messages
-//! let mut cipher = AesCfb8::new_var(key, iv).unwrap();
+//! let mut cipher = AesCfb8::new_from_slices(key, iv).unwrap();
 //! for chunk in data.chunks_mut(3) {
 //!     cipher.encrypt(chunk);
 //! }
