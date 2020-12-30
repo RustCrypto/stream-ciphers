@@ -3,14 +3,14 @@
 use chacha20::ChaCha20;
 
 // IETF version of ChaCha20 (96-bit nonce)
-cipher::stream_cipher_sync_test!(chacha20_core, ChaCha20, "chacha20");
+cipher::stream_cipher_test!(chacha20_core, ChaCha20, "chacha20");
 cipher::stream_cipher_seek_test!(chacha20_seek, ChaCha20);
 
 #[cfg(feature = "xchacha20")]
 #[rustfmt::skip]
 mod xchacha20 {
     use chacha20::{Key, XChaCha20, XNonce};
-    use cipher::stream::{NewStreamCipher, StreamCipher};
+    use cipher::{NewCipher, StreamCipher};
     use hex_literal::hex;
 
     cipher::stream_cipher_seek_test!(xchacha20_seek, XChaCha20);
@@ -73,10 +73,10 @@ mod xchacha20 {
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut prefix = [0u8; 64];
-        cipher.encrypt(&mut prefix);
+        cipher.apply_keystream(&mut prefix);
 
         let mut buf = [0u8; 304];
-        cipher.encrypt(&mut buf);
+        cipher.apply_keystream(&mut buf);
         assert_eq!(&buf[..], &KEYSTREAM[..]);
     }
 
@@ -87,9 +87,9 @@ mod xchacha20 {
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut prefix = [0u8; 64];
-        cipher.encrypt(&mut prefix);
+        cipher.apply_keystream(&mut prefix);
 
-        cipher.encrypt(&mut buf);
+        cipher.apply_keystream(&mut buf);
         assert_eq!(&buf[..], &CIPHERTEXT[..]);
     }
 }
@@ -99,10 +99,10 @@ mod xchacha20 {
 #[rustfmt::skip]
 mod legacy {
     use chacha20::{ChaCha20Legacy, Key, LegacyNonce};
-    use cipher::stream::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek};
+    use cipher::{NewCipher, StreamCipher, StreamCipherSeek};
     use hex_literal::hex;
 
-    cipher::stream_cipher_sync_test!(chacha20_legacy_core, ChaCha20Legacy, "chacha20-legacy");
+    cipher::stream_cipher_test!(chacha20_legacy_core, ChaCha20Legacy, "chacha20-legacy");
     cipher::stream_cipher_seek_test!(chacha20_legacy_seek, ChaCha20Legacy);
 
     const KEY_LONG: [u8; 32] = hex!("
@@ -133,8 +133,8 @@ mod legacy {
                     let mut buf = [0; 256];
 
                     cipher.seek(idx as u64);
-                    cipher.encrypt(&mut buf[idx..middle]);
-                    cipher.encrypt(&mut buf[middle..last]);
+                    cipher.apply_keystream(&mut buf[idx..middle]);
+                    cipher.apply_keystream(&mut buf[middle..last]);
 
                     for k in idx..last {
                         assert_eq!(buf[k], EXPECTED_LONG[k])

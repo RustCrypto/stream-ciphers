@@ -3,16 +3,15 @@
 use crate::{core::quarter_round, Key, Nonce, Salsa20, CONSTANTS};
 use cipher::{
     consts::{U16, U24, U32},
+    errors::{LoopError, OverflowError},
     generic_array::GenericArray,
-    stream::{
-        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-    },
+    NewCipher, SeekNum, StreamCipher, StreamCipherSeek,
 };
 use core::convert::TryInto;
 
 /// EXtended Salsa20 nonce (192-bit/24-byte)
 #[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
-pub type XNonce = cipher::stream::Nonce<XSalsa20>;
+pub type XNonce = cipher::Nonce<XSalsa20>;
 
 /// XSalsa20 is a Salsa20 variant with an extended 192-bit (24-byte) nonce.
 ///
@@ -25,7 +24,7 @@ pub type XNonce = cipher::stream::Nonce<XSalsa20>;
 #[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
 pub struct XSalsa20(Salsa20);
 
-impl NewStreamCipher for XSalsa20 {
+impl NewCipher for XSalsa20 {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -50,13 +49,13 @@ impl NewStreamCipher for XSalsa20 {
     }
 }
 
-impl SyncStreamCipher for XSalsa20 {
+impl StreamCipher for XSalsa20 {
     fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.0.try_apply_keystream(data)
     }
 }
 
-impl SyncStreamCipherSeek for XSalsa20 {
+impl StreamCipherSeek for XSalsa20 {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         self.0.try_current_pos()
     }

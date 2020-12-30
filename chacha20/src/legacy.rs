@@ -3,14 +3,13 @@
 use crate::chacha::{ChaCha20, Key};
 use cipher::{
     consts::{U32, U8},
-    stream::{
-        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-    },
+    errors::{LoopError, OverflowError},
+    NewCipher, SeekNum, StreamCipher, StreamCipherSeek,
 };
 
 /// Size of the nonce for the legacy ChaCha20 stream cipher
 #[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
-pub type LegacyNonce = cipher::stream::Nonce<ChaCha20Legacy>;
+pub type LegacyNonce = cipher::Nonce<ChaCha20Legacy>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 ///
@@ -18,7 +17,7 @@ pub type LegacyNonce = cipher::stream::Nonce<ChaCha20Legacy>;
 #[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
 pub struct ChaCha20Legacy(ChaCha20);
 
-impl NewStreamCipher for ChaCha20Legacy {
+impl NewCipher for ChaCha20Legacy {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -32,13 +31,13 @@ impl NewStreamCipher for ChaCha20Legacy {
     }
 }
 
-impl SyncStreamCipher for ChaCha20Legacy {
+impl StreamCipher for ChaCha20Legacy {
     fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.0.try_apply_keystream(data)
     }
 }
 
-impl SyncStreamCipherSeek for ChaCha20Legacy {
+impl StreamCipherSeek for ChaCha20Legacy {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         self.0.try_current_pos()
     }

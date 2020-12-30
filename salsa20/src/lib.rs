@@ -27,7 +27,7 @@
 //!
 //! ```
 //! use salsa20::{Salsa20, Key, Nonce};
-//! use salsa20::cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+//! use salsa20::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!

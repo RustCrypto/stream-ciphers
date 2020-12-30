@@ -1,10 +1,6 @@
 //! Counter Mode with a 32-bit little endian counter
 
-use cipher::{
-    consts::U16,
-    generic_array::GenericArray,
-    stream::{NewStreamCipher, SyncStreamCipher},
-};
+use cipher::{consts::U16, generic_array::GenericArray, NewCipher, StreamCipher};
 use hex_literal::hex;
 
 type Aes128Ctr = ctr::Ctr32LE<aes::Aes128>;

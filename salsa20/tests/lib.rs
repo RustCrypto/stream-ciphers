@@ -1,9 +1,6 @@
 //! Salsa20 tests
 
-use cipher::{
-    generic_array::GenericArray,
-    stream::{NewStreamCipher, StreamCipher, SyncStreamCipherSeek},
-};
+use cipher::{generic_array::GenericArray, NewCipher, StreamCipher, StreamCipherSeek};
 use salsa20::Salsa20;
 #[cfg(feature = "xsalsa20")]
 use salsa20::XSalsa20;
@@ -124,7 +121,7 @@ fn salsa20_key1_iv0() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY1), &GenericArray::from(IV0));
     let mut buf = [0; 64];
 
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..64 {
         assert_eq!(buf[i], EXPECTED_KEY1_IV0[i])
@@ -136,7 +133,7 @@ fn salsa20_key0_iv1() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY0), &GenericArray::from(IV1));
     let mut buf = [0; 64];
 
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..64 {
         assert_eq!(buf[i], EXPECTED_KEY0_IV1[i])
@@ -148,7 +145,7 @@ fn salsa20_key0_ivhi() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY0), &GenericArray::from(IVHI));
     let mut buf = [0; 64];
 
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..64 {
         assert_eq!(buf[i], EXPECTED_KEY0_IVHI[i])
@@ -160,7 +157,7 @@ fn salsa20_long() {
     let mut cipher = Salsa20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
     let mut buf = [0; 256];
 
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..256 {
         assert_eq!(buf[i], EXPECTED_LONG[i])
@@ -178,8 +175,8 @@ fn salsa20_offsets() {
                 let mut buf = [0; 256];
 
                 cipher.seek(idx as u64);
-                cipher.encrypt(&mut buf[idx..middle]);
-                cipher.encrypt(&mut buf[middle..last]);
+                cipher.apply_keystream(&mut buf[idx..middle]);
+                cipher.apply_keystream(&mut buf[middle..last]);
 
                 for k in idx..last {
                     assert_eq!(buf[k], EXPECTED_LONG[k])
@@ -197,7 +194,7 @@ fn xsalsa20_encrypt_zeros() {
 
     let mut cipher = XSalsa20::new(&key, &iv);
     let mut buf = [0; 64];
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..64 {
         assert_eq!(buf[i], EXPECTED_XSALSA20_ZEROS[i]);
@@ -212,7 +209,7 @@ fn xsalsa20_encrypt_hello_world() {
 
     let mut cipher = XSalsa20::new(&key, &iv);
     let mut buf = *b"Hello world!";
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     assert_eq!(buf, EXPECTED_XSALSA20_HELLO_WORLD);
 }

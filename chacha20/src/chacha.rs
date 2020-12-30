@@ -11,9 +11,8 @@ use crate::{
 };
 use cipher::{
     consts::{U12, U32},
-    stream::{
-        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-    },
+    errors::{LoopError, OverflowError},
+    NewCipher, SeekNum, StreamCipher, StreamCipherSeek,
 };
 use core::{
     convert::TryInto,
@@ -37,12 +36,12 @@ pub type ChaCha20 = ChaCha<R20>;
 /// Implemented as an alias for [`GenericArray`].
 ///
 /// (NOTE: all variants of [`ChaCha20`] including `XChaCha20` use the same key type)
-pub type Key = cipher::stream::Key<ChaCha20>;
+pub type Key = cipher::CipherKey<ChaCha20>;
 
 /// Nonce type (96-bits/12-bytes)
 ///
 /// Implemented as an alias for [`GenericArray`].
-pub type Nonce = cipher::stream::Nonce<ChaCha20>;
+pub type Nonce = cipher::Nonce<ChaCha20>;
 
 /// Internal buffer
 type Buffer = [u8; BUFFER_SIZE];
@@ -78,7 +77,7 @@ pub struct ChaCha<R: Rounds> {
     counter_offset: u64,
 }
 
-impl<R: Rounds> NewStreamCipher for ChaCha<R> {
+impl<R: Rounds> NewCipher for ChaCha<R> {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -106,7 +105,7 @@ impl<R: Rounds> NewStreamCipher for ChaCha<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipher for ChaCha<R> {
+impl<R: Rounds> StreamCipher for ChaCha<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
         let pos = self.buffer_pos as usize;
@@ -147,7 +146,7 @@ impl<R: Rounds> SyncStreamCipher for ChaCha<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipherSeek for ChaCha<R> {
+impl<R: Rounds> StreamCipherSeek for ChaCha<R> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         // quick and dirty fix, until ctr-like parallel block processing will be added
         let (counter, pos) = if self.buffer_pos < BLOCK_SIZE as u8 {

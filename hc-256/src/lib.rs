@@ -11,9 +11,7 @@
 pub use cipher;
 
 use cipher::{
-    consts::U32,
-    generic_array::GenericArray,
-    stream::{NewStreamCipher, StreamCipher},
+    consts::U32, errors::LoopError, generic_array::GenericArray, NewCipher, StreamCipher,
 };
 
 #[cfg(cargo_feature = "zeroize")]
@@ -38,7 +36,7 @@ pub struct Hc256 {
     offset: u8,
 }
 
-impl NewStreamCipher for Hc256 {
+impl NewCipher for Hc256 {
     /// Key size in bytes
     type KeySize = U32;
     /// Nonce size in bytes
@@ -52,12 +50,9 @@ impl NewStreamCipher for Hc256 {
 }
 
 impl StreamCipher for Hc256 {
-    fn encrypt(&mut self, data: &mut [u8]) {
+    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.process(data);
-    }
-
-    fn decrypt(&mut self, data: &mut [u8]) {
-        self.process(data);
+        Ok(())
     }
 }
 

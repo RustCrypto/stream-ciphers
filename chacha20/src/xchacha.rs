@@ -7,16 +7,15 @@ use crate::{
 };
 use cipher::{
     consts::{U16, U24, U32},
+    errors::{LoopError, OverflowError},
     generic_array::GenericArray,
-    stream::{
-        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-    },
+    NewCipher, SeekNum, StreamCipher, StreamCipherSeek,
 };
 use core::convert::TryInto;
 
 /// EXtended ChaCha20 nonce (192-bits/24-bytes)
 #[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
-pub type XNonce = cipher::stream::Nonce<XChaCha20>;
+pub type XNonce = cipher::Nonce<XChaCha20>;
 
 /// XChaCha20 is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
 ///
@@ -39,7 +38,7 @@ pub type XNonce = cipher::stream::Nonce<XChaCha20>;
 #[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
 pub struct XChaCha20(ChaCha20);
 
-impl NewStreamCipher for XChaCha20 {
+impl NewCipher for XChaCha20 {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -56,13 +55,13 @@ impl NewStreamCipher for XChaCha20 {
     }
 }
 
-impl SyncStreamCipher for XChaCha20 {
+impl StreamCipher for XChaCha20 {
     fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.0.try_apply_keystream(data)
     }
 }
 
-impl SyncStreamCipherSeek for XChaCha20 {
+impl StreamCipherSeek for XChaCha20 {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         self.0.try_current_pos()
     }

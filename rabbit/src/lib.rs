@@ -2,15 +2,16 @@
 //!
 //! [1]: https://tools.ietf.org/html/rfc4503#section-2.3
 
+#![no_std]
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
-#![no_std]
 
 pub use cipher;
+
 use cipher::{
     consts::{U16, U8},
-    stream::LoopError,
-    NewStreamCipher, SyncStreamCipher,
+    errors::LoopError,
+    NewCipher, StreamCipher,
 };
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -33,7 +34,7 @@ const A: [u32; 8] = [
 ];
 
 /// Rabbit Stream Cipher Key.
-pub type Key = cipher::stream::Key<Rabbit>;
+pub type Key = cipher::CipherKey<Rabbit>;
 
 /// Rabbit Stream Cipher Initialization Vector. See RFC 4503 3.2. Initialization Vector (page 5).
 ///
@@ -48,7 +49,7 @@ pub type Key = cipher::stream::Key<Rabbit>;
 /// > under the same key.
 ///
 /// [4]: http://eprint.iacr.org/2005/007.pdf
-pub type Iv = cipher::stream::Nonce<Rabbit>;
+pub type Iv = cipher::Nonce<Rabbit>;
 
 /// RFC 4503. 2.2.  Inner State (page 2).
 #[derive(Default, Clone, PartialEq, Eq, Hash)]
@@ -400,16 +401,16 @@ impl Rabbit {
     }
 }
 
-impl NewStreamCipher for Rabbit {
+impl NewCipher for Rabbit {
     type KeySize = U16;
     type NonceSize = U8;
 
-    fn new(key: &cipher::stream::Key<Self>, iv: &cipher::stream::Nonce<Self>) -> Self {
+    fn new(key: &cipher::CipherKey<Self>, iv: &cipher::Nonce<Self>) -> Self {
         Self::setup((*key).into(), (*iv).into())
     }
 }
 
-impl SyncStreamCipher for Rabbit {
+impl StreamCipher for Rabbit {
     fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         if self.encrypt_inplace(data) {
             Ok(())
