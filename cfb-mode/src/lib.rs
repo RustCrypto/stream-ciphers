@@ -10,7 +10,7 @@
 //! ```
 //! use aes::Aes128;
 //! use cfb_mode::Cfb;
-//! use cfb_mode::cipher::{NewCipher, StreamCipher};
+//! use cfb_mode::cipher::{NewCipher, AsyncStreamCipher};
 //! use hex_literal::hex;
 //!
 //! type AesCfb = Cfb<Aes128>;
