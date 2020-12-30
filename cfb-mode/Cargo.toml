@@ -15,6 +15,6 @@ edition = "2018"
 cipher = "0.3.0-pre.4"
 
 [dev-dependencies]
-#aes = "0.7.0-pre"
+aes = "0.7.0-pre"
 cipher = { version = "0.3.0-pre.4", features = ["dev"] }
 hex-literal = "0.2"

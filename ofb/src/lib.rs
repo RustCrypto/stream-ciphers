@@ -26,16 +26,16 @@
 //!
 //! let mut buffer = plaintext.to_vec();
 //! // create cipher instance
-//! let mut cipher = AesOfb::new_var(key, iv).unwrap();
+//! let mut cipher = AesOfb::new_from_slices(key, iv).unwrap();
 //! // apply keystream (encrypt)
 //! cipher.apply_keystream(&mut buffer);
 //! assert_eq!(buffer, &ciphertext[..]);
 //! // and decrypt it back
-//! AesOfb::new_var(key, iv).unwrap().apply_keystream(&mut buffer);
+//! AesOfb::new_from_slices(key, iv).unwrap().apply_keystream(&mut buffer);
 //! assert_eq!(buffer, &plaintext[..]);
 //!
 //! // OFB mode can be used with streaming messages
-//! let mut cipher = AesOfb::new_var(key, iv).unwrap();
+//! let mut cipher = AesOfb::new_from_slices(key, iv).unwrap();
 //! for chunk in buffer.chunks_mut(3) {
 //!     cipher.apply_keystream(chunk);
 //! }
