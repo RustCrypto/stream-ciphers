@@ -11,9 +11,8 @@ use crate::{
 };
 use cipher::{
     consts::{U32, U8},
-    stream::{
-        LoopError, NewStreamCipher, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-    },
+    errors::{LoopError, OverflowError},
+    NewCipher, SeekNum, StreamCipher, StreamCipherSeek,
 };
 use core::fmt;
 
@@ -25,12 +24,12 @@ use cipher::generic_array::GenericArray;
 /// Implemented as an alias for [`GenericArray`].
 ///
 /// (NOTE: all three round variants use the same key size)
-pub type Key = cipher::stream::Key<Salsa20>;
+pub type Key = cipher::CipherKey<Salsa20>;
 
 /// Nonce type.
 ///
 /// Implemented as an alias for [`GenericArray`].
-pub type Nonce = cipher::stream::Nonce<Salsa20>;
+pub type Nonce = cipher::Nonce<Salsa20>;
 
 /// Salsa20/8 stream cipher
 /// (reduced-round variant of Salsa20 with 8 rounds, *not recommended*)
@@ -65,7 +64,7 @@ pub struct Salsa<R: Rounds> {
     counter: u64,
 }
 
-impl<R: Rounds> NewStreamCipher for Salsa<R> {
+impl<R: Rounds> NewCipher for Salsa<R> {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -84,7 +83,7 @@ impl<R: Rounds> NewStreamCipher for Salsa<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipher for Salsa<R> {
+impl<R: Rounds> StreamCipher for Salsa<R> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
         let pos = self.buffer_pos as usize;
@@ -125,7 +124,7 @@ impl<R: Rounds> SyncStreamCipher for Salsa<R> {
     }
 }
 
-impl<R: Rounds> SyncStreamCipherSeek for Salsa<R> {
+impl<R: Rounds> StreamCipherSeek for Salsa<R> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         T::from_block_byte(self.counter, self.buffer_pos, BLOCK_SIZE as u8)
     }

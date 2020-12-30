@@ -42,7 +42,7 @@
 //!
 //! ```
 //! use chacha20::{ChaCha20, Key, Nonce};
-//! use chacha20::cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+//! use chacha20::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 //!
 //! let mut data = [1, 2, 3, 4, 5, 6, 7];
 //!

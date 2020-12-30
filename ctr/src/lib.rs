@@ -11,7 +11,7 @@
 //! # `Ctr128` Usage Example
 //!
 //! ```
-//! use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+//! use ctr::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 //!
 //! // `aes` crate provides AES block cipher implementation
 //! type Aes128Ctr = ctr::Ctr128BE<aes::Aes128>;
@@ -45,14 +45,13 @@
 
 pub use cipher;
 use cipher::{
-    block::{Block, BlockCipher, BlockEncrypt, ParBlocks},
+    errors::{LoopError, OverflowError},
     generic_array::{
         typenum::{Unsigned, U16},
         ArrayLength, GenericArray,
     },
-    stream::{
-        FromBlockCipher, LoopError, OverflowError, SeekNum, SyncStreamCipher, SyncStreamCipherSeek,
-    },
+    Block, BlockCipher, BlockEncrypt, FromBlockCipher, ParBlocks, SeekNum, StreamCipher,
+    StreamCipherSeek,
 };
 use core::fmt;
 use core::ops::Div;
@@ -145,7 +144,7 @@ where
     }
 }
 
-impl<B, F> SyncStreamCipher for Ctr<B, F>
+impl<B, F> StreamCipher for Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize = U16>,
     B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
@@ -210,7 +209,7 @@ where
     }
 }
 
-impl<B, F> SyncStreamCipherSeek for Ctr<B, F>
+impl<B, F> StreamCipherSeek for Ctr<B, F>
 where
     B: BlockEncrypt + BlockCipher<BlockSize = U16>,
     B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,

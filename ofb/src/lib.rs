@@ -11,7 +11,7 @@
 //! use aes::Aes128;
 //! use hex_literal::hex;
 //! use ofb::Ofb;
-//! use ofb::cipher::{NewStreamCipher, SyncStreamCipher};
+//! use ofb::cipher::{NewCipher, StreamCipher};
 //!
 //! type AesOfb = Ofb<Aes128>;
 //!
@@ -56,9 +56,8 @@
 pub use cipher;
 
 use cipher::{
-    block::{Block, BlockCipher, BlockEncrypt, NewBlockCipher},
-    generic_array::typenum::Unsigned,
-    stream::{FromBlockCipher, LoopError, Nonce, SyncStreamCipher},
+    errors::LoopError, generic_array::typenum::Unsigned, Block, BlockCipher, BlockEncrypt,
+    FromBlockCipher, NewBlockCipher, Nonce, StreamCipher,
 };
 
 /// OFB self-synchronizing stream cipher instance.
@@ -86,7 +85,7 @@ where
     }
 }
 
-impl<C: BlockCipher + BlockEncrypt> SyncStreamCipher for Ofb<C> {
+impl<C: BlockCipher + BlockEncrypt> StreamCipher for Ofb<C> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         let bs = C::BlockSize::to_usize();
         let n = data.len();

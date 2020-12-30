@@ -2,16 +2,6 @@
 # It is not intended for manual editing.
 # 
 [[package]]
-name = "aes"
-version = "0.7.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers.git#882f1f14df0112470bf972a9d0b97f3871c96880"
-dependencies = [
- "cfg-if",
- "cipher",
- "opaque-debug",
-]
-
-[[package]]
 name = "blobby"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -21,7 +11,6 @@ checksum = "fc52553543ecb104069b0ff9e0fcc5c739ad16202935528a112d974e8f1a4ee8"
 name = "cfb-mode"
 version = "0.7.0-pre"
 dependencies = [
- "aes",
  "cipher",
  "hex-literal",
 ]
@@ -30,7 +19,6 @@ dependencies = [
 name = "cfb8"
 version = "0.7.0-pre"
 dependencies = [
- "aes",
  "cipher",
  "hex-literal",
 ]
@@ -55,9 +43,9 @@ dependencies = [
 
 [[package]]
 name = "cipher"
-version = "0.3.0-pre"
+version = "0.3.0-pre.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42848bd4f28c6e74641082fc3ca870cb5381ce08d8715045cc96ff4ca20c0bbe"
+checksum = "e067eaf9ba1497adc11bb7fb96c9aa4355ac978da0c384d27fc97866ea9e4c6b"
 dependencies = [
  "blobby",
  "generic-array",
@@ -73,7 +61,6 @@ checksum = "dcb25d077389e53838a8158c8e99174c5a9d902dee4904320db714f3c653ffba"
 name = "ctr"
 version = "0.7.0-pre"
 dependencies = [
- "aes",
  "cipher",
  "hex-literal",
 ]
@@ -119,16 +106,9 @@ dependencies = [
 name = "ofb"
 version = "0.5.0-pre"
 dependencies = [
- "aes",
  "cipher",
  "hex-literal",
 ]
-
-[[package]]
-name = "opaque-debug"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "proc-macro-hack"
@@ -156,7 +136,7 @@ dependencies = [
 
 [[package]]
 name = "rabbit"
-version = "0.3.0-pre"
+version = "0.3.0-pre.3"
 dependencies = [
  "cipher",
  "zeroize",
@@ -237,3 +217,8 @@ dependencies = [
  "syn",
  "synstructure",
 ]
+
+[[patch.unused]]
+name = "aes"
+version = "0.7.0-pre"
+source = "git+https://github.com/RustCrypto/block-ciphers.git#882f1f14df0112470bf972a9d0b97f3871c96880"

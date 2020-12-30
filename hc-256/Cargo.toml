@@ -11,5 +11,5 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-cipher = "=0.3.0-pre"
+cipher = "=0.3.0-pre.3"
 zeroize = { version = "1", optional = true, default-features = false }

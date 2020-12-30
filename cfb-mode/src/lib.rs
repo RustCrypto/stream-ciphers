@@ -10,7 +10,7 @@
 //! ```
 //! use aes::Aes128;
 //! use cfb_mode::Cfb;
-//! use cfb_mode::cipher::{NewStreamCipher, StreamCipher};
+//! use cfb_mode::cipher::{NewCipher, StreamCipher};
 //! use hex_literal::hex;
 //!
 //! type AesCfb = Cfb<Aes128>;
@@ -53,9 +53,8 @@
 pub use cipher;
 
 use cipher::{
-    block::{BlockCipher, BlockEncrypt, NewBlockCipher, ParBlocks},
     generic_array::{typenum::Unsigned, GenericArray},
-    stream::{FromBlockCipher, StreamCipher},
+    AsyncStreamCipher, BlockCipher, BlockEncrypt, FromBlockCipher, NewBlockCipher, ParBlocks,
 };
 use core::slice;
 
@@ -80,7 +79,7 @@ where
     }
 }
 
-impl<C: BlockCipher + BlockEncrypt> StreamCipher for Cfb<C> {
+impl<C: BlockCipher + BlockEncrypt> AsyncStreamCipher for Cfb<C> {
     fn encrypt(&mut self, mut data: &mut [u8]) {
         let bs = C::BlockSize::USIZE;
         let n = data.len();

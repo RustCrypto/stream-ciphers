@@ -2,7 +2,7 @@
 
 use cipher::{
     generic_array::{typenum::U16, ArrayLength, GenericArray},
-    stream::SeekNum,
+    SeekNum,
 };
 
 mod ctr128;

@@ -1,7 +1,4 @@
-use cipher::{
-    generic_array::GenericArray,
-    stream::{NewStreamCipher, StreamCipher},
-};
+use cipher::{generic_array::GenericArray, NewCipher, StreamCipher};
 use hc_256::Hc256;
 
 #[cfg(test)]
@@ -59,7 +56,7 @@ fn test_key0_iv0() {
     );
     let mut buf = [0; 64];
 
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..64 {
         assert_eq!(buf[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -75,8 +72,8 @@ fn test_key0_iv0_offset_1() {
     let mut buf1 = [0; 1];
     let mut buf2 = [0; 63];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..1 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -96,8 +93,8 @@ fn test_key0_iv0_offset_2() {
     let mut buf1 = [0; 2];
     let mut buf2 = [0; 62];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..2 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -117,8 +114,8 @@ fn test_key0_iv0_offset_3() {
     let mut buf1 = [0; 3];
     let mut buf2 = [0; 61];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..3 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -138,8 +135,8 @@ fn test_key0_iv0_offset_4() {
     let mut buf1 = [0; 4];
     let mut buf2 = [0; 60];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..4 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -159,8 +156,8 @@ fn test_key0_iv0_offset_5() {
     let mut buf1 = [0; 5];
     let mut buf2 = [0; 59];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..5 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -180,8 +177,8 @@ fn test_key0_iv0_offset_6() {
     let mut buf1 = [0; 6];
     let mut buf2 = [0; 58];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..6 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -201,8 +198,8 @@ fn test_key0_iv0_offset_7() {
     let mut buf1 = [0; 7];
     let mut buf2 = [0; 57];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..7 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -222,8 +219,8 @@ fn test_key0_iv0_offset_8() {
     let mut buf1 = [0; 8];
     let mut buf2 = [0; 56];
 
-    cipher.encrypt(&mut buf1);
-    cipher.encrypt(&mut buf2);
+    cipher.apply_keystream(&mut buf1);
+    cipher.apply_keystream(&mut buf2);
 
     for i in 0..8 {
         assert_eq!(buf1[i], EXPECTED_PAPER_KEY0_IV0[i])
@@ -242,7 +239,7 @@ fn test_key1_iv0() {
     );
     let mut buf = [0; 64];
 
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..64 {
         assert_eq!(buf[i], EXPECTED_PAPER_KEY1_IV0[i])
@@ -257,7 +254,7 @@ fn test_key0_iv1() {
     );
     let mut buf = [0; 64];
 
-    cipher.encrypt(&mut buf);
+    cipher.apply_keystream(&mut buf);
 
     for i in 0..64 {
         assert_eq!(buf[i], EXPECTED_PAPER_KEY0_IV1[i])

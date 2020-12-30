@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 use criterion_cycles_per_byte::CyclesPerByte;
 
 use chacha20::{
-    cipher::{NewStreamCipher, SyncStreamCipher},
+    cipher::{NewCipher, StreamCipher},
     ChaCha20,
 };
 

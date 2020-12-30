@@ -10,7 +10,7 @@
 //! ```
 //! use aes::Aes128;
 //! use cfb8::Cfb8;
-//! use cfb8::cipher::{NewStreamCipher, StreamCipher};
+//! use cfb8::cipher::{NewCipher, AsyncStreamCipher};
 //! use hex_literal::hex;
 //!
 //! type AesCfb8 = Cfb8<Aes128>;
@@ -54,9 +54,8 @@
 pub use cipher;
 
 use cipher::{
-    block::{BlockCipher, BlockEncrypt, NewBlockCipher},
-    generic_array::GenericArray,
-    stream::{FromBlockCipher, Nonce, StreamCipher},
+    generic_array::GenericArray, AsyncStreamCipher, BlockCipher, BlockEncrypt, FromBlockCipher,
+    NewBlockCipher, Nonce,
 };
 
 /// CFB self-synchronizing stream cipher instance.
@@ -80,7 +79,7 @@ where
     }
 }
 
-impl<C: BlockCipher + BlockEncrypt> StreamCipher for Cfb8<C> {
+impl<C: BlockCipher + BlockEncrypt> AsyncStreamCipher for Cfb8<C> {
     fn encrypt(&mut self, data: &mut [u8]) {
         let mut iv = self.iv.clone();
         let n = iv.len();
