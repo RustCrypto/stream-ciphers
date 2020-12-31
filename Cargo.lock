@@ -4,7 +4,7 @@
 [[package]]
 name = "aes"
 version = "0.7.0-pre"
-source = "git+https://github.com/RustCrypto/block-ciphers.git#3215a921f894f533882dc1a3cf55242237fca4ed"
+source = "git+https://github.com/RustCrypto/block-ciphers.git#7236bce0b75b7bcf719add5e88890bd667ebb95f"
 dependencies = [
  "cfg-if",
  "cipher",
