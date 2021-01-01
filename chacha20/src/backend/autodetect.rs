@@ -4,6 +4,7 @@
 
 use crate::{rounds::Rounds, IV_SIZE, KEY_SIZE, BLOCK_SIZE};
 use super::{avx2, sse2};
+use core::mem::ManuallyDrop;
 
 /// Size of buffers passed to `generate` and `apply_keystream` for this
 /// backend, which operates on two blocks in parallel for optimal performance.
@@ -18,8 +19,8 @@ pub struct Core<R: Rounds> {
 }
 
 union Inner<R: Rounds> {
-    avx2: avx2::Core<R>,
-    sse2: sse2::Core<R>,
+    avx2: ManuallyDrop<avx2::Core<R>>,
+    sse2: ManuallyDrop<sse2::Core<R>>,
 }
 
 impl<R: Rounds> Core<R> {
@@ -31,11 +32,11 @@ impl<R: Rounds> Core<R> {
 
         let inner = if avx2_present {
             Inner {
-                avx2: avx2::Core::new(key, iv),
+                avx2: ManuallyDrop::new(avx2::Core::new(key, iv)),
             }
         } else {
             Inner {
-                sse2: sse2::Core::new(key, iv),
+                sse2: ManuallyDrop::new(sse2::Core::new(key, iv)),
             }
         };
 
@@ -46,9 +47,9 @@ impl<R: Rounds> Core<R> {
     #[inline]
     pub fn generate(&self, counter: u64, output: &mut [u8]) {
         if self.token.get() {
-            unsafe { self.inner.avx2.generate(counter, output) }
+            unsafe { (*self.inner.avx2).generate(counter, output) }
         } else {
-            unsafe { self.inner.sse2.generate(counter, output) }
+            unsafe { (*self.inner.sse2).generate(counter, output) }
         }
     }
 
@@ -57,9 +58,9 @@ impl<R: Rounds> Core<R> {
     #[cfg(feature = "cipher")]
     pub fn apply_keystream(&self, counter: u64, output: &mut [u8]) {
         if self.token.get() {
-            unsafe { self.inner.avx2.apply_keystream(counter, output) }
+            unsafe { (*self.inner.avx2).apply_keystream(counter, output) }
         } else {
-            unsafe { self.inner.sse2.apply_keystream(counter, output) }
+            unsafe { (*self.inner.sse2).apply_keystream(counter, output) }
         }
     }
 }
@@ -68,11 +69,11 @@ impl<R: Rounds> Clone for Core<R> {
     fn clone(&self) -> Self {
         let inner = if self.token.get() {
             Inner {
-                avx2: unsafe { self.inner.avx2 },
+                avx2: ManuallyDrop::new(unsafe { (*self.inner.avx2).clone() }),
             }
         } else {
             Inner {
-                sse2: unsafe { self.inner.sse2 },
+                sse2: ManuallyDrop::new(unsafe { (*self.inner.sse2).clone() }),
             }
         };
 
