@@ -19,7 +19,7 @@ use core::arch::x86_64::*;
 
 /// The ChaCha20 core function (AVX2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub(crate) struct Core<R: Rounds> {
     v0: __m256i,
     v1: __m256i,
