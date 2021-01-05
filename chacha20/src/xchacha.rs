@@ -2,8 +2,9 @@
 
 use crate::{
     backend::soft::quarter_round,
-    chacha::{ChaCha20, Key},
-    CONSTANTS,
+    chacha::Key,
+    rounds::{Rounds, R12, R20, R8},
+    ChaCha, CONSTANTS,
 };
 use cipher::{
     consts::{U16, U24, U32},
@@ -36,9 +37,20 @@ pub type XNonce = cipher::Nonce<XChaCha20>;
 /// The `xchacha20` Cargo feature must be enabled in order to use this
 /// (which it is by default).
 #[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
-pub struct XChaCha20(ChaCha20);
+pub type XChaCha20 = XChaCha<R20>;
 
-impl NewCipher for XChaCha20 {
+/// XChaCha12 stream cipher (reduced-round variant of XChaCha20 with 12 rounds)
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+pub type XChaCha12 = XChaCha<R12>;
+
+/// XChaCha8 stream cipher (reduced-round variant of XChaCha20 with 8 rounds)
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+pub type XChaCha8 = XChaCha<R8>;
+
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+pub struct XChaCha<R: Rounds>(ChaCha<R>);
+
+impl<R: Rounds> NewCipher for XChaCha<R> {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -48,20 +60,20 @@ impl NewCipher for XChaCha20 {
     #[allow(unused_mut, clippy::let_and_return)]
     fn new(key: &Key, nonce: &XNonce) -> Self {
         // TODO(tarcieri): zeroize subkey
-        let subkey = hchacha20(key, nonce[..16].as_ref().into());
+        let subkey = hchacha::<R>(key, nonce[..16].as_ref().into());
         let mut padded_iv = GenericArray::default();
         padded_iv[4..].copy_from_slice(&nonce[16..]);
-        XChaCha20(ChaCha20::new(&subkey, &padded_iv))
+        XChaCha(ChaCha::new(&subkey, &padded_iv))
     }
 }
 
-impl StreamCipher for XChaCha20 {
+impl<R: Rounds> StreamCipher for XChaCha<R> {
     fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
         self.0.try_apply_keystream(data)
     }
 }
 
-impl StreamCipherSeek for XChaCha20 {
+impl<R: Rounds> StreamCipherSeek for XChaCha<R> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         self.0.try_current_pos()
     }
@@ -85,7 +97,7 @@ impl StreamCipherSeek for XChaCha20 {
 /// For more information on HSalsa20 on which HChaCha20 is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
-fn hchacha20(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
     state[..4].copy_from_slice(&CONSTANTS);
 
@@ -97,8 +109,8 @@ fn hchacha20(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> 
         state[12 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
     }
 
-    // 20 rounds consisting of 10 column rounds and 10 diagonal rounds
-    for _ in 0..10 {
+    // R rounds consisting of R/2 column rounds and R/2 diagonal rounds
+    for _ in 0..(R::COUNT / 2) {
         // column rounds
         quarter_round(0, 4, 8, 12, &mut state);
         quarter_round(1, 5, 9, 13, &mut state);
@@ -153,7 +165,7 @@ mod hchacha20_tests {
 
     #[test]
     fn test_vector() {
-        let actual = hchacha20(
+        let actual = hchacha::<R20>(
             GenericArray::from_slice(&KEY),
             &GenericArray::from_slice(&INPUT),
         );

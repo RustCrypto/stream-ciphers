@@ -14,6 +14,7 @@
 //! - [`ChaCha20Legacy`]: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
 //! - [`ChaCha8`] / [`ChaCha12`]: reduced round variants of ChaCha20
 //! - [`XChaCha20`]: (gated under the `xchacha20` feature) 192-bit extended nonce variant
+//! - [`XChaCha8`] / [`XChaCha12`]: reduced round variants of XChaCha20
 //!
 //! # ⚠️ Security Warning: [Hazmat!]
 //!
@@ -106,7 +107,7 @@ pub use rng::{
 };
 
 #[cfg(feature = "xchacha20")]
-pub use self::xchacha::{XChaCha20, XNonce};
+pub use self::xchacha::{XChaCha12, XChaCha20, XChaCha8, XNonce};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
