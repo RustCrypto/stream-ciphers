@@ -24,7 +24,7 @@ per-round diffusion at no cost to performance.
 
 This crate also contains an implementation of [XChaCha20][4]: a variant
 of ChaCha20 with an extended 192-bit (24-byte) nonce, gated under the
-`xchacha20` Cargo feature (on-by-default).
+`chacha20` Cargo feature (on-by-default).
 
 ## Implementations
 
