@@ -6,7 +6,7 @@ use chacha20::ChaCha20;
 cipher::stream_cipher_test!(chacha20_core, ChaCha20, "chacha20");
 cipher::stream_cipher_seek_test!(chacha20_seek, ChaCha20);
 
-#[cfg(feature = "xchacha20")]
+#[cfg(feature = "xchacha")]
 #[rustfmt::skip]
 mod xchacha20 {
     use chacha20::{Key, XChaCha20, XNonce};

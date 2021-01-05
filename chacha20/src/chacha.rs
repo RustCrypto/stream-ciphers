@@ -22,10 +22,10 @@ use core::{
 #[cfg(docsrs)]
 use cipher::generic_array::GenericArray;
 
-/// ChaCha8 stream cipher (reduced-round variant of ChaCha20 with 8 rounds)
+/// ChaCha8 stream cipher (reduced-round variant of [`ChaCha20`] with 8 rounds)
 pub type ChaCha8 = ChaCha<R8>;
 
-/// ChaCha12 stream cipher (reduced-round variant of ChaCha20 with 12 rounds)
+/// ChaCha12 stream cipher (reduced-round variant of [`ChaCha20`] with 12 rounds)
 pub type ChaCha12 = ChaCha<R12>;
 
 /// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)

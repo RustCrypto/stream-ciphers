@@ -83,7 +83,7 @@ mod legacy;
 #[cfg(feature = "rng")]
 mod rng;
 mod rounds;
-#[cfg(feature = "xchacha20")]
+#[cfg(feature = "xchacha")]
 mod xchacha;
 
 #[cfg(feature = "cipher")]
@@ -106,7 +106,7 @@ pub use rng::{
     ChaCha12Rng, ChaCha12RngCore, ChaCha20Rng, ChaCha20RngCore, ChaCha8Rng, ChaCha8RngCore,
 };
 
-#[cfg(feature = "xchacha20")]
+#[cfg(feature = "xchacha")]
 pub use self::xchacha::{XChaCha12, XChaCha20, XChaCha8, XNonce};
 
 /// Size of a ChaCha20 block in bytes

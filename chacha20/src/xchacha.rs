@@ -1,4 +1,4 @@
-//! XChaCha20 is an extended nonce variant of ChaCha20
+//! XChaCha is an extended nonce variant of ChaCha
 
 use crate::{
     backend::soft::quarter_round,
@@ -15,7 +15,7 @@ use cipher::{
 use core::convert::TryInto;
 
 /// EXtended ChaCha20 nonce (192-bits/24-bytes)
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XNonce = cipher::Nonce<XChaCha20>;
 
 /// XChaCha20 is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
@@ -34,20 +34,25 @@ pub type XNonce = cipher::Nonce<XChaCha20>;
 ///
 /// <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
 ///
-/// The `xchacha20` Cargo feature must be enabled in order to use this
+/// The `xchacha` Cargo feature must be enabled in order to use this
 /// (which it is by default).
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha20 = XChaCha<R20>;
 
-/// XChaCha12 stream cipher (reduced-round variant of XChaCha20 with 12 rounds)
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+/// XChaCha12 stream cipher (reduced-round variant of [`XChaCha20`] with 12 rounds)
+///
+/// The `xchacha` Cargo feature must be enabled in order to use this
+/// (which it is by default).
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha12 = XChaCha<R12>;
 
-/// XChaCha8 stream cipher (reduced-round variant of XChaCha20 with 8 rounds)
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
+/// XChaCha8 stream cipher (reduced-round variant of [`XChaCha20`] with 8 rounds)
+///
+/// The `xchacha` Cargo feature must be enabled in order to use this
+/// (which it is by default).
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha8 = XChaCha<R8>;
 
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha20")))]
 pub struct XChaCha<R: Rounds>(ChaCha<R>);
 
 impl<R: Rounds> NewCipher for XChaCha<R> {
@@ -83,18 +88,18 @@ impl<R: Rounds> StreamCipherSeek for XChaCha<R> {
     }
 }
 
-/// The HChaCha20 function: adapts the ChaCha20 core function in the same
-/// manner that HSalsa20 adapts the Salsa20 function.
+/// The HChaCha function: adapts the ChaCha core function in the same
+/// manner that HSalsa adapts the Salsa function.
 ///
-/// HChaCha20 takes 512-bits of input:
+/// HChaCha takes 512-bits of input:
 ///
 /// * Constants (`u32` x 4)
 /// * Key (`u32` x 8)
 /// * Nonce (`u32` x 4)
 ///
-/// It produces 256-bits of output suitable for use as a ChaCha20 key
+/// It produces 256-bits of output suitable for use as a ChaCha key
 ///
-/// For more information on HSalsa20 on which HChaCha20 is based, see:
+/// For more information on HSalsa on which HChaCha is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
 fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
