@@ -192,7 +192,7 @@ impl<R: Rounds> ChaCha<R> {
             .ok_or(LoopError)?
             .checked_add(data.len() as u64)
             .ok_or(LoopError)?;
-        if byte_after_last > ((MAX_BLOCKS + 1) * BLOCK_SIZE) as u64 {
+        if byte_after_last > ((MAX_BLOCKS as u64) + 1) * (BLOCK_SIZE as u64) {
             Err(LoopError)
         } else {
             Ok(())
