@@ -73,6 +73,7 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
+#![feature(untagged_unions)]
 
 mod backend;
 #[cfg(feature = "cipher")]
