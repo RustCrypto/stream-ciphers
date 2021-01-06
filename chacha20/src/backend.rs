@@ -18,7 +18,7 @@ cfg_if! {
         pub(crate) use self::autodetect::BUFFER_SIZE;
         pub use self::autodetect::Core;
 
-        #[cfg(feature = "xchacha20")]
+        #[cfg(feature = "xchacha")]
         pub(crate) mod soft;
     } else {
         pub(crate) mod soft;

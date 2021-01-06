@@ -96,7 +96,7 @@ mod overflow {
     }
 }
 
-#[cfg(feature = "xchacha20")]
+#[cfg(feature = "xchacha")]
 #[rustfmt::skip]
 mod xchacha20 {
     use chacha20::{Key, XChaCha20, XNonce};
