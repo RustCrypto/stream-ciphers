@@ -184,11 +184,15 @@ impl<R: Rounds> StreamCipherSeek for ChaCha<R> {
 impl<R: Rounds> ChaCha<R> {
     /// Check data length
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
-        let byte_after_last = self.counter
-            .checked_mul(BLOCK_SIZE as u64).ok_or(LoopError)?
-            .checked_add(self.buffer_pos as u64).ok_or(LoopError)?
-            .checked_add(data.len() as u64).ok_or(LoopError)?;
-        if byte_after_last > ((MAX_BLOCKS+1)*BLOCK_SIZE) as u64 {
+        let byte_after_last = self
+            .counter
+            .checked_mul(BLOCK_SIZE as u64)
+            .ok_or(LoopError)?
+            .checked_add(self.buffer_pos as u64)
+            .ok_or(LoopError)?
+            .checked_add(data.len() as u64)
+            .ok_or(LoopError)?;
+        if byte_after_last > ((MAX_BLOCKS + 1) * BLOCK_SIZE) as u64 {
             Err(LoopError)
         } else {
             Ok(())
