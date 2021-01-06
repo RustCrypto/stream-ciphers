@@ -6,6 +6,111 @@ use chacha20::ChaCha20;
 cipher::stream_cipher_test!(chacha20_core, ChaCha20, "chacha20");
 cipher::stream_cipher_seek_test!(chacha20_seek, ChaCha20);
 
+mod overflow {
+    use cipher::{NewCipher, StreamCipher, StreamCipherSeek};
+
+    const OFFSET_256GB: u64 = 256u64 << 30;
+
+    #[test]
+    fn bad_overflow_check1() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check2() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 2];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt over the 256GB boundary");
+    }
+
+    #[test]
+    fn bad_overflow_check3() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 63];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check4() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 64];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check5() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB - 1)
+            .expect("Couldn't seek to nearly 256GB");
+        let mut data = [0u8; 1];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect("Couldn't encrypt the last byte of 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), OFFSET_256GB);
+        let mut data = [0u8; 65];
+        cipher
+            .try_apply_keystream(&mut data)
+            .expect_err("Could encrypt past the last byte of 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check6() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(OFFSET_256GB)
+            .expect_err("Could seek to 256GB");
+    }
+
+    #[test]
+    fn bad_overflow_check7() {
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        if let Ok(()) = cipher.try_seek(OFFSET_256GB + 63) {
+            let mut data = [0u8; 1];
+            cipher
+                .try_apply_keystream(&mut data)
+                .expect_err("Could encrypt the 64th byte past the 256GB boundary");
+        }
+    }
+}
+
 #[cfg(feature = "xchacha")]
 #[rustfmt::skip]
 mod xchacha20 {
