@@ -162,8 +162,18 @@ impl<R: Rounds> StreamCipherSeek for ChaCha<R> {
 
     fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
         let res = pos.to_block_byte(BLOCK_SIZE as u8)?;
+        let old_counter = self.counter;
+        let old_buffer_pos = self.buffer_pos;
+
         self.counter = res.0;
         self.buffer_pos = res.1;
+
+        if let Err(e) = self.check_data_len(&[0]) {
+            self.counter = old_counter;
+            self.buffer_pos = old_buffer_pos;
+            return Err(e);
+        }
+
         if self.buffer_pos != 0 {
             self.generate_block(self.counter);
         }
@@ -174,16 +184,14 @@ impl<R: Rounds> StreamCipherSeek for ChaCha<R> {
 impl<R: Rounds> ChaCha<R> {
     /// Check data length
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
-        let leftover_bytes = BUFFER_SIZE - self.buffer_pos as usize;
-        if data.len() < leftover_bytes {
-            return Ok(());
-        }
-        let blocks = 1 + (data.len() - leftover_bytes) / BLOCK_SIZE;
-        let res = self.counter.checked_add(blocks as u64).ok_or(LoopError)?;
-        if res <= MAX_BLOCKS as u64 {
-            Ok(())
-        } else {
+        let byte_after_last = self.counter
+            .checked_mul(BLOCK_SIZE as u64).ok_or(LoopError)?
+            .checked_add(self.buffer_pos as u64).ok_or(LoopError)?
+            .checked_add(data.len() as u64).ok_or(LoopError)?;
+        if byte_after_last > ((MAX_BLOCKS+1)*BLOCK_SIZE) as u64 {
             Err(LoopError)
+        } else {
+            Ok(())
         }
     }
 
