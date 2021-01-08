@@ -113,7 +113,6 @@ mod overflow {
                 .expect_err("Could encrypt the 64th byte past the 256GB boundary");
         }
     }
-<<<<<<< HEAD
 
     #[cfg(feature = "xchacha")]
     #[test]
