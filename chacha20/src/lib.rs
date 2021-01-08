@@ -80,6 +80,7 @@ mod backend;
 mod chacha;
 #[cfg(feature = "legacy")]
 mod legacy;
+mod max_blocks;
 #[cfg(feature = "rng")]
 mod rng;
 mod rounds;
@@ -114,10 +115,6 @@ pub const BLOCK_SIZE: usize = 64;
 
 /// Size of a ChaCha20 key in bytes
 pub const KEY_SIZE: usize = 32;
-
-/// Maximum number of blocks that can be encrypted with ChaCha20 before the
-/// counter overflows.
-pub const MAX_BLOCKS: usize = core::u32::MAX as usize;
 
 /// Number of bytes in the core (non-extended) ChaCha20 IV
 const IV_SIZE: usize = 8;

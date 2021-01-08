@@ -1,6 +1,11 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
-use crate::chacha::{ChaCha20, Key};
+use crate::{
+    chacha::{ChaCha, Key},
+    max_blocks::C64,
+    rounds::R20,
+};
+
 use cipher::{
     consts::{U32, U8},
     errors::{LoopError, OverflowError},
@@ -15,7 +20,7 @@ pub type LegacyNonce = cipher::Nonce<ChaCha20Legacy>;
 ///
 /// The `legacy` Cargo feature must be enabled to use this.
 #[cfg_attr(docsrs, doc(cfg(feature = "legacy")))]
-pub struct ChaCha20Legacy(ChaCha20);
+pub struct ChaCha20Legacy(ChaCha<R20, C64>);
 
 impl NewCipher for ChaCha20Legacy {
     /// Key size in bytes
@@ -27,7 +32,7 @@ impl NewCipher for ChaCha20Legacy {
     fn new(key: &Key, nonce: &LegacyNonce) -> Self {
         let mut exp_iv = [0u8; 12];
         exp_iv[4..].copy_from_slice(nonce);
-        ChaCha20Legacy(ChaCha20::new(key, &exp_iv.into()))
+        ChaCha20Legacy(ChaCha::new(key, &exp_iv.into()))
     }
 }
 
