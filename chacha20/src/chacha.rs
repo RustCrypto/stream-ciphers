@@ -6,8 +6,9 @@
 
 use crate::{
     backend::{Core, BUFFER_SIZE},
+    max_blocks::{MaxCounter, C32},
     rounds::{Rounds, R12, R20, R8},
-    BLOCK_SIZE, MAX_BLOCKS,
+    BLOCK_SIZE,
 };
 use cipher::{
     consts::{U12, U32},
@@ -17,19 +18,20 @@ use cipher::{
 use core::{
     convert::TryInto,
     fmt::{self, Debug},
+    marker::PhantomData,
 };
 
 #[cfg(docsrs)]
 use cipher::generic_array::GenericArray;
 
 /// ChaCha8 stream cipher (reduced-round variant of [`ChaCha20`] with 8 rounds)
-pub type ChaCha8 = ChaCha<R8>;
+pub type ChaCha8 = ChaCha<R8, C32>;
 
 /// ChaCha12 stream cipher (reduced-round variant of [`ChaCha20`] with 12 rounds)
-pub type ChaCha12 = ChaCha<R12>;
+pub type ChaCha12 = ChaCha<R12, C32>;
 
 /// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
-pub type ChaCha20 = ChaCha<R20>;
+pub type ChaCha20 = ChaCha<R20, C32>;
 
 /// ChaCha20 key type (256-bits/32-bytes)
 ///
@@ -58,7 +60,9 @@ const COUNTER_INCR: u64 = (BUFFER_SIZE as u64) / (BLOCK_SIZE as u64);
 /// a specific number of rounds.
 ///
 /// Generally [`ChaCha20`] is preferred.
-pub struct ChaCha<R: Rounds> {
+pub struct ChaCha<R: Rounds, MC: MaxCounter> {
+    _max_blocks: PhantomData<MC>,
+
     /// ChaCha20 core function initialized with a key and IV
     block: Core<R>,
 
@@ -77,7 +81,7 @@ pub struct ChaCha<R: Rounds> {
     counter_offset: u64,
 }
 
-impl<R: Rounds> NewCipher for ChaCha<R> {
+impl<R: Rounds, MC: MaxCounter> NewCipher for ChaCha<R, MC> {
     /// Key size in bytes
     type KeySize = U32;
 
@@ -96,6 +100,7 @@ impl<R: Rounds> NewCipher for ChaCha<R> {
             | (u64::from(nonce[3]) & 0xff) << 56;
 
         Self {
+            _max_blocks: PhantomData,
             block,
             buffer: [0u8; BUFFER_SIZE],
             buffer_pos: 0,
@@ -105,7 +110,7 @@ impl<R: Rounds> NewCipher for ChaCha<R> {
     }
 }
 
-impl<R: Rounds> StreamCipher for ChaCha<R> {
+impl<R: Rounds, MC: MaxCounter> StreamCipher for ChaCha<R, MC> {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
         let pos = self.buffer_pos as usize;
@@ -121,8 +126,22 @@ impl<R: Rounds> StreamCipher for ChaCha<R> {
             } else {
                 let (l, r) = data.split_at_mut(BUFFER_SIZE - pos);
                 data = r;
+                if let Some(new_ctr) = counter.checked_add(COUNTER_INCR) {
+                    counter = new_ctr;
+                } else if data.is_empty() {
+                    self.buffer_pos = BUFFER_SIZE as u8;
+                } else {
+                    return Err(LoopError);
+                }
                 xor(l, &self.buffer[pos..]);
-                counter = counter.checked_add(COUNTER_INCR).unwrap();
+            }
+        }
+
+        if self.buffer_pos == BUFFER_SIZE as u8 {
+            if data.is_empty() {
+                return Ok(());
+            } else {
+                return Err(LoopError);
             }
         }
 
@@ -146,7 +165,7 @@ impl<R: Rounds> StreamCipher for ChaCha<R> {
     }
 }
 
-impl<R: Rounds> StreamCipherSeek for ChaCha<R> {
+impl<R: Rounds, MC: MaxCounter> StreamCipherSeek for ChaCha<R, MC> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         // quick and dirty fix, until ctr-like parallel block processing will be added
         let (counter, pos) = if self.buffer_pos < BLOCK_SIZE as u8 {
@@ -161,11 +180,11 @@ impl<R: Rounds> StreamCipherSeek for ChaCha<R> {
     }
 
     fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
-        let res = pos.to_block_byte(BLOCK_SIZE as u8)?;
+        let res: (u64, u8) = pos.to_block_byte(BUFFER_SIZE as u8)?;
         let old_counter = self.counter;
         let old_buffer_pos = self.buffer_pos;
 
-        self.counter = res.0;
+        self.counter = res.0.checked_mul(COUNTER_INCR).ok_or(LoopError)?;
         self.buffer_pos = res.1;
 
         if let Err(e) = self.check_data_len(&[0]) {
@@ -181,19 +200,27 @@ impl<R: Rounds> StreamCipherSeek for ChaCha<R> {
     }
 }
 
-impl<R: Rounds> ChaCha<R> {
+impl<R: Rounds, MC: MaxCounter> ChaCha<R, MC> {
     /// Check data length
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
-        let byte_after_last = self
-            .counter
-            .checked_mul(BLOCK_SIZE as u64)
-            .ok_or(LoopError)?
-            .checked_add(self.buffer_pos as u64)
-            .ok_or(LoopError)?
+        let buffer_plus_data = (self.buffer_pos as u64)
             .checked_add(data.len() as u64)
             .ok_or(LoopError)?;
-        if byte_after_last > ((MAX_BLOCKS as u64) + 1) * (BLOCK_SIZE as u64) {
-            Err(LoopError)
+        let last_byte_offset = if buffer_plus_data > 0 {
+            buffer_plus_data - 1
+        } else {
+            0
+        };
+        let last_ctr_val = self
+            .counter
+            .checked_add(last_byte_offset / (BLOCK_SIZE as u64))
+            .ok_or(LoopError)?;
+        if let Some(mb) = MC::MAX_BLOCKS {
+            if last_ctr_val <= mb {
+                Ok(())
+            } else {
+                Err(LoopError)
+            }
         } else {
             Ok(())
         }
@@ -208,7 +235,7 @@ impl<R: Rounds> ChaCha<R> {
     }
 }
 
-impl<R: Rounds> Debug for ChaCha<R> {
+impl<R: Rounds, MC: MaxCounter> Debug for ChaCha<R, MC> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Cipher {{ .. }}")
     }

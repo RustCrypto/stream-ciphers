@@ -3,6 +3,7 @@
 use crate::{
     backend::soft::quarter_round,
     chacha::Key,
+    max_blocks::C64,
     rounds::{Rounds, R12, R20, R8},
     ChaCha, CONSTANTS,
 };
@@ -53,7 +54,7 @@ pub type XChaCha12 = XChaCha<R12>;
 #[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha8 = XChaCha<R8>;
 
-pub struct XChaCha<R: Rounds>(ChaCha<R>);
+pub struct XChaCha<R: Rounds>(ChaCha<R, C64>);
 
 impl<R: Rounds> NewCipher for XChaCha<R> {
     /// Key size in bytes

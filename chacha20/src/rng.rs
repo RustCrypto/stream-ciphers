@@ -6,7 +6,7 @@ use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
 use crate::{
     backend::{Core, BUFFER_SIZE},
     rounds::{R12, R20, R8},
-    KEY_SIZE, MAX_BLOCKS,
+    KEY_SIZE,
 };
 use core::convert::TryInto;
 
@@ -74,7 +74,8 @@ macro_rules! impl_chacha_rng {
             type Results = [u32; BUFFER_SIZE / 4];
 
             fn generate(&mut self, results: &mut Self::Results) {
-                assert!(self.counter <= MAX_BLOCKS as u64, "maximum number of allowed ChaCha blocks exceeded");
+                // is this necessary?
+                assert!(self.counter < u32::MAX as u64, "maximum number of allowed ChaCha blocks exceeded");
 
                 let mut buffer = [0u8; BUFFER_SIZE];
                 self.block.generate(self.counter, &mut buffer);
