@@ -1,4 +1,4 @@
-# RustCrypto: stream ciphers ![Rust Version][rustc-image] [![Project Chat][chat-image]][chat-link] [![dependency status][deps-image]][deps] [![HAZMAT][hazmat-image]][hazmat-link]
+# RustCrypto: stream ciphers ![Rust Version][rustc-image] [![Project Chat][chat-image]][chat-link] [![dependency status][deps-image]][deps-link] [![HAZMAT][hazmat-image]][hazmat-link]
 
 Collection of [stream cipher][1] algorithms written in pure Rust.
 
@@ -92,7 +92,7 @@ dual licensed as above, without any additional terms or conditions.
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
 [deps-image]: https://deps.rs/repo/github/RustCrypto/stream-ciphers/status.svg
-[deps]: https://deps.rs/repo/github/RustCrypto/stream-ciphers
+[deps-link]: https://deps.rs/repo/github/RustCrypto/stream-ciphers
 [hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
 [hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
