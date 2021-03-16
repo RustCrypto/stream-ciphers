@@ -1,7 +1,9 @@
 //! Block RNG based on rand_core::BlockRng
 
-use rand_core::block::{BlockRng, BlockRngCore};
-use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
+use rand_core::{
+    block::{BlockRng, BlockRngCore},
+    CryptoRng, Error, RngCore, SeedableRng,
+};
 
 use crate::{
     backend::{Core, BUFFER_SIZE},
@@ -13,7 +15,6 @@ use core::convert::TryInto;
 macro_rules! impl_chacha_rng {
     ($name:ident, $core:ident, $rounds:ident, $doc:expr) => {
         #[doc = $doc]
-        #[derive(Clone)]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $name(BlockRng<$core>);
 
@@ -52,7 +53,6 @@ macro_rules! impl_chacha_rng {
         impl CryptoRng for $name {}
 
         #[doc = "Core random number generator, for use with [`rand_core::block::BlockRng`]"]
-        #[derive(Clone)]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         pub struct $core {
             block: Core<$rounds>,
