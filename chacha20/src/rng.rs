@@ -75,7 +75,10 @@ macro_rules! impl_chacha_rng {
 
             fn generate(&mut self, results: &mut Self::Results) {
                 // is this necessary?
-                assert!(self.counter < u32::MAX as u64, "maximum number of allowed ChaCha blocks exceeded");
+                assert!(
+                    self.counter < u32::MAX as u64,
+                    "maximum number of allowed ChaCha blocks exceeded"
+                );
 
                 let mut buffer = [0u8; BUFFER_SIZE];
                 self.block.generate(self.counter, &mut buffer);
@@ -89,7 +92,7 @@ macro_rules! impl_chacha_rng {
         }
 
         impl CryptoRng for $core {}
-    }
+    };
 }
 
 impl_chacha_rng!(

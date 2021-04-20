@@ -4,9 +4,9 @@
 //!
 //! SSE2-optimized implementation for x86/x86-64 CPUs.
 
-use crate::{rounds::Rounds, CONSTANTS, IV_SIZE, BLOCK_SIZE, KEY_SIZE};
-use core::{convert::TryInto, marker::PhantomData};
 use super::autodetect::BUFFER_SIZE;
+use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
+use core::{convert::TryInto, marker::PhantomData};
 
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
