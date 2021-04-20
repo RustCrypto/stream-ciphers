@@ -2,8 +2,8 @@
 //! to the SSE2 backend when it's unavailable (the `sse2` target feature is
 //! enabled-by-default on all x86(_64) CPUs)
 
-use crate::{rounds::Rounds, IV_SIZE, KEY_SIZE, BLOCK_SIZE};
 use super::{avx2, sse2};
+use crate::{rounds::Rounds, BLOCK_SIZE, IV_SIZE, KEY_SIZE};
 use core::mem::ManuallyDrop;
 
 /// Size of buffers passed to `generate` and `apply_keystream` for this

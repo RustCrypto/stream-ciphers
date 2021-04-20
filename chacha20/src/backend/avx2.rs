@@ -8,9 +8,9 @@
 //! Goll, M., and Gueron,S.: Vectorization of ChaCha Stream Cipher. Cryptology ePrint Archive,
 //! Report 2013/759, November, 2013, <https://eprint.iacr.org/2013/759.pdf>
 
+use super::autodetect::BUFFER_SIZE;
 use crate::{rounds::Rounds, BLOCK_SIZE, CONSTANTS, IV_SIZE, KEY_SIZE};
 use core::{convert::TryInto, marker::PhantomData};
-use super::autodetect::BUFFER_SIZE;
 
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
