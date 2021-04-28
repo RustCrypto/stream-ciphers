@@ -12,9 +12,9 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-cipher = "=0.3.0-pre.5"
+cipher = "=0.3.0-pre.4"
 
 [dev-dependencies]
 aes = { version = "=0.7.0-pre", features = ["force-soft"] } # Uses `force-soft` for MSRV 1.41
-cipher = { version = "=0.3.0-pre.5", features = ["dev"] }
+cipher = { version = "=0.3.0-pre.4", features = ["dev"] }
 hex-literal = "0.2"

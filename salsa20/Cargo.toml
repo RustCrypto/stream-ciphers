@@ -11,11 +11,11 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-cipher = "=0.3.0-pre.5"
+cipher = "=0.3.0-pre.4"
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
-cipher = { version = "=0.3.0-pre.5", features = ["dev"] }
+cipher = { version = "=0.3.0-pre.4", features = ["dev"] }
 
 [features]
 default = ["xsalsa20"]
