@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.0 (2021-04-29)
+### Added
+- AVX2 detection; MSRV 1.49+ ([#200], [#212])
+- `XChaCha8` and `XChaCha12` ([#215])
+
+### Changed
+- Full 64-bit counters ([#217])
+- Bump `cipher` crate dependency to v0.3 release ([#226])
+
+### Fixed
+- `rng` feature on big endian platforms ([#202])
+- Stream-length overflow check ([#216])
+
+### Removed
+- `Clone` impls on RNGs ([#220])
+
+[#200]: https://github.com/RustCrypto/stream-ciphers/pull/200
+[#202]: https://github.com/RustCrypto/stream-ciphers/pull/202
+[#212]: https://github.com/RustCrypto/stream-ciphers/pull/212
+[#215]: https://github.com/RustCrypto/stream-ciphers/pull/215
+[#216]: https://github.com/RustCrypto/stream-ciphers/pull/216
+[#217]: https://github.com/RustCrypto/stream-ciphers/pull/217
+[#220]: https://github.com/RustCrypto/stream-ciphers/pull/220
+[#226]: https://github.com/RustCrypto/stream-ciphers/pull/226
+
 ## 0.6.0 (2020-10-16)
 ### Changed
 - Rename `Cipher` to `ChaCha` ([#177])
