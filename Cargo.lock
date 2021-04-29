@@ -3,13 +3,13 @@
 # 
 [[package]]
 name = "aes"
-version = "0.7.0-pre"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c89fe2093c8636691cd8ad25555898ec057ca42fbfd79f3630ac3ae6c040533"
+checksum = "99446914425f48a667458b33c7fb920e24cf9e7c149a072a9fc420731b353835"
 dependencies = [
  "cfg-if",
  "cipher",
- "cpuid-bool",
+ "cpufeatures",
  "opaque-debug",
 ]
 
@@ -70,12 +70,6 @@ name = "cpufeatures"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5cd5a7748210e7ec1a9696610b1015e6e31fbf58f77a160801f124bd1c36592a"
-
-[[package]]
-name = "cpuid-bool"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcb25d077389e53838a8158c8e99174c5a9d902dee4904320db714f3c653ffba"
 
 [[package]]
 name = "ctr"
