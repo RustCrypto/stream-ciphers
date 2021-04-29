@@ -9,6 +9,3 @@ members = [
     "rabbit",
     "salsa20",
 ]
-
-[patch.crates-io]
-aes = { git = "https://github.com/RustCrypto/block-ciphers.git" }
