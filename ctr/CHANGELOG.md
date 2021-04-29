@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.0 (2020-04-29)
+### Changed
+- Generic implementation of CTR ([#195])
+- Removed `Ctr32LE` mask bit ([#197])
+- Bump `cipher` crate dependency to v0.3 ([#226])
+
+[#195]: https://github.com/RustCrypto/stream-ciphers/pull/195
+[#197]: https://github.com/RustCrypto/stream-ciphers/pull/197
+[#226]: https://github.com/RustCrypto/stream-ciphers/pull/226
+
 ## 0.6.0 (2020-10-16)
 ### Added
 - `Ctr32BE` and `Ctr32LE` ([#170])
