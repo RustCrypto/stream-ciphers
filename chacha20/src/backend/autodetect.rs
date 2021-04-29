@@ -10,7 +10,7 @@ use core::mem::ManuallyDrop;
 /// backend, which operates on two blocks in parallel for optimal performance.
 pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE * 2;
 
-cpuid_bool::new!(avx2_cpuid, "avx2");
+cpufeatures::new!(avx2_cpuid, "avx2");
 
 /// The ChaCha20 core function.
 pub struct Core<R: Rounds> {

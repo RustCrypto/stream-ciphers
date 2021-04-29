@@ -49,7 +49,7 @@ version = "0.7.0-pre"
 dependencies = [
  "cfg-if",
  "cipher",
- "cpuid-bool",
+ "cpufeatures",
  "hex-literal",
  "rand_core",
  "zeroize",
@@ -64,6 +64,12 @@ dependencies = [
  "blobby",
  "generic-array",
 ]
+
+[[package]]
+name = "cpufeatures"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cd5a7748210e7ec1a9696610b1015e6e31fbf58f77a160801f124bd1c36592a"
 
 [[package]]
 name = "cpuid-bool"
