@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.0 (2021-04-29)
+### Changed
+- Rename `Block` to `Core` ([#204])
+- Bump `cipher` crate dependency to v0.3 release ([#226])
+
+[#204]: https://github.com/RustCrypto/stream-ciphers/pull/204
+[#226]: https://github.com/RustCrypto/stream-ciphers/pull/226
+
 ## 0.7.2 (2020-11-11)
 ### Fixed
 - `no_std` builds with `zeroize` feature enabled ([#189])
