@@ -94,16 +94,17 @@ impl<R: Rounds> StreamCipherSeek for XChaCha<R> {
 ///
 /// HChaCha takes 512-bits of input:
 ///
-/// * Constants (`u32` x 4)
-/// * Key (`u32` x 8)
-/// * Nonce (`u32` x 4)
+/// - Constants: `u32` x 4
+/// - Key: `u32` x 8
+/// - Nonce: `u32` x 4
 ///
 /// It produces 256-bits of output suitable for use as a ChaCha key
 ///
 /// For more information on HSalsa on which HChaCha is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
-fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+#[cfg_attr(docsrs, doc(cfg(feature = "hchacha")))]
+pub fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
     state[..4].copy_from_slice(&CONSTANTS);
 

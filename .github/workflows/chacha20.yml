@@ -39,6 +39,7 @@ jobs:
           override: true
           profile: minimal
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features cipher
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features hchacha
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features legacy
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rng
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features xchacha

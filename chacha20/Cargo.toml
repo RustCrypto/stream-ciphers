@@ -33,6 +33,7 @@ hex-literal = "0.2"
 default = ["xchacha"]
 expose-core = []
 force-soft = []
+hchacha = ["xchacha"]
 legacy = ["cipher"]
 rng = ["rand_core"]
 std = ["cipher/std"]
