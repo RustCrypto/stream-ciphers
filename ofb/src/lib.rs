@@ -56,8 +56,9 @@
 pub use cipher;
 
 use cipher::{
-    errors::LoopError, generic_array::typenum::Unsigned, Block, BlockCipher, BlockEncrypt,
-    FromBlockCipher, NewBlockCipher, Nonce, StreamCipher,
+    errors::LoopError,
+    generic_array::{typenum::Unsigned, GenericArray},
+    Block, BlockCipher, BlockEncrypt, FromBlockCipher, StreamCipher,
 };
 
 /// OFB self-synchronizing stream cipher instance.
@@ -69,12 +70,12 @@ pub struct Ofb<C: BlockCipher> {
 
 impl<C> FromBlockCipher for Ofb<C>
 where
-    C: BlockCipher + BlockEncrypt + NewBlockCipher,
+    C: BlockCipher + BlockEncrypt,
 {
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-    fn from_block_cipher(cipher: C, iv: &Nonce<Self>) -> Self {
+    fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         let mut block = iv.clone();
         cipher.encrypt_block(&mut block);
         Self {

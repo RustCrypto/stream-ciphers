@@ -1,6 +1,6 @@
 [package]
 name = "cfb-mode"
-version = "0.7.0"
+version = "0.7.1"
 description = "Generic Cipher Feedback (CFB) mode implementation."
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"

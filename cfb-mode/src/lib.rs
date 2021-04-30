@@ -54,7 +54,7 @@ pub use cipher;
 
 use cipher::{
     generic_array::{typenum::Unsigned, GenericArray},
-    AsyncStreamCipher, BlockCipher, BlockEncrypt, FromBlockCipher, NewBlockCipher, ParBlocks,
+    AsyncStreamCipher, BlockCipher, BlockEncrypt, FromBlockCipher, ParBlocks,
 };
 use core::slice;
 
@@ -65,10 +65,7 @@ pub struct Cfb<C: BlockCipher + BlockEncrypt> {
     pos: usize,
 }
 
-impl<C> FromBlockCipher for Cfb<C>
-where
-    C: BlockCipher + BlockEncrypt + NewBlockCipher,
-{
+impl<C: BlockCipher + BlockEncrypt> FromBlockCipher for Cfb<C> {
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
