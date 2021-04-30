@@ -99,6 +99,9 @@ pub use crate::{
     rounds::{R12, R20, R8},
 };
 
+#[cfg(feature = "hchacha")]
+pub use crate::xchacha::hchacha;
+
 #[cfg(feature = "legacy")]
 pub use crate::legacy::{ChaCha20Legacy, LegacyNonce};
 
