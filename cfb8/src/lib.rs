@@ -55,7 +55,6 @@ pub use cipher;
 
 use cipher::{
     generic_array::GenericArray, AsyncStreamCipher, BlockCipher, BlockEncrypt, FromBlockCipher,
-    NewBlockCipher, Nonce,
 };
 
 /// CFB self-synchronizing stream cipher instance.
@@ -64,14 +63,11 @@ pub struct Cfb8<C: BlockCipher + BlockEncrypt> {
     iv: GenericArray<u8, C::BlockSize>,
 }
 
-impl<C> FromBlockCipher for Cfb8<C>
-where
-    C: BlockCipher + BlockEncrypt + NewBlockCipher,
-{
+impl<C: BlockCipher + BlockEncrypt> FromBlockCipher for Cfb8<C> {
     type BlockCipher = C;
     type NonceSize = C::BlockSize;
 
-    fn from_block_cipher(cipher: C, iv: &Nonce<Self>) -> Self {
+    fn from_block_cipher(cipher: C, iv: &GenericArray<u8, Self::NonceSize>) -> Self {
         Self {
             cipher,
             iv: iv.clone(),
