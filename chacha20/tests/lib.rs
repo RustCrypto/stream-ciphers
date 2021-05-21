@@ -214,8 +214,8 @@ mod chacha20_tests {
     use hex_literal::hex;
 
     #[test]
-    // https://datatracker.ietf.org/doc/html/rfc7539#section-2.4.2
-    fn rfc7539_section_2_4_2() {
+    // https://datatracker.ietf.org/doc/html/rfc8439#section-2.4.2
+    fn rfc8439_section_2_4_2() {
         let mut data = hex!("
             4c 61 64 69 65 73 20 61 6e 64 20 47 65 6e 74 6c  
             65 6d 65 6e 20 6f 66 20 74 68 65 20 63 6c 61 73  
