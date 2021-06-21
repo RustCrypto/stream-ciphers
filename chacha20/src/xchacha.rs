@@ -54,6 +54,13 @@ pub type XChaCha12 = XChaCha<R12>;
 #[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha8 = XChaCha<R8>;
 
+/// XChaCha family stream cipher, generic around a number of rounds.
+///
+/// Use the [`XChaCha8`], [`XChaCha12`], or [`XChaCha20`] type aliases to select
+/// a specific number of rounds.
+///
+/// Generally [`XChaCha20`] is preferred.
+#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub struct XChaCha<R: Rounds>(ChaCha<R, C64>);
 
 impl<R: Rounds> NewCipher for XChaCha<R> {
