@@ -111,7 +111,7 @@ pub use rng::{
 };
 
 #[cfg(feature = "xchacha")]
-pub use self::xchacha::{XChaCha12, XChaCha20, XChaCha8, XNonce};
+pub use self::xchacha::{XChaCha, XChaCha12, XChaCha20, XChaCha8, XNonce};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;
