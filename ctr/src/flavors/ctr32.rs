@@ -1,40 +1,59 @@
 //! 32-bit counter falvors.
 use super::CtrFlavor;
 use cipher::generic_array::{
-    typenum::{U16, U4},
-    GenericArray,
+    typenum::{
+        U4, Unsigned,
+        operator_aliases::PartialQuot,
+        type_operators::PartialDiv,
+    },
+    GenericArray, ArrayLength,
 };
 use core::convert::TryInto;
+
+type ChunkSize = U4;
+type Chunks<B> = PartialQuot<B, ChunkSize>;
+const CS: usize = ChunkSize::USIZE;
 
 /// 32-bit big endian counter flavor.
 #[derive(Default, Copy, Clone)]
 #[repr(transparent)]
 pub struct Ctr32BE(u32);
 
-impl CtrFlavor for Ctr32BE {
-    type Size = U4;
+impl<B> CtrFlavor<B> for Ctr32BE
+where
+    Self: Default + Clone,
+    B: ArrayLength<u8> + PartialDiv<ChunkSize>,
+    Chunks<B>: ArrayLength<u32>,
+{
+    type Nonce = GenericArray<u32, Chunks<B>>;
     type Backend = u32;
 
     #[inline]
-    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
-        let mut res = GenericArray::<u8, U16>::default();
-        let ctr = self.0.wrapping_add(nonce[3].0);
-        res[0..4].copy_from_slice(&nonce[0].0.to_ne_bytes());
-        res[4..8].copy_from_slice(&nonce[1].0.to_ne_bytes());
-        res[8..12].copy_from_slice(&nonce[2].0.to_ne_bytes());
-        res[12..16].copy_from_slice(&ctr.to_be_bytes());
-        res
+    fn generate_block(&self, nonce: &Self::Nonce) -> GenericArray<u8, B> {
+        let mut block = GenericArray::<u8, B>::default();
+        for i in 0..Chunks::<B>::USIZE {
+            let t = if i == Chunks::<B>::USIZE - 1 {
+                self.0.wrapping_add(nonce[i]).to_be_bytes()
+            } else {
+                nonce[i].to_ne_bytes()
+            };
+            block[CS * i..][..CS].copy_from_slice(&t);
+        }
+        block
     }
 
     #[inline]
-    fn load(block: &GenericArray<u8, U16>) -> GenericArray<Self, Self::Size> {
-        [
-            Self(u32::from_ne_bytes(block[0..4].try_into().unwrap())),
-            Self(u32::from_ne_bytes(block[4..8].try_into().unwrap())),
-            Self(u32::from_ne_bytes(block[8..12].try_into().unwrap())),
-            Self(u32::from_be_bytes(block[12..16].try_into().unwrap())),
-        ]
-        .into()
+    fn load(block: &GenericArray<u8, B>) -> Self::Nonce {
+        let mut res = Self::Nonce::default();
+        for i in 0..Chunks::<B>::USIZE {
+            let chunk = block[CS * i..][..CS].try_into().unwrap();
+            res[i] = if i == Chunks::<B>::USIZE - 1 {
+                u32::from_be_bytes(chunk)
+            } else {
+                u32::from_ne_bytes(chunk)
+            }
+        }
+        res
     }
 
     #[inline]
@@ -66,30 +85,41 @@ impl CtrFlavor for Ctr32BE {
 #[repr(transparent)]
 pub struct Ctr32LE(u32);
 
-impl CtrFlavor for Ctr32LE {
-    type Size = U4;
+impl<B> CtrFlavor<B> for Ctr32LE
+where
+    Self: Default + Clone,
+    B: ArrayLength<u8> + PartialDiv<ChunkSize>,
+    Chunks<B>: ArrayLength<u32>,
+{
+    type Nonce = GenericArray<u32, Chunks<B>>;
     type Backend = u32;
 
     #[inline]
-    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16> {
-        let mut res = GenericArray::<u8, U16>::default();
-        let ctr = self.0.wrapping_add(nonce[0].0);
-        res[0..4].copy_from_slice(&ctr.to_le_bytes());
-        res[4..8].copy_from_slice(&nonce[1].0.to_ne_bytes());
-        res[8..12].copy_from_slice(&nonce[2].0.to_ne_bytes());
-        res[12..16].copy_from_slice(&nonce[3].0.to_ne_bytes());
-        res
+    fn generate_block(&self, nonce: &Self::Nonce) -> GenericArray<u8, B> {
+        let mut block = GenericArray::<u8, B>::default();
+        for i in 0..Chunks::<B>::USIZE {
+            let t = if i == 0 {
+                self.0.wrapping_add(nonce[i]).to_le_bytes()
+            } else {
+                nonce[i].to_ne_bytes()
+            };
+            block[CS * i..][..CS].copy_from_slice(&t);
+        }
+        block
     }
 
     #[inline]
-    fn load(block: &GenericArray<u8, U16>) -> GenericArray<Self, Self::Size> {
-        [
-            Self(u32::from_le_bytes(block[0..4].try_into().unwrap())),
-            Self(u32::from_ne_bytes(block[4..8].try_into().unwrap())),
-            Self(u32::from_ne_bytes(block[8..12].try_into().unwrap())),
-            Self(u32::from_ne_bytes(block[12..16].try_into().unwrap())),
-        ]
-        .into()
+    fn load(block: &GenericArray<u8, B>) -> Self::Nonce {
+        let mut res = Self::Nonce::default();
+        for i in 0..Chunks::<B>::USIZE {
+            let chunk = block[CS * i..][..CS].try_into().unwrap();
+            res[i] = if i == 0 {
+                u32::from_le_bytes(chunk)
+            } else {
+                u32::from_ne_bytes(chunk)
+            }
+        }
+        res
     }
 
     #[inline]

@@ -46,15 +46,11 @@
 pub use cipher;
 use cipher::{
     errors::{LoopError, OverflowError},
-    generic_array::{
-        typenum::{Unsigned, U16},
-        ArrayLength, GenericArray,
-    },
-    Block, BlockCipher, BlockEncrypt, FromBlockCipher, ParBlocks, SeekNum, StreamCipher,
+    generic_array::typenum::{Unsigned},
+    Block, BlockEncrypt, FromBlockCipher, ParBlocks, SeekNum, StreamCipher,
     StreamCipherSeek,
 };
 use core::fmt;
-use core::ops::Div;
 
 pub mod flavors;
 use flavors::CtrFlavor;
@@ -76,13 +72,11 @@ pub type Ctr32LE<B> = Ctr<B, flavors::Ctr32LE>;
 #[derive(Clone)]
 pub struct Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
-    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
-    B::BlockSize: Div<F::Size>,
-    F: CtrFlavor,
+    B: BlockEncrypt,
+    F: CtrFlavor<B::BlockSize>,
 {
     cipher: B,
-    nonce: GenericArray<F, F::Size>,
+    nonce: <F as CtrFlavor<B::BlockSize>>::Nonce,
     counter: F,
     buffer: Block<B>,
     buf_pos: u8,
@@ -90,10 +84,8 @@ where
 
 impl<B, F> Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
-    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
-    B::BlockSize: Div<F::Size>,
-    F: CtrFlavor,
+    B: BlockEncrypt,
+    F: CtrFlavor<B::BlockSize>,
 {
     fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
         let bs = B::BlockSize::USIZE;
@@ -123,10 +115,8 @@ where
 
 impl<B, F> FromBlockCipher for Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
-    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
-    B::BlockSize: Div<F::Size>,
-    F: CtrFlavor,
+    B: BlockEncrypt,
+    F: CtrFlavor<B::BlockSize>,
 {
     type BlockCipher = B;
     type NonceSize = B::BlockSize;
@@ -146,10 +136,8 @@ where
 
 impl<B, F> StreamCipher for Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
-    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
-    B::BlockSize: Div<F::Size>,
-    F: CtrFlavor,
+    B: BlockEncrypt,
+    F: CtrFlavor<B::BlockSize>,
 {
     fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
         self.check_data_len(data)?;
@@ -211,10 +199,8 @@ where
 
 impl<B, F> StreamCipherSeek for Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize = U16>,
-    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
-    B::BlockSize: Div<F::Size>,
-    F: CtrFlavor,
+    B: BlockEncrypt,
+    F: CtrFlavor<B::BlockSize>,
 {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         T::from_block_byte(self.counter.to_backend(), self.buf_pos, B::BlockSize::U8)
@@ -235,10 +221,8 @@ where
 
 impl<B, F> fmt::Debug for Ctr<B, F>
 where
-    B: BlockEncrypt + BlockCipher<BlockSize = U16> + fmt::Debug,
-    B::ParBlocks: ArrayLength<GenericArray<u8, U16>>,
-    B::BlockSize: Div<F::Size>,
-    F: CtrFlavor + fmt::Debug,
+    B: BlockEncrypt + fmt::Debug,
+    F: CtrFlavor<B::BlockSize> + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "Ctr-{:?}-{:?}", self.counter, self.cipher)
