@@ -83,6 +83,8 @@ dependencies = [
  "aes",
  "cipher",
  "hex-literal",
+ "kuznyechik",
+ "magma",
 ]
 
 [[package]]
@@ -123,10 +125,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "kuznyechik"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1020a37e326b4033680520bf26d4ec7366f92827e5d2c5620a38511f2fd732c5"
+dependencies = [
+ "cipher",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12b8adadd720df158f4d70dfe7ccc6adb0472d7c55ca83445f6a5ab3e36f8fb6"
+
+[[package]]
+name = "magma"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53792c7fca348c3d880c5ab2b0a2378a28edca57d080feabc4b60b4633dff91b"
+dependencies = [
+ "cipher",
+ "opaque-debug",
+]
 
 [[package]]
 name = "ofb"
