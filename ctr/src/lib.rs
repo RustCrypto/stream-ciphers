@@ -46,9 +46,8 @@
 pub use cipher;
 use cipher::{
     errors::{LoopError, OverflowError},
-    generic_array::typenum::{Unsigned},
-    Block, BlockEncrypt, FromBlockCipher, ParBlocks, SeekNum, StreamCipher,
-    StreamCipherSeek,
+    generic_array::typenum::Unsigned,
+    Block, BlockEncrypt, FromBlockCipher, ParBlocks, SeekNum, StreamCipher, StreamCipherSeek,
 };
 use core::fmt;
 

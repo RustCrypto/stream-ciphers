@@ -1,12 +1,8 @@
 //! 128-bit counter falvors.
 use super::CtrFlavor;
 use cipher::generic_array::{
-    typenum::{
-        U16, Unsigned,
-        operator_aliases::PartialQuot,
-        type_operators::PartialDiv,
-    },
-    GenericArray, ArrayLength,
+    typenum::{operator_aliases::PartialQuot, type_operators::PartialDiv, Unsigned, U16},
+    ArrayLength, GenericArray,
 };
 use core::convert::TryInto;
 
