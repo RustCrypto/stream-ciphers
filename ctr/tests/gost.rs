@@ -27,7 +27,7 @@ fn kuznyechik() {
     ");
     let mut cipher = KuznyechikCtr::new(&key.into(), &nonce.into());
     cipher.apply_keystream(&mut pt);
-    assert_eq!(pt, ct);
+    assert_eq!(pt[..], ct[..]);
 }
 
 /// Test vectors from GOST R 34.13-2015 (Section A.2.2)
@@ -53,5 +53,5 @@ fn magma() {
     ");
     let mut cipher = MagmaCtr::new(&key.into(), &nonce.into());
     cipher.apply_keystream(&mut pt);
-    assert_eq!(pt, ct);
+    assert_eq!(pt[..], ct[..]);
 }
