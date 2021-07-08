@@ -34,7 +34,6 @@ fn kuznyechik() {
 #[test]
 #[rustfmt::skip]
 fn magma() {
-    #[rustfmt::skip]
     let key = hex!("
         ffeeddccbbaa99887766554433221100
         f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff
