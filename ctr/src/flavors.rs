@@ -1,7 +1,7 @@
 //! CTR mode flavors
 
 use cipher::{
-    generic_array::{typenum::U16, ArrayLength, GenericArray},
+    generic_array::{ArrayLength, GenericArray},
     SeekNum,
 };
 
@@ -14,17 +14,21 @@ pub use ctr32::*;
 pub use ctr64::*;
 
 /// Trait implemented by different counter types used in the CTR mode.
-pub trait CtrFlavor: Default + Clone {
-    /// Size of the 128-bit block in counter types.
-    type Size: ArrayLength<Self>;
+pub trait CtrFlavor<B>
+where
+    Self: Default + Clone,
+    B: ArrayLength<u8>,
+{
+    /// Inner representation of nonce.
+    type Nonce: Clone;
     /// Backend numeric type
     type Backend: SeekNum;
 
     /// Generate block for given `nonce` value.
-    fn generate_block(&self, nonce: &GenericArray<Self, Self::Size>) -> GenericArray<u8, U16>;
+    fn generate_block(&self, nonce: &Self::Nonce) -> GenericArray<u8, B>;
 
     /// Load nonce value from bytes.
-    fn load(block: &GenericArray<u8, U16>) -> GenericArray<Self, Self::Size>;
+    fn load(block: &GenericArray<u8, B>) -> Self::Nonce;
 
     /// Checked addition.
     fn checked_add(&self, rhs: usize) -> Option<Self>;
