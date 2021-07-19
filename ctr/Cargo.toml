@@ -19,4 +19,4 @@ aes = { version = "0.7", features = ["force-soft"] } # Uses `force-soft` for MSR
 magma = "0.7"
 kuznyechik = "0.7"
 cipher = { version = "0.3", features = ["dev"] }
-hex-literal = "0.2"
+hex-literal = "0.3"
