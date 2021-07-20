@@ -1,6 +1,6 @@
 [package]
 name = "ofb"
-version = "0.5.1"
+version = "0.5.1" # Also update html_root_url in lib.rs when bumping this
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
 description = "Generic Output Feedback (OFB) mode implementation."
