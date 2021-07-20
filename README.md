@@ -15,7 +15,7 @@ received any formal cryptographic and security reviews/audits.
 
 ## Crates
 | Name         | Crates.io | Documentation | MSRV |
-|--------------|-----------|---------------|--------------|
+|--------------|-----------|---------------|------|
 | [`cfb-mode`] | [![crates.io](https://img.shields.io/crates/v/cfb-mode.svg)](https://crates.io/crates/cfb-mode) | [![Documentation](https://docs.rs/cfb-mode/badge.svg)](https://docs.rs/cfb-mode) | 1.41 |
 | [`cfb8`]     | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) | 1.41 |
 | [`chacha20`] | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | 1.41 |
