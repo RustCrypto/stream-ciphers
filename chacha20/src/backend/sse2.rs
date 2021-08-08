@@ -133,58 +133,53 @@ unsafe fn store(v0: __m128i, v1: __m128i, v2: __m128i, v3: __m128i, output: &mut
 
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn double_quarter_round(
-    v0: &mut __m128i,
-    v1: &mut __m128i,
-    v2: &mut __m128i,
-    v3: &mut __m128i,
-) {
-    add_xor_rot(v0, v1, v2, v3);
-    rows_to_cols(v0, v1, v2, v3);
-    add_xor_rot(v0, v1, v2, v3);
-    cols_to_rows(v0, v1, v2, v3);
+unsafe fn double_quarter_round(a: &mut __m128i, b: &mut __m128i, c: &mut __m128i, d: &mut __m128i) {
+    add_xor_rot(a, b, c, d);
+    rows_to_cols(a, b, c, d);
+    add_xor_rot(a, b, c, d);
+    cols_to_rows(a, b, c, d);
 }
 
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn rows_to_cols(_v0: &mut __m128i, v1: &mut __m128i, v2: &mut __m128i, v3: &mut __m128i) {
-    // v1 >>>= 32; v2 >>>= 64; v3 >>>= 96;
-    *v1 = _mm_shuffle_epi32(*v1, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
-    *v2 = _mm_shuffle_epi32(*v2, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *v3 = _mm_shuffle_epi32(*v3, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
+unsafe fn rows_to_cols(_a: &mut __m128i, b: &mut __m128i, c: &mut __m128i, d: &mut __m128i) {
+    // b >>>= 32; c >>>= 64; d >>>= 96;
+    *b = _mm_shuffle_epi32(*b, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
+    *c = _mm_shuffle_epi32(*c, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
+    *d = _mm_shuffle_epi32(*d, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
 }
 
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn cols_to_rows(_v0: &mut __m128i, v1: &mut __m128i, v2: &mut __m128i, v3: &mut __m128i) {
-    // v1 <<<= 32; v2 <<<= 64; v3 <<<= 96;
-    *v1 = _mm_shuffle_epi32(*v1, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
-    *v2 = _mm_shuffle_epi32(*v2, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *v3 = _mm_shuffle_epi32(*v3, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
+unsafe fn cols_to_rows(_a: &mut __m128i, b: &mut __m128i, c: &mut __m128i, d: &mut __m128i) {
+    // b <<<= 32; c <<<= 64; d <<<= 96;
+    *b = _mm_shuffle_epi32(*b, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
+    *c = _mm_shuffle_epi32(*c, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
+    *d = _mm_shuffle_epi32(*d, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
 }
 
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn add_xor_rot(v0: &mut __m128i, v1: &mut __m128i, v2: &mut __m128i, v3: &mut __m128i) {
-    // v0 += v1; v3 ^= v0; v3 <<<= (16, 16, 16, 16);
-    *v0 = _mm_add_epi32(*v0, *v1);
-    *v3 = _mm_xor_si128(*v3, *v0);
-    *v3 = _mm_xor_si128(_mm_slli_epi32(*v3, 16), _mm_srli_epi32(*v3, 16));
+unsafe fn add_xor_rot(a: &mut __m128i, b: &mut __m128i, c: &mut __m128i, d: &mut __m128i) {
+    // a += b; d ^= a; d <<<= (16, 16, 16, 16);
+    *a = _mm_add_epi32(*a, *b);
+    *d = _mm_xor_si128(*d, *a);
+    *d = _mm_xor_si128(_mm_slli_epi32(*d, 16), _mm_srli_epi32(*d, 16));
 
-    // v2 += v3; v1 ^= v2; v1 <<<= (12, 12, 12, 12);
-    *v2 = _mm_add_epi32(*v2, *v3);
-    *v1 = _mm_xor_si128(*v1, *v2);
-    *v1 = _mm_xor_si128(_mm_slli_epi32(*v1, 12), _mm_srli_epi32(*v1, 20));
+    // c += d; b ^= c; b <<<= (12, 12, 12, 12);
+    *c = _mm_add_epi32(*c, *d);
+    *b = _mm_xor_si128(*b, *c);
+    *b = _mm_xor_si128(_mm_slli_epi32(*b, 12), _mm_srli_epi32(*b, 20));
 
-    // v0 += v1; v3 ^= v0; v3 <<<= (8, 8, 8, 8);
-    *v0 = _mm_add_epi32(*v0, *v1);
-    *v3 = _mm_xor_si128(*v3, *v0);
-    *v3 = _mm_xor_si128(_mm_slli_epi32(*v3, 8), _mm_srli_epi32(*v3, 24));
+    // a += b; d ^= a; d <<<= (8, 8, 8, 8);
+    *a = _mm_add_epi32(*a, *b);
+    *d = _mm_xor_si128(*d, *a);
+    *d = _mm_xor_si128(_mm_slli_epi32(*d, 8), _mm_srli_epi32(*d, 24));
 
-    // v2 += v3; v1 ^= v2; v1 <<<= (7, 7, 7, 7);
-    *v2 = _mm_add_epi32(*v2, *v3);
-    *v1 = _mm_xor_si128(*v1, *v2);
-    *v1 = _mm_xor_si128(_mm_slli_epi32(*v1, 7), _mm_srli_epi32(*v1, 25));
+    // c += d; b ^= c; b <<<= (7, 7, 7, 7);
+    *c = _mm_add_epi32(*c, *d);
+    *b = _mm_xor_si128(*b, *c);
+    *b = _mm_xor_si128(_mm_slli_epi32(*b, 7), _mm_srli_epi32(*b, 25));
 }
 
 #[cfg(all(test, target_feature = "sse2"))]
