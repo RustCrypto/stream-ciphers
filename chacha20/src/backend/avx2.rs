@@ -17,13 +17,24 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+/// Helper union for accessing per-block state.
+///
+/// ChaCha20 block state is stored in four 32-bit words, so we can process two blocks in
+/// parallel. We store the state words as a union to enable cheap transformations between
+/// their interpretations.
+#[derive(Clone, Copy)]
+union StateWord {
+    blocks: [__m128i; 2],
+    avx: __m256i,
+}
+
 /// The ChaCha20 core function (AVX2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
 #[derive(Clone)]
 pub(crate) struct Core<R: Rounds> {
-    v0: __m256i,
-    v1: __m256i,
-    v2: __m256i,
+    v0: StateWord,
+    v1: StateWord,
+    v2: StateWord,
     iv: [i32; 2],
     rounds: PhantomData<R>,
 }
@@ -52,7 +63,7 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
             store(v0, v1, v2, v3, output);
         }
     }
@@ -66,17 +77,23 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
 
-            for (chunk, a) in output[..BLOCK_SIZE].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+            for (chunk, a) in output[..BLOCK_SIZE]
+                .chunks_mut(0x10)
+                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
+            {
                 let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(_mm256_castsi256_si128(*a), b);
+                let out = _mm_xor_si128(a, b);
                 _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
             }
 
-            for (chunk, a) in output[BLOCK_SIZE..].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+            for (chunk, a) in output[BLOCK_SIZE..]
+                .chunks_mut(0x10)
+                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
+            {
                 let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(_mm256_extractf128_si256(*a, 1), b);
+                let out = _mm_xor_si128(a, b);
                 _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
             }
         }
@@ -97,9 +114,9 @@ impl<R: Rounds> Core<R> {
             double_quarter_round(v0, v1, v2, v3);
         }
 
-        *v0 = _mm256_add_epi32(*v0, self.v0);
-        *v1 = _mm256_add_epi32(*v1, self.v1);
-        *v2 = _mm256_add_epi32(*v2, self.v2);
+        *v0 = _mm256_add_epi32(*v0, self.v0.avx);
+        *v1 = _mm256_add_epi32(*v1, self.v1.avx);
+        *v2 = _mm256_add_epi32(*v2, self.v2.avx);
         *v3 = _mm256_add_epi32(*v3, v3_orig);
     }
 }
@@ -107,21 +124,21 @@ impl<R: Rounds> Core<R> {
 #[inline]
 #[target_feature(enable = "avx2")]
 #[allow(clippy::cast_ptr_alignment)] // loadu supports unaligned loads
-unsafe fn key_setup(key: &[u8; KEY_SIZE]) -> (__m256i, __m256i, __m256i) {
+unsafe fn key_setup(key: &[u8; KEY_SIZE]) -> (StateWord, StateWord, StateWord) {
     let v0 = _mm_loadu_si128(CONSTANTS.as_ptr() as *const __m128i);
     let v1 = _mm_loadu_si128(key.as_ptr().offset(0x00) as *const __m128i);
     let v2 = _mm_loadu_si128(key.as_ptr().offset(0x10) as *const __m128i);
 
     (
-        _mm256_broadcastsi128_si256(v0),
-        _mm256_broadcastsi128_si256(v1),
-        _mm256_broadcastsi128_si256(v2),
+        StateWord { blocks: [v0, v0] },
+        StateWord { blocks: [v1, v1] },
+        StateWord { blocks: [v2, v2] },
     )
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> __m256i {
+unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> StateWord {
     let s3 = _mm_set_epi32(
         iv[0],
         iv[1],
@@ -129,73 +146,119 @@ unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> __m256i {
         (counter & 0xffff_ffff) as i32,
     );
 
-    _mm256_add_epi64(
-        _mm256_broadcastsi128_si256(s3),
-        _mm256_set_epi64x(0, 1, 0, 0),
-    )
+    StateWord {
+        blocks: [s3, _mm_add_epi64(s3, _mm_set_epi64x(0, 1))],
+    }
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
 #[allow(clippy::cast_ptr_alignment)] // storeu supports unaligned stores
-unsafe fn store(v0: __m256i, v1: __m256i, v2: __m256i, v3: __m256i, output: &mut [u8]) {
+unsafe fn store(v0: StateWord, v1: StateWord, v2: StateWord, v3: StateWord, output: &mut [u8]) {
     debug_assert_eq!(output.len(), BUFFER_SIZE);
 
-    for (chunk, v) in output[..BLOCK_SIZE].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
-        _mm_storeu_si128(
-            chunk.as_mut_ptr() as *mut __m128i,
-            _mm256_castsi256_si128(*v),
-        );
+    for (chunk, v) in output[..BLOCK_SIZE]
+        .chunks_mut(0x10)
+        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
+    {
+        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
     }
 
-    for (chunk, v) in output[BLOCK_SIZE..].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
-        _mm_storeu_si128(
-            chunk.as_mut_ptr() as *mut __m128i,
-            _mm256_extractf128_si256(*v, 1),
-        );
+    for (chunk, v) in output[BLOCK_SIZE..]
+        .chunks_mut(0x10)
+        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
+    {
+        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
     }
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn double_quarter_round(
-    v0: &mut __m256i,
-    v1: &mut __m256i,
-    v2: &mut __m256i,
-    v3: &mut __m256i,
-) {
-    add_xor_rot(v0, v1, v2, v3);
-    rows_to_cols(v0, v1, v2, v3);
-    add_xor_rot(v0, v1, v2, v3);
-    cols_to_rows(v0, v1, v2, v3);
+unsafe fn double_quarter_round(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+    add_xor_rot(a, b, c, d);
+    rows_to_cols(a, b, c, d);
+    add_xor_rot(a, b, c, d);
+    cols_to_rows(a, b, c, d);
+}
+
+/// The goal of this function is to transform the state words from:
+/// ```text
+/// [a0, a1, a2, a3]    [ 0,  1,  2,  3]
+/// [b0, b1, b2, b3] == [ 4,  5,  6,  7]
+/// [c0, c1, c2, c3]    [ 8,  9, 10, 11]
+/// [d0, d1, d2, d3]    [12, 13, 14, 15]
+/// ```
+///
+/// to:
+/// ```text
+/// [a0, a1, a2, a3]    [ 0,  1,  2,  3]
+/// [b1, b2, b3, b0] == [ 5,  6,  7,  4]
+/// [c2, c3, c0, c1]    [10, 11,  8,  9]
+/// [d3, d0, d1, d2]    [15, 12, 13, 14]
+/// ```
+///
+/// so that we can apply [`add_xor_rot`] to the resulting columns, and have it compute the
+/// "diagonal rounds" (as defined in RFC 7539) in parallel. In practice, this shuffle is
+/// non-optimal: the last state word to be altered in `add_xor_rot` is `b`, so the shuffle
+/// blocks on the result of `b` being calculated.
+///
+/// We can optimize this by observing that the four quarter rounds in `add_xor_rot` are
+/// data-independent: they only access a single column of the state, and thus the order of
+/// the columns does not matter. We therefore instead shuffle the other three state words,
+/// to obtain the following equivalent layout:
+/// ```text
+/// [a3, a0, a1, a2]    [ 3,  0,  1,  2]
+/// [b0, b1, b2, b3] == [ 4,  5,  6,  7]
+/// [c1, c2, c3, c0]    [ 9, 10, 11,  8]
+/// [d2, d3, d0, d1]    [14, 15, 12, 13]
+/// ```
+///
+/// See https://github.com/sneves/blake2-avx2/pull/4 for additional details. The earliest
+/// known occurrence of this optimization is in floodyberry's SSE4 ChaCha code from 2014:
+/// - https://github.com/floodyberry/chacha-opt/blob/0ab65cb99f5016633b652edebaf3691ceb4ff753/chacha_blocks_ssse3-64.S#L639-L643
+#[inline]
+#[target_feature(enable = "avx2")]
+unsafe fn rows_to_cols(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+    // c = ROR256_B(c); d = ROR256_C(d); a = ROR256_D(a);
+    *c = _mm256_shuffle_epi32(*c, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
+    *d = _mm256_shuffle_epi32(*d, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
+    *a = _mm256_shuffle_epi32(*a, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
+}
+
+/// The goal of this function is to transform the state words from:
+/// ```text
+/// [a3, a0, a1, a2]    [ 3,  0,  1,  2]
+/// [b0, b1, b2, b3] == [ 4,  5,  6,  7]
+/// [c1, c2, c3, c0]    [ 9, 10, 11,  8]
+/// [d2, d3, d0, d1]    [14, 15, 12, 13]
+/// ```
+///
+/// to:
+/// ```text
+/// [a0, a1, a2, a3]    [ 0,  1,  2,  3]
+/// [b0, b1, b2, b3] == [ 4,  5,  6,  7]
+/// [c0, c1, c2, c3]    [ 8,  9, 10, 11]
+/// [d0, d1, d2, d3]    [12, 13, 14, 15]
+/// ```
+///
+/// reversing the transformation of [`rows_to_cols`].
+#[inline]
+#[target_feature(enable = "avx2")]
+unsafe fn cols_to_rows(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+    // c = ROR256_D(c); d = ROR256_C(d); a = ROR256_B(a);
+    *c = _mm256_shuffle_epi32(*c, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
+    *d = _mm256_shuffle_epi32(*d, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
+    *a = _mm256_shuffle_epi32(*a, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn rows_to_cols(_v0: &mut __m256i, v1: &mut __m256i, v2: &mut __m256i, v3: &mut __m256i) {
-    // b = ROR256_V1(b); c = ROR256_V2(c); d = ROR256_V3(d);
-    *v1 = _mm256_shuffle_epi32(*v1, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
-    *v2 = _mm256_shuffle_epi32(*v2, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *v3 = _mm256_shuffle_epi32(*v3, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
-}
-
-#[inline]
-#[target_feature(enable = "avx2")]
-unsafe fn cols_to_rows(_v0: &mut __m256i, v1: &mut __m256i, v2: &mut __m256i, v3: &mut __m256i) {
-    // b = ROR256_V3(b); c = ROR256_V2(c); d = ROR256_V1(d);
-    *v1 = _mm256_shuffle_epi32(*v1, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
-    *v2 = _mm256_shuffle_epi32(*v2, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *v3 = _mm256_shuffle_epi32(*v3, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
-}
-
-#[inline]
-#[target_feature(enable = "avx2")]
-unsafe fn add_xor_rot(v0: &mut __m256i, v1: &mut __m256i, v2: &mut __m256i, v3: &mut __m256i) {
+unsafe fn add_xor_rot(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
     // a = ADD256_32(a,b); d = XOR256(d,a); d = ROL256_16(d);
-    *v0 = _mm256_add_epi32(*v0, *v1);
-    *v3 = _mm256_xor_si256(*v3, *v0);
-    *v3 = _mm256_shuffle_epi8(
-        *v3,
+    *a = _mm256_add_epi32(*a, *b);
+    *d = _mm256_xor_si256(*d, *a);
+    *d = _mm256_shuffle_epi8(
+        *d,
         _mm256_set_epi8(
             13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11, 10, 5,
             4, 7, 6, 1, 0, 3, 2,
@@ -203,15 +266,15 @@ unsafe fn add_xor_rot(v0: &mut __m256i, v1: &mut __m256i, v2: &mut __m256i, v3: 
     );
 
     // c = ADD256_32(c,d); b = XOR256(b,c); b = ROL256_12(b);
-    *v2 = _mm256_add_epi32(*v2, *v3);
-    *v1 = _mm256_xor_si256(*v1, *v2);
-    *v1 = _mm256_xor_si256(_mm256_slli_epi32(*v1, 12), _mm256_srli_epi32(*v1, 20));
+    *c = _mm256_add_epi32(*c, *d);
+    *b = _mm256_xor_si256(*b, *c);
+    *b = _mm256_xor_si256(_mm256_slli_epi32(*b, 12), _mm256_srli_epi32(*b, 20));
 
     // a = ADD256_32(a,b); d = XOR256(d,a); d = ROL256_8(d);
-    *v0 = _mm256_add_epi32(*v0, *v1);
-    *v3 = _mm256_xor_si256(*v3, *v0);
-    *v3 = _mm256_shuffle_epi8(
-        *v3,
+    *a = _mm256_add_epi32(*a, *b);
+    *d = _mm256_xor_si256(*d, *a);
+    *d = _mm256_shuffle_epi8(
+        *d,
         _mm256_set_epi8(
             14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8, 11, 6,
             5, 4, 7, 2, 1, 0, 3,
@@ -219,7 +282,7 @@ unsafe fn add_xor_rot(v0: &mut __m256i, v1: &mut __m256i, v2: &mut __m256i, v3: 
     );
 
     // c = ADD256_32(c,d); b = XOR256(b,c); b = ROL256_7(b);
-    *v2 = _mm256_add_epi32(*v2, *v3);
-    *v1 = _mm256_xor_si256(*v1, *v2);
-    *v1 = _mm256_xor_si256(_mm256_slli_epi32(*v1, 7), _mm256_srli_epi32(*v1, 25));
+    *c = _mm256_add_epi32(*c, *d);
+    *b = _mm256_xor_si256(*b, *c);
+    *b = _mm256_xor_si256(_mm256_slli_epi32(*b, 7), _mm256_srli_epi32(*b, 25));
 }
