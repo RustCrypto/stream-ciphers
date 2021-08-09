@@ -17,13 +17,24 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+/// Helper union for accessing per-block state.
+///
+/// ChaCha20 block state is stored in four 32-bit words, so we can process two blocks in
+/// parallel. We store the state words as a union to enable cheap transformations between
+/// their interpretations.
+#[derive(Clone, Copy)]
+union StateWord {
+    blocks: [__m128i; 2],
+    avx: __m256i,
+}
+
 /// The ChaCha20 core function (AVX2 accelerated implementation for x86/x86_64)
 // TODO(tarcieri): zeroize?
 #[derive(Clone)]
 pub(crate) struct Core<R: Rounds> {
-    v0: __m256i,
-    v1: __m256i,
-    v2: __m256i,
+    v0: StateWord,
+    v1: StateWord,
+    v2: StateWord,
     iv: [i32; 2],
     rounds: PhantomData<R>,
 }
@@ -52,7 +63,7 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
             store(v0, v1, v2, v3, output);
         }
     }
@@ -66,17 +77,23 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
+            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
 
-            for (chunk, a) in output[..BLOCK_SIZE].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+            for (chunk, a) in output[..BLOCK_SIZE]
+                .chunks_mut(0x10)
+                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
+            {
                 let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(_mm256_castsi256_si128(*a), b);
+                let out = _mm_xor_si128(a, b);
                 _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
             }
 
-            for (chunk, a) in output[BLOCK_SIZE..].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
+            for (chunk, a) in output[BLOCK_SIZE..]
+                .chunks_mut(0x10)
+                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
+            {
                 let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(_mm256_extractf128_si256(*a, 1), b);
+                let out = _mm_xor_si128(a, b);
                 _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
             }
         }
@@ -97,9 +114,9 @@ impl<R: Rounds> Core<R> {
             double_quarter_round(v0, v1, v2, v3);
         }
 
-        *v0 = _mm256_add_epi32(*v0, self.v0);
-        *v1 = _mm256_add_epi32(*v1, self.v1);
-        *v2 = _mm256_add_epi32(*v2, self.v2);
+        *v0 = _mm256_add_epi32(*v0, self.v0.avx);
+        *v1 = _mm256_add_epi32(*v1, self.v1.avx);
+        *v2 = _mm256_add_epi32(*v2, self.v2.avx);
         *v3 = _mm256_add_epi32(*v3, v3_orig);
     }
 }
@@ -107,21 +124,21 @@ impl<R: Rounds> Core<R> {
 #[inline]
 #[target_feature(enable = "avx2")]
 #[allow(clippy::cast_ptr_alignment)] // loadu supports unaligned loads
-unsafe fn key_setup(key: &[u8; KEY_SIZE]) -> (__m256i, __m256i, __m256i) {
+unsafe fn key_setup(key: &[u8; KEY_SIZE]) -> (StateWord, StateWord, StateWord) {
     let v0 = _mm_loadu_si128(CONSTANTS.as_ptr() as *const __m128i);
     let v1 = _mm_loadu_si128(key.as_ptr().offset(0x00) as *const __m128i);
     let v2 = _mm_loadu_si128(key.as_ptr().offset(0x10) as *const __m128i);
 
     (
-        _mm256_broadcastsi128_si256(v0),
-        _mm256_broadcastsi128_si256(v1),
-        _mm256_broadcastsi128_si256(v2),
+        StateWord { blocks: [v0, v0] },
+        StateWord { blocks: [v1, v1] },
+        StateWord { blocks: [v2, v2] },
     )
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> __m256i {
+unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> StateWord {
     let s3 = _mm_set_epi32(
         iv[0],
         iv[1],
@@ -129,30 +146,29 @@ unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> __m256i {
         (counter & 0xffff_ffff) as i32,
     );
 
-    _mm256_add_epi64(
-        _mm256_broadcastsi128_si256(s3),
-        _mm256_set_epi64x(0, 1, 0, 0),
-    )
+    StateWord {
+        blocks: [s3, _mm_add_epi64(s3, _mm_set_epi64x(0, 1))],
+    }
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
 #[allow(clippy::cast_ptr_alignment)] // storeu supports unaligned stores
-unsafe fn store(v0: __m256i, v1: __m256i, v2: __m256i, v3: __m256i, output: &mut [u8]) {
+unsafe fn store(v0: StateWord, v1: StateWord, v2: StateWord, v3: StateWord, output: &mut [u8]) {
     debug_assert_eq!(output.len(), BUFFER_SIZE);
 
-    for (chunk, v) in output[..BLOCK_SIZE].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
-        _mm_storeu_si128(
-            chunk.as_mut_ptr() as *mut __m128i,
-            _mm256_castsi256_si128(*v),
-        );
+    for (chunk, v) in output[..BLOCK_SIZE]
+        .chunks_mut(0x10)
+        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
+    {
+        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
     }
 
-    for (chunk, v) in output[BLOCK_SIZE..].chunks_mut(0x10).zip(&[v0, v1, v2, v3]) {
-        _mm_storeu_si128(
-            chunk.as_mut_ptr() as *mut __m128i,
-            _mm256_extractf128_si256(*v, 1),
-        );
+    for (chunk, v) in output[BLOCK_SIZE..]
+        .chunks_mut(0x10)
+        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
+    {
+        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
     }
 }
 
