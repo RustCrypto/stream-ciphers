@@ -11,7 +11,7 @@ pub trait MaxCounter: Copy {
 pub struct C32;
 
 impl MaxCounter for C32 {
-    const MAX_BLOCKS: Option<u64> = Some(core::u32::MAX as u64);
+    const MAX_BLOCKS: Option<u64> = Some(u32::MAX as u64);
 }
 
 /// 64-bit counter
