@@ -66,7 +66,7 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
+            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
             store(v0, v1, v2, v3, output);
         }
     }
@@ -80,7 +80,7 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
+            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
 
             for i in 0..BLOCKS {
                 for (chunk, a) in output[i * BLOCK_SIZE..(i + 1) * BLOCK_SIZE]
@@ -99,21 +99,21 @@ impl<R: Rounds> Core<R> {
     #[target_feature(enable = "avx2")]
     unsafe fn rounds(
         &self,
-        v0: &mut __m256i,
-        v1: &mut __m256i,
-        v2: &mut __m256i,
-        v3: &mut __m256i,
+        v0: &mut StateWord,
+        v1: &mut StateWord,
+        v2: &mut StateWord,
+        v3: &mut StateWord,
     ) {
-        let v3_orig = *v3;
+        let v3_orig = v3.avx;
 
         for _ in 0..(R::COUNT / 2) {
             double_quarter_round(v0, v1, v2, v3);
         }
 
-        *v0 = _mm256_add_epi32(*v0, self.v0.avx);
-        *v1 = _mm256_add_epi32(*v1, self.v1.avx);
-        *v2 = _mm256_add_epi32(*v2, self.v2.avx);
-        *v3 = _mm256_add_epi32(*v3, v3_orig);
+        v0.avx = _mm256_add_epi32(v0.avx, self.v0.avx);
+        v1.avx = _mm256_add_epi32(v1.avx, self.v1.avx);
+        v2.avx = _mm256_add_epi32(v2.avx, self.v2.avx);
+        v3.avx = _mm256_add_epi32(v3.avx, v3_orig);
     }
 }
 
@@ -165,7 +165,12 @@ unsafe fn store(v0: StateWord, v1: StateWord, v2: StateWord, v3: StateWord, outp
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn double_quarter_round(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn double_quarter_round(
+    a: &mut StateWord,
+    b: &mut StateWord,
+    c: &mut StateWord,
+    d: &mut StateWord,
+) {
     add_xor_rot(a, b, c, d);
     rows_to_cols(a, b, c, d);
     add_xor_rot(a, b, c, d);
@@ -209,11 +214,16 @@ unsafe fn double_quarter_round(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i
 /// - https://github.com/floodyberry/chacha-opt/blob/0ab65cb99f5016633b652edebaf3691ceb4ff753/chacha_blocks_ssse3-64.S#L639-L643
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn rows_to_cols(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn rows_to_cols(
+    a: &mut StateWord,
+    _b: &mut StateWord,
+    c: &mut StateWord,
+    d: &mut StateWord,
+) {
     // c = ROR256_B(c); d = ROR256_C(d); a = ROR256_D(a);
-    *c = _mm256_shuffle_epi32(*c, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
-    *d = _mm256_shuffle_epi32(*d, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *a = _mm256_shuffle_epi32(*a, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
+    c.avx = _mm256_shuffle_epi32(c.avx, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
+    d.avx = _mm256_shuffle_epi32(d.avx, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
+    a.avx = _mm256_shuffle_epi32(a.avx, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
 }
 
 /// The goal of this function is to transform the state words from:
@@ -235,21 +245,26 @@ unsafe fn rows_to_cols(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &m
 /// reversing the transformation of [`rows_to_cols`].
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn cols_to_rows(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn cols_to_rows(
+    a: &mut StateWord,
+    _b: &mut StateWord,
+    c: &mut StateWord,
+    d: &mut StateWord,
+) {
     // c = ROR256_D(c); d = ROR256_C(d); a = ROR256_B(a);
-    *c = _mm256_shuffle_epi32(*c, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
-    *d = _mm256_shuffle_epi32(*d, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *a = _mm256_shuffle_epi32(*a, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
+    c.avx = _mm256_shuffle_epi32(c.avx, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
+    d.avx = _mm256_shuffle_epi32(d.avx, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
+    a.avx = _mm256_shuffle_epi32(a.avx, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn add_xor_rot(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn add_xor_rot(a: &mut StateWord, b: &mut StateWord, c: &mut StateWord, d: &mut StateWord) {
     // a = ADD256_32(a,b); d = XOR256(d,a); d = ROL256_16(d);
-    *a = _mm256_add_epi32(*a, *b);
-    *d = _mm256_xor_si256(*d, *a);
-    *d = _mm256_shuffle_epi8(
-        *d,
+    a.avx = _mm256_add_epi32(a.avx, b.avx);
+    d.avx = _mm256_xor_si256(d.avx, a.avx);
+    d.avx = _mm256_shuffle_epi8(
+        d.avx,
         _mm256_set_epi8(
             13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11, 10, 5,
             4, 7, 6, 1, 0, 3, 2,
@@ -257,15 +272,15 @@ unsafe fn add_xor_rot(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut
     );
 
     // c = ADD256_32(c,d); b = XOR256(b,c); b = ROL256_12(b);
-    *c = _mm256_add_epi32(*c, *d);
-    *b = _mm256_xor_si256(*b, *c);
-    *b = _mm256_xor_si256(_mm256_slli_epi32(*b, 12), _mm256_srli_epi32(*b, 20));
+    c.avx = _mm256_add_epi32(c.avx, d.avx);
+    b.avx = _mm256_xor_si256(b.avx, c.avx);
+    b.avx = _mm256_xor_si256(_mm256_slli_epi32(b.avx, 12), _mm256_srli_epi32(b.avx, 20));
 
     // a = ADD256_32(a,b); d = XOR256(d,a); d = ROL256_8(d);
-    *a = _mm256_add_epi32(*a, *b);
-    *d = _mm256_xor_si256(*d, *a);
-    *d = _mm256_shuffle_epi8(
-        *d,
+    a.avx = _mm256_add_epi32(a.avx, b.avx);
+    d.avx = _mm256_xor_si256(d.avx, a.avx);
+    d.avx = _mm256_shuffle_epi8(
+        d.avx,
         _mm256_set_epi8(
             14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8, 11, 6,
             5, 4, 7, 2, 1, 0, 3,
@@ -273,7 +288,7 @@ unsafe fn add_xor_rot(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut
     );
 
     // c = ADD256_32(c,d); b = XOR256(b,c); b = ROL256_7(b);
-    *c = _mm256_add_epi32(*c, *d);
-    *b = _mm256_xor_si256(*b, *c);
-    *b = _mm256_xor_si256(_mm256_slli_epi32(*b, 7), _mm256_srli_epi32(*b, 25));
+    c.avx = _mm256_add_epi32(c.avx, d.avx);
+    b.avx = _mm256_xor_si256(b.avx, c.avx);
+    b.avx = _mm256_xor_si256(_mm256_slli_epi32(b.avx, 7), _mm256_srli_epi32(b.avx, 25));
 }
