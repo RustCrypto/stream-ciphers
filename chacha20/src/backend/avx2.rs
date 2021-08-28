@@ -17,6 +17,9 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+/// The number of blocks processed per invocation by this backend.
+const BLOCKS: usize = 2;
+
 /// Helper union for accessing per-block state.
 ///
 /// ChaCha20 block state is stored in four 32-bit words, so we can process two blocks in
@@ -24,7 +27,7 @@ use core::arch::x86_64::*;
 /// their interpretations.
 #[derive(Clone, Copy)]
 union StateWord {
-    blocks: [__m128i; 2],
+    blocks: [__m128i; BLOCKS],
     avx: __m256i,
 }
 
@@ -79,22 +82,15 @@ impl<R: Rounds> Core<R> {
             let mut v3 = iv_setup(self.iv, counter);
             self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
 
-            for (chunk, a) in output[..BLOCK_SIZE]
-                .chunks_mut(0x10)
-                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
-            {
-                let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(a, b);
-                _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
-            }
-
-            for (chunk, a) in output[BLOCK_SIZE..]
-                .chunks_mut(0x10)
-                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
-            {
-                let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(a, b);
-                _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
+            for i in 0..BLOCKS {
+                for (chunk, a) in output[i * BLOCK_SIZE..(i + 1) * BLOCK_SIZE]
+                    .chunks_mut(0x10)
+                    .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[i]))
+                {
+                    let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
+                    let out = _mm_xor_si128(a, b);
+                    _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
+                }
             }
         }
     }
@@ -157,18 +153,13 @@ unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> StateWord {
 unsafe fn store(v0: StateWord, v1: StateWord, v2: StateWord, v3: StateWord, output: &mut [u8]) {
     debug_assert_eq!(output.len(), BUFFER_SIZE);
 
-    for (chunk, v) in output[..BLOCK_SIZE]
-        .chunks_mut(0x10)
-        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
-    {
-        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
-    }
-
-    for (chunk, v) in output[BLOCK_SIZE..]
-        .chunks_mut(0x10)
-        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
-    {
-        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
+    for i in 0..BLOCKS {
+        for (chunk, v) in output[i * BLOCK_SIZE..(i + 1) * BLOCK_SIZE]
+            .chunks_mut(0x10)
+            .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[i]))
+        {
+            _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
+        }
     }
 }
 
