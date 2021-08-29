@@ -12,6 +12,28 @@ use crate::{
 };
 use core::convert::TryInto;
 
+/// Array wrapper used for `BlockRngCore::Results` associated types.
+#[repr(transparent)]
+pub struct BlockRngResults([u32; BUFFER_SIZE / 4]);
+
+impl Default for BlockRngResults {
+    fn default() -> Self {
+        BlockRngResults([u32::default(); BUFFER_SIZE / 4])
+    }
+}
+
+impl AsRef<[u32]> for BlockRngResults {
+    fn as_ref(&self) -> &[u32] {
+        &self.0
+    }
+}
+
+impl AsMut<[u32]> for BlockRngResults {
+    fn as_mut(&mut self) -> &mut [u32] {
+        &mut self.0
+    }
+}
+
 macro_rules! impl_chacha_rng {
     ($name:ident, $core:ident, $rounds:ident, $doc:expr) => {
         #[doc = $doc]
@@ -71,7 +93,7 @@ macro_rules! impl_chacha_rng {
 
         impl BlockRngCore for $core {
             type Item = u32;
-            type Results = [u32; BUFFER_SIZE / 4];
+            type Results = BlockRngResults;
 
             fn generate(&mut self, results: &mut Self::Results) {
                 // is this necessary?
@@ -83,7 +105,7 @@ macro_rules! impl_chacha_rng {
                 let mut buffer = [0u8; BUFFER_SIZE];
                 self.block.generate(self.counter, &mut buffer);
 
-                for (n, chunk) in results.iter_mut().zip(buffer.chunks_exact(4)) {
+                for (n, chunk) in results.as_mut().iter_mut().zip(buffer.chunks_exact(4)) {
                     *n = u32::from_le_bytes(chunk.try_into().unwrap());
                 }
 
