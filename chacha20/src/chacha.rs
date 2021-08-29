@@ -70,7 +70,7 @@ pub struct ChaCha<R: Rounds, MC: MaxCounter> {
     buffer: Buffer,
 
     /// Position within buffer, or `None` if the buffer is not in use
-    buffer_pos: u8,
+    buffer_pos: u16,
 
     /// Current counter value relative to the start of the keystream
     counter: u64,
@@ -121,7 +121,7 @@ impl<R: Rounds, MC: MaxCounter> StreamCipher for ChaCha<R, MC> {
             if data.len() < BUFFER_SIZE - pos {
                 let n = pos + data.len();
                 xor(data, &self.buffer[pos..n]);
-                self.buffer_pos = n as u8;
+                self.buffer_pos = n as u16;
                 return Ok(());
             } else {
                 let (l, r) = data.split_at_mut(BUFFER_SIZE - pos);
@@ -129,7 +129,7 @@ impl<R: Rounds, MC: MaxCounter> StreamCipher for ChaCha<R, MC> {
                 if let Some(new_ctr) = counter.checked_add(COUNTER_INCR) {
                     counter = new_ctr;
                 } else if data.is_empty() {
-                    self.buffer_pos = BUFFER_SIZE as u8;
+                    self.buffer_pos = BUFFER_SIZE as u16;
                 } else {
                     return Err(LoopError);
                 }
@@ -137,7 +137,7 @@ impl<R: Rounds, MC: MaxCounter> StreamCipher for ChaCha<R, MC> {
             }
         }
 
-        if self.buffer_pos == BUFFER_SIZE as u8 {
+        if self.buffer_pos == BUFFER_SIZE as u16 {
             if data.is_empty() {
                 return Ok(());
             } else {
@@ -154,7 +154,7 @@ impl<R: Rounds, MC: MaxCounter> StreamCipher for ChaCha<R, MC> {
         }
 
         let rem = chunks.into_remainder();
-        self.buffer_pos = rem.len() as u8;
+        self.buffer_pos = rem.len() as u16;
         self.counter = counter;
         if !rem.is_empty() {
             self.generate_block(counter);
@@ -168,24 +168,27 @@ impl<R: Rounds, MC: MaxCounter> StreamCipher for ChaCha<R, MC> {
 impl<R: Rounds, MC: MaxCounter> StreamCipherSeek for ChaCha<R, MC> {
     fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
         // quick and dirty fix, until ctr-like parallel block processing will be added
-        let (counter, pos) = if self.buffer_pos < BLOCK_SIZE as u8 {
-            (self.counter, self.buffer_pos)
-        } else {
-            (
-                self.counter.checked_add(1).ok_or(OverflowError)?,
-                self.buffer_pos - BLOCK_SIZE as u8,
-            )
+        let (counter, pos) = {
+            let mut counter = self.counter;
+            let mut pos = self.buffer_pos;
+
+            while pos >= BLOCK_SIZE as u16 {
+                counter = counter.checked_add(1).ok_or(OverflowError)?;
+                pos -= BLOCK_SIZE as u16;
+            }
+
+            (counter, pos)
         };
-        T::from_block_byte(counter, pos, BLOCK_SIZE as u8)
+        T::from_block_byte(counter, pos as u8, BLOCK_SIZE as u8)
     }
 
     fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
-        let res: (u64, u8) = pos.to_block_byte(BUFFER_SIZE as u8)?;
+        let res: (u64, u8) = pos.to_block_byte(BLOCK_SIZE as u8)?;
         let old_counter = self.counter;
         let old_buffer_pos = self.buffer_pos;
 
-        self.counter = res.0.checked_mul(COUNTER_INCR).ok_or(LoopError)?;
-        self.buffer_pos = res.1;
+        self.counter = res.0;
+        self.buffer_pos = res.1 as u16;
 
         if let Err(e) = self.check_data_len(&[0]) {
             self.counter = old_counter;
