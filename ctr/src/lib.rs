@@ -43,6 +43,7 @@
     html_root_url = "https://docs.rs/ctr/0.8.0"
 )]
 #![warn(missing_docs, rust_2018_idioms)]
+#![allow(clippy::upper_case_acronyms)]
 
 pub use cipher;
 use cipher::{

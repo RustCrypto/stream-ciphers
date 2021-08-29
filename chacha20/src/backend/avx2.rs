@@ -17,15 +17,106 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
+/// The number of blocks processed per invocation by this backend.
+const BLOCKS: usize = 4;
+
 /// Helper union for accessing per-block state.
 ///
 /// ChaCha20 block state is stored in four 32-bit words, so we can process two blocks in
 /// parallel. We store the state words as a union to enable cheap transformations between
 /// their interpretations.
+///
+/// Additionally, we process four blocks at a time to take advantage of ILP.
 #[derive(Clone, Copy)]
 union StateWord {
-    blocks: [__m128i; 2],
-    avx: __m256i,
+    blocks: [__m128i; BLOCKS],
+    avx: [__m256i; BLOCKS / 2],
+}
+
+impl StateWord {
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    unsafe fn add_assign_epi32(&mut self, rhs: &Self) {
+        self.avx = [
+            _mm256_add_epi32(self.avx[0], rhs.avx[0]),
+            _mm256_add_epi32(self.avx[1], rhs.avx[1]),
+        ];
+    }
+
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    unsafe fn xor_assign(&mut self, rhs: &Self) {
+        self.avx = [
+            _mm256_xor_si256(self.avx[0], rhs.avx[0]),
+            _mm256_xor_si256(self.avx[1], rhs.avx[1]),
+        ];
+    }
+
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    unsafe fn shuffle_epi32<const MASK: i32>(&mut self) {
+        self.avx = [
+            _mm256_shuffle_epi32(self.avx[0], MASK),
+            _mm256_shuffle_epi32(self.avx[1], MASK),
+        ];
+    }
+
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    unsafe fn rol<const BY: i32, const REST: i32>(&mut self) {
+        self.avx = [
+            _mm256_xor_si256(
+                _mm256_slli_epi32(self.avx[0], BY),
+                _mm256_srli_epi32(self.avx[0], REST),
+            ),
+            _mm256_xor_si256(
+                _mm256_slli_epi32(self.avx[1], BY),
+                _mm256_srli_epi32(self.avx[1], REST),
+            ),
+        ];
+    }
+
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    unsafe fn rol_8(&mut self) {
+        self.avx = [
+            _mm256_shuffle_epi8(
+                self.avx[0],
+                _mm256_set_epi8(
+                    14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8,
+                    11, 6, 5, 4, 7, 2, 1, 0, 3,
+                ),
+            ),
+            _mm256_shuffle_epi8(
+                self.avx[1],
+                _mm256_set_epi8(
+                    14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8,
+                    11, 6, 5, 4, 7, 2, 1, 0, 3,
+                ),
+            ),
+        ];
+    }
+
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    unsafe fn rol_16(&mut self) {
+        self.avx = [
+            _mm256_shuffle_epi8(
+                self.avx[0],
+                _mm256_set_epi8(
+                    13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11,
+                    10, 5, 4, 7, 6, 1, 0, 3, 2,
+                ),
+            ),
+            _mm256_shuffle_epi8(
+                self.avx[1],
+                _mm256_set_epi8(
+                    13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11,
+                    10, 5, 4, 7, 6, 1, 0, 3, 2,
+                ),
+            ),
+        ];
+    }
 }
 
 /// The ChaCha20 core function (AVX2 accelerated implementation for x86/x86_64)
@@ -63,7 +154,7 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
+            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
             store(v0, v1, v2, v3, output);
         }
     }
@@ -77,24 +168,17 @@ impl<R: Rounds> Core<R> {
         unsafe {
             let (mut v0, mut v1, mut v2) = (self.v0, self.v1, self.v2);
             let mut v3 = iv_setup(self.iv, counter);
-            self.rounds(&mut v0.avx, &mut v1.avx, &mut v2.avx, &mut v3.avx);
+            self.rounds(&mut v0, &mut v1, &mut v2, &mut v3);
 
-            for (chunk, a) in output[..BLOCK_SIZE]
-                .chunks_mut(0x10)
-                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
-            {
-                let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(a, b);
-                _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
-            }
-
-            for (chunk, a) in output[BLOCK_SIZE..]
-                .chunks_mut(0x10)
-                .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
-            {
-                let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                let out = _mm_xor_si128(a, b);
-                _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
+            for i in 0..BLOCKS {
+                for (chunk, a) in output[i * BLOCK_SIZE..(i + 1) * BLOCK_SIZE]
+                    .chunks_mut(0x10)
+                    .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[i]))
+                {
+                    let b = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
+                    let out = _mm_xor_si128(a, b);
+                    _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, out);
+                }
             }
         }
     }
@@ -103,10 +187,10 @@ impl<R: Rounds> Core<R> {
     #[target_feature(enable = "avx2")]
     unsafe fn rounds(
         &self,
-        v0: &mut __m256i,
-        v1: &mut __m256i,
-        v2: &mut __m256i,
-        v3: &mut __m256i,
+        v0: &mut StateWord,
+        v1: &mut StateWord,
+        v2: &mut StateWord,
+        v3: &mut StateWord,
     ) {
         let v3_orig = *v3;
 
@@ -114,10 +198,10 @@ impl<R: Rounds> Core<R> {
             double_quarter_round(v0, v1, v2, v3);
         }
 
-        *v0 = _mm256_add_epi32(*v0, self.v0.avx);
-        *v1 = _mm256_add_epi32(*v1, self.v1.avx);
-        *v2 = _mm256_add_epi32(*v2, self.v2.avx);
-        *v3 = _mm256_add_epi32(*v3, v3_orig);
+        v0.add_assign_epi32(&self.v0);
+        v1.add_assign_epi32(&self.v1);
+        v2.add_assign_epi32(&self.v2);
+        v3.add_assign_epi32(&v3_orig);
     }
 }
 
@@ -130,9 +214,15 @@ unsafe fn key_setup(key: &[u8; KEY_SIZE]) -> (StateWord, StateWord, StateWord) {
     let v2 = _mm_loadu_si128(key.as_ptr().offset(0x10) as *const __m128i);
 
     (
-        StateWord { blocks: [v0, v0] },
-        StateWord { blocks: [v1, v1] },
-        StateWord { blocks: [v2, v2] },
+        StateWord {
+            blocks: [v0, v0, v0, v0],
+        },
+        StateWord {
+            blocks: [v1, v1, v1, v1],
+        },
+        StateWord {
+            blocks: [v2, v2, v2, v2],
+        },
     )
 }
 
@@ -147,7 +237,12 @@ unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> StateWord {
     );
 
     StateWord {
-        blocks: [s3, _mm_add_epi64(s3, _mm_set_epi64x(0, 1))],
+        blocks: [
+            s3,
+            _mm_add_epi64(s3, _mm_set_epi64x(0, 1)),
+            _mm_add_epi64(s3, _mm_set_epi64x(0, 2)),
+            _mm_add_epi64(s3, _mm_set_epi64x(0, 3)),
+        ],
     }
 }
 
@@ -157,24 +252,24 @@ unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> StateWord {
 unsafe fn store(v0: StateWord, v1: StateWord, v2: StateWord, v3: StateWord, output: &mut [u8]) {
     debug_assert_eq!(output.len(), BUFFER_SIZE);
 
-    for (chunk, v) in output[..BLOCK_SIZE]
-        .chunks_mut(0x10)
-        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[0]))
-    {
-        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
-    }
-
-    for (chunk, v) in output[BLOCK_SIZE..]
-        .chunks_mut(0x10)
-        .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[1]))
-    {
-        _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
+    for i in 0..BLOCKS {
+        for (chunk, v) in output[i * BLOCK_SIZE..(i + 1) * BLOCK_SIZE]
+            .chunks_mut(0x10)
+            .zip([v0, v1, v2, v3].iter().map(|s| s.blocks[i]))
+        {
+            _mm_storeu_si128(chunk.as_mut_ptr() as *mut __m128i, v);
+        }
     }
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn double_quarter_round(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn double_quarter_round(
+    a: &mut StateWord,
+    b: &mut StateWord,
+    c: &mut StateWord,
+    d: &mut StateWord,
+) {
     add_xor_rot(a, b, c, d);
     rows_to_cols(a, b, c, d);
     add_xor_rot(a, b, c, d);
@@ -218,11 +313,16 @@ unsafe fn double_quarter_round(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i
 /// - https://github.com/floodyberry/chacha-opt/blob/0ab65cb99f5016633b652edebaf3691ceb4ff753/chacha_blocks_ssse3-64.S#L639-L643
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn rows_to_cols(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn rows_to_cols(
+    a: &mut StateWord,
+    _b: &mut StateWord,
+    c: &mut StateWord,
+    d: &mut StateWord,
+) {
     // c = ROR256_B(c); d = ROR256_C(d); a = ROR256_D(a);
-    *c = _mm256_shuffle_epi32(*c, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
-    *d = _mm256_shuffle_epi32(*d, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *a = _mm256_shuffle_epi32(*a, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
+    c.shuffle_epi32::<0b_00_11_10_01>(); // _MM_SHUFFLE(0, 3, 2, 1)
+    d.shuffle_epi32::<0b_01_00_11_10>(); // _MM_SHUFFLE(1, 0, 3, 2)
+    a.shuffle_epi32::<0b_10_01_00_11>(); // _MM_SHUFFLE(2, 1, 0, 3)
 }
 
 /// The goal of this function is to transform the state words from:
@@ -244,45 +344,38 @@ unsafe fn rows_to_cols(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &m
 /// reversing the transformation of [`rows_to_cols`].
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn cols_to_rows(a: &mut __m256i, _b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn cols_to_rows(
+    a: &mut StateWord,
+    _b: &mut StateWord,
+    c: &mut StateWord,
+    d: &mut StateWord,
+) {
     // c = ROR256_D(c); d = ROR256_C(d); a = ROR256_B(a);
-    *c = _mm256_shuffle_epi32(*c, 0b_10_01_00_11); // _MM_SHUFFLE(2, 1, 0, 3)
-    *d = _mm256_shuffle_epi32(*d, 0b_01_00_11_10); // _MM_SHUFFLE(1, 0, 3, 2)
-    *a = _mm256_shuffle_epi32(*a, 0b_00_11_10_01); // _MM_SHUFFLE(0, 3, 2, 1)
+    c.shuffle_epi32::<0b_10_01_00_11>(); // _MM_SHUFFLE(2, 1, 0, 3)
+    d.shuffle_epi32::<0b_01_00_11_10>(); // _MM_SHUFFLE(1, 0, 3, 2)
+    a.shuffle_epi32::<0b_00_11_10_01>(); // _MM_SHUFFLE(0, 3, 2, 1)
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn add_xor_rot(a: &mut __m256i, b: &mut __m256i, c: &mut __m256i, d: &mut __m256i) {
+unsafe fn add_xor_rot(a: &mut StateWord, b: &mut StateWord, c: &mut StateWord, d: &mut StateWord) {
     // a = ADD256_32(a,b); d = XOR256(d,a); d = ROL256_16(d);
-    *a = _mm256_add_epi32(*a, *b);
-    *d = _mm256_xor_si256(*d, *a);
-    *d = _mm256_shuffle_epi8(
-        *d,
-        _mm256_set_epi8(
-            13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11, 10, 5,
-            4, 7, 6, 1, 0, 3, 2,
-        ),
-    );
+    a.add_assign_epi32(b);
+    d.xor_assign(a);
+    d.rol_16();
 
     // c = ADD256_32(c,d); b = XOR256(b,c); b = ROL256_12(b);
-    *c = _mm256_add_epi32(*c, *d);
-    *b = _mm256_xor_si256(*b, *c);
-    *b = _mm256_xor_si256(_mm256_slli_epi32(*b, 12), _mm256_srli_epi32(*b, 20));
+    c.add_assign_epi32(d);
+    b.xor_assign(c);
+    b.rol::<12, 20>();
 
     // a = ADD256_32(a,b); d = XOR256(d,a); d = ROL256_8(d);
-    *a = _mm256_add_epi32(*a, *b);
-    *d = _mm256_xor_si256(*d, *a);
-    *d = _mm256_shuffle_epi8(
-        *d,
-        _mm256_set_epi8(
-            14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8, 11, 6,
-            5, 4, 7, 2, 1, 0, 3,
-        ),
-    );
+    a.add_assign_epi32(b);
+    d.xor_assign(a);
+    d.rol_8();
 
     // c = ADD256_32(c,d); b = XOR256(b,c); b = ROL256_7(b);
-    *c = _mm256_add_epi32(*c, *d);
-    *b = _mm256_xor_si256(*b, *c);
-    *b = _mm256_xor_si256(_mm256_slli_epi32(*b, 7), _mm256_srli_epi32(*b, 25));
+    c.add_assign_epi32(d);
+    b.xor_assign(c);
+    b.rol::<7, 25>();
 }

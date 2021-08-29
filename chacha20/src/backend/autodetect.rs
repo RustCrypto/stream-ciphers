@@ -8,7 +8,9 @@ use core::mem::ManuallyDrop;
 
 /// Size of buffers passed to `generate` and `apply_keystream` for this
 /// backend, which operates on two blocks in parallel for optimal performance.
-pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE * 2;
+/// The backend consumes four blocks at a time, so that the AVX2 implementation
+/// can additionally pipeline the pairs of blocks for better ILP.
+pub(crate) const BUFFER_SIZE: usize = BLOCK_SIZE * 4;
 
 cpufeatures::new!(avx2_cpuid, "avx2");
 
