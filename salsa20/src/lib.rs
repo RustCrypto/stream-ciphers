@@ -62,10 +62,12 @@ pub use cipher;
 mod core;
 mod rounds;
 mod salsa;
-#[cfg(feature = "xsalsa20")]
 mod xsalsa;
 
-pub use crate::salsa::{Key, Nonce, Salsa, Salsa12, Salsa20, Salsa8};
+pub use crate::{
+    salsa::{Key, Nonce, Salsa, Salsa12, Salsa20, Salsa8},
+    xsalsa::{XNonce, XSalsa20},
+};
 
 #[cfg(feature = "expose-core")]
 pub use crate::{
@@ -75,9 +77,6 @@ pub use crate::{
 
 #[cfg(feature = "hsalsa20")]
 pub use crate::xsalsa::hsalsa20;
-
-#[cfg(feature = "xsalsa20")]
-pub use crate::xsalsa::{XNonce, XSalsa20};
 
 /// Size of a Salsa20 block in bytes
 pub const BLOCK_SIZE: usize = 64;

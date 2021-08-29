@@ -13,7 +13,7 @@
 //! - [`ChaCha20`]: standard IETF variant with 96-bit nonce
 //! - [`ChaCha20Legacy`]: (gated under the `legacy` feature) "djb" variant with 64-bit nonce
 //! - [`ChaCha8`] / [`ChaCha12`]: reduced round variants of ChaCha20
-//! - [`XChaCha20`]: (gated under the `xchacha20` feature) 192-bit extended nonce variant
+//! - [`XChaCha20`]: 192-bit extended nonce variant
 //! - [`XChaCha8`] / [`XChaCha12`]: reduced round variants of XChaCha20
 //!
 //! # ⚠️ Security Warning: [Hazmat!]
@@ -42,6 +42,8 @@
 //! # Usage
 //!
 //! ```
+//! # #[cfg(feature = "cipher")]
+//! # {
 //! use chacha20::{ChaCha20, Key, Nonce};
 //! use chacha20::cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 //!
@@ -61,6 +63,7 @@
 //! cipher.seek(0);
 //! cipher.apply_keystream(&mut data);
 //! assert_eq!(data, [1, 2, 3, 4, 5, 6, 7]);
+//! # }
 //! ```
 //!
 //! [RFC 8439]: https://tools.ietf.org/html/rfc8439
@@ -85,14 +88,17 @@ mod max_blocks;
 #[cfg(feature = "rng")]
 mod rng;
 mod rounds;
-#[cfg(feature = "xchacha")]
+#[cfg(feature = "cipher")]
 mod xchacha;
 
 #[cfg(feature = "cipher")]
 pub use cipher;
 
 #[cfg(feature = "cipher")]
-pub use crate::chacha::{ChaCha, ChaCha12, ChaCha20, ChaCha8, Key, Nonce};
+pub use crate::{
+    chacha::{ChaCha, ChaCha12, ChaCha20, ChaCha8, Key, Nonce},
+    xchacha::{XChaCha, XChaCha12, XChaCha20, XChaCha8, XNonce},
+};
 
 #[cfg(feature = "expose-core")]
 pub use crate::{
@@ -110,9 +116,6 @@ pub use crate::legacy::{ChaCha20Legacy, LegacyNonce};
 pub use rng::{
     ChaCha12Rng, ChaCha12RngCore, ChaCha20Rng, ChaCha20RngCore, ChaCha8Rng, ChaCha8RngCore,
 };
-
-#[cfg(feature = "xchacha")]
-pub use self::xchacha::{XChaCha, XChaCha12, XChaCha20, XChaCha8, XNonce};
 
 /// Size of a ChaCha20 block in bytes
 pub const BLOCK_SIZE: usize = 64;

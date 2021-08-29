@@ -2,11 +2,9 @@
 
 use cipher::{generic_array::GenericArray, NewCipher, StreamCipher, StreamCipherSeek};
 use salsa20::Salsa20;
-#[cfg(feature = "xsalsa20")]
 use salsa20::XSalsa20;
 
 cipher::stream_cipher_seek_test!(salsa20_seek, Salsa20);
-#[cfg(feature = "xsalsa20")]
 cipher::stream_cipher_seek_test!(xsalsa20_seek, XSalsa20);
 
 #[cfg(test)]
@@ -15,7 +13,6 @@ const KEY_BYTES: usize = 32;
 #[cfg(test)]
 const IV_BYTES: usize = 8;
 
-#[cfg(feature = "xsalsa20")]
 #[cfg(test)]
 const IV_BYTES_XSALSA20: usize = 24;
 
@@ -37,7 +34,6 @@ const KEY_LONG: [u8; KEY_BYTES] = [
     27, 28, 29, 30, 31, 32,
 ];
 
-#[cfg(feature = "xsalsa20")]
 #[cfg(test)]
 const KEY_XSALSA20: [u8; KEY_BYTES] = *b"this is 32-byte key for xsalsa20";
 
@@ -53,7 +49,6 @@ const IVHI: [u8; IV_BYTES] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01];
 #[cfg(test)]
 const IV_LONG: [u8; IV_BYTES] = [3, 1, 4, 1, 5, 9, 2, 6];
 
-#[cfg(feature = "xsalsa20")]
 #[cfg(test)]
 const IV_XSALSA20: [u8; IV_BYTES_XSALSA20] = *b"24-byte nonce for xsalsa";
 
@@ -101,7 +96,6 @@ const EXPECTED_LONG: [u8; 256] = [
     0xcb, 0xe6, 0xa7, 0x16, 0x1e, 0x86, 0x53, 0xce, 0x93, 0x91, 0xe1, 0xe6, 0x71, 0x0e, 0xd4, 0xf1,
 ];
 
-#[cfg(feature = "xsalsa20")]
 #[cfg(test)]
 const EXPECTED_XSALSA20_ZEROS: [u8; 64] = [
     0x48, 0x48, 0x29, 0x7f, 0xeb, 0x1f, 0xb5, 0x2f, 0xb6, 0x6d, 0x81, 0x60, 0x9b, 0xd5, 0x47, 0xfa,
@@ -110,7 +104,6 @@ const EXPECTED_XSALSA20_ZEROS: [u8; 64] = [
     0x40, 0x50, 0xd0, 0x8c, 0xe6, 0xd3, 0xa1, 0x51, 0xec, 0x26, 0x5f, 0x3a, 0x58, 0xe4, 0x76, 0x48,
 ];
 
-#[cfg(feature = "xsalsa20")]
 #[cfg(test)]
 const EXPECTED_XSALSA20_HELLO_WORLD: [u8; 12] = [
     0x00, 0x2d, 0x45, 0x13, 0x84, 0x3f, 0xc2, 0x40, 0xc4, 0x01, 0xe5, 0x41,
@@ -186,7 +179,6 @@ fn salsa20_offsets() {
     }
 }
 
-#[cfg(feature = "xsalsa20")]
 #[test]
 fn xsalsa20_encrypt_zeros() {
     let key = GenericArray::from(KEY_XSALSA20);
@@ -201,7 +193,6 @@ fn xsalsa20_encrypt_zeros() {
     }
 }
 
-#[cfg(feature = "xsalsa20")]
 #[test]
 fn xsalsa20_encrypt_hello_world() {
     let key = GenericArray::from(KEY_XSALSA20);

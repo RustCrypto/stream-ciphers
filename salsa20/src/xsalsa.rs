@@ -10,7 +10,6 @@ use cipher::{
 use core::convert::TryInto;
 
 /// EXtended Salsa20 nonce (192-bit/24-byte)
-#[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
 pub type XNonce = cipher::Nonce<XSalsa20>;
 
 /// XSalsa20 is a Salsa20 variant with an extended 192-bit (24-byte) nonce.
@@ -21,7 +20,6 @@ pub type XNonce = cipher::Nonce<XSalsa20>;
 ///
 /// The `xsalsa20` Cargo feature must be enabled in order to use this
 /// (which it is by default).
-#[cfg_attr(docsrs, doc(cfg(feature = "xsalsa20")))]
 pub struct XSalsa20(Salsa20);
 
 impl NewCipher for XSalsa20 {
