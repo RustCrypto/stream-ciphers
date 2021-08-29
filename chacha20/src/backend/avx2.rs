@@ -18,69 +18,104 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 
 /// The number of blocks processed per invocation by this backend.
-const BLOCKS: usize = 2;
+const BLOCKS: usize = 4;
 
 /// Helper union for accessing per-block state.
 ///
 /// ChaCha20 block state is stored in four 32-bit words, so we can process two blocks in
 /// parallel. We store the state words as a union to enable cheap transformations between
 /// their interpretations.
+///
+/// Additionally, we process four blocks at a time to take advantage of ILP.
 #[derive(Clone, Copy)]
 union StateWord {
     blocks: [__m128i; BLOCKS],
-    avx: __m256i,
+    avx: [__m256i; BLOCKS / 2],
 }
 
 impl StateWord {
     #[inline]
     #[target_feature(enable = "avx2")]
     unsafe fn add_assign_epi32(&mut self, rhs: &Self) {
-        self.avx = _mm256_add_epi32(self.avx, rhs.avx);
+        self.avx = [
+            _mm256_add_epi32(self.avx[0], rhs.avx[0]),
+            _mm256_add_epi32(self.avx[1], rhs.avx[1]),
+        ];
     }
 
     #[inline]
     #[target_feature(enable = "avx2")]
     unsafe fn xor_assign(&mut self, rhs: &Self) {
-        self.avx = _mm256_xor_si256(self.avx, rhs.avx);
+        self.avx = [
+            _mm256_xor_si256(self.avx[0], rhs.avx[0]),
+            _mm256_xor_si256(self.avx[1], rhs.avx[1]),
+        ];
     }
 
     #[inline]
     #[target_feature(enable = "avx2")]
     unsafe fn shuffle_epi32<const MASK: i32>(&mut self) {
-        self.avx = _mm256_shuffle_epi32(self.avx, MASK);
+        self.avx = [
+            _mm256_shuffle_epi32(self.avx[0], MASK),
+            _mm256_shuffle_epi32(self.avx[1], MASK),
+        ];
     }
 
     #[inline]
     #[target_feature(enable = "avx2")]
     unsafe fn rol<const BY: i32, const REST: i32>(&mut self) {
-        self.avx = _mm256_xor_si256(
-            _mm256_slli_epi32(self.avx, BY),
-            _mm256_srli_epi32(self.avx, REST),
-        );
+        self.avx = [
+            _mm256_xor_si256(
+                _mm256_slli_epi32(self.avx[0], BY),
+                _mm256_srli_epi32(self.avx[0], REST),
+            ),
+            _mm256_xor_si256(
+                _mm256_slli_epi32(self.avx[1], BY),
+                _mm256_srli_epi32(self.avx[1], REST),
+            ),
+        ];
     }
 
     #[inline]
     #[target_feature(enable = "avx2")]
     unsafe fn rol_8(&mut self) {
-        self.avx = _mm256_shuffle_epi8(
-            self.avx,
-            _mm256_set_epi8(
-                14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8, 11,
-                6, 5, 4, 7, 2, 1, 0, 3,
+        self.avx = [
+            _mm256_shuffle_epi8(
+                self.avx[0],
+                _mm256_set_epi8(
+                    14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8,
+                    11, 6, 5, 4, 7, 2, 1, 0, 3,
+                ),
             ),
-        );
+            _mm256_shuffle_epi8(
+                self.avx[1],
+                _mm256_set_epi8(
+                    14, 13, 12, 15, 10, 9, 8, 11, 6, 5, 4, 7, 2, 1, 0, 3, 14, 13, 12, 15, 10, 9, 8,
+                    11, 6, 5, 4, 7, 2, 1, 0, 3,
+                ),
+            ),
+        ];
     }
 
     #[inline]
     #[target_feature(enable = "avx2")]
     unsafe fn rol_16(&mut self) {
-        self.avx = _mm256_shuffle_epi8(
-            self.avx,
-            _mm256_set_epi8(
-                13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11, 10,
-                5, 4, 7, 6, 1, 0, 3, 2,
+        self.avx = [
+            _mm256_shuffle_epi8(
+                self.avx[0],
+                _mm256_set_epi8(
+                    13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11,
+                    10, 5, 4, 7, 6, 1, 0, 3, 2,
+                ),
             ),
-        );
+            _mm256_shuffle_epi8(
+                self.avx[1],
+                _mm256_set_epi8(
+                    13, 12, 15, 14, 9, 8, 11, 10, 5, 4, 7, 6, 1, 0, 3, 2, 13, 12, 15, 14, 9, 8, 11,
+                    10, 5, 4, 7, 6, 1, 0, 3, 2,
+                ),
+            ),
+        ];
     }
 }
 
@@ -179,9 +214,15 @@ unsafe fn key_setup(key: &[u8; KEY_SIZE]) -> (StateWord, StateWord, StateWord) {
     let v2 = _mm_loadu_si128(key.as_ptr().offset(0x10) as *const __m128i);
 
     (
-        StateWord { blocks: [v0, v0] },
-        StateWord { blocks: [v1, v1] },
-        StateWord { blocks: [v2, v2] },
+        StateWord {
+            blocks: [v0, v0, v0, v0],
+        },
+        StateWord {
+            blocks: [v1, v1, v1, v1],
+        },
+        StateWord {
+            blocks: [v2, v2, v2, v2],
+        },
     )
 }
 
@@ -196,7 +237,12 @@ unsafe fn iv_setup(iv: [i32; 2], counter: u64) -> StateWord {
     );
 
     StateWord {
-        blocks: [s3, _mm_add_epi64(s3, _mm_set_epi64x(0, 1))],
+        blocks: [
+            s3,
+            _mm_add_epi64(s3, _mm_set_epi64x(0, 1)),
+            _mm_add_epi64(s3, _mm_set_epi64x(0, 2)),
+            _mm_add_epi64(s3, _mm_set_epi64x(0, 3)),
+        ],
     }
 }
 
