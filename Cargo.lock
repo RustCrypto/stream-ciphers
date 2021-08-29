@@ -204,7 +204,7 @@ checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 
 [[package]]
 name = "salsa20"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "cipher",
  "zeroize",
