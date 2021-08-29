@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.0 (2021-08-29)
+### Added
+- SSE2 autodetection support ([#270])
+
+### Changed
+- AVX2 performance improvements ([#267], [#267])
+- MSRV 1.51+ ([#267])
+- Lock to `zeroize` <1.5 ([#269])
+
+### Removed
+- `xchacha` feature: all `XChaCha*` types are now available by-default ([#271])
+
+[#267]: https://github.com/RustCrypto/stream-ciphers/pull/267
+[#269]: https://github.com/RustCrypto/stream-ciphers/pull/269
+[#270]: https://github.com/RustCrypto/stream-ciphers/pull/270
+[#271]: https://github.com/RustCrypto/stream-ciphers/pull/271
+
 ## 0.7.3 (2021-08-27)
 ### Changed
 - Improve AVX2 performance ([#261])
