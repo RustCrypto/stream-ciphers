@@ -14,12 +14,10 @@ cfg_if! {
         pub(crate) mod autodetect;
         pub(crate) mod avx2;
         pub(crate) mod sse2;
+        pub(crate) mod soft;
 
         pub(crate) use self::autodetect::BUFFER_SIZE;
         pub use self::autodetect::Core;
-
-        #[cfg(feature = "xchacha")]
-        pub(crate) mod soft;
     } else {
         pub(crate) mod soft;
         pub(crate) use self::soft::BUFFER_SIZE;

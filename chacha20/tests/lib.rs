@@ -1,5 +1,7 @@
 //! Tests for ChaCha20 (IETF and "djb" versions) as well as XChaCha20
 
+#![cfg(feature = "cipher")]
+
 use chacha20::ChaCha20;
 
 // IETF version of ChaCha20 (96-bit nonce)
@@ -10,9 +12,7 @@ mod overflow {
     use cipher::{NewCipher, StreamCipher, StreamCipherSeek};
 
     const OFFSET_256GB: u64 = 256u64 << 30;
-    #[cfg(feature = "xchacha")]
     const OFFSET_256PB: u64 = 256u64 << 50;
-    #[cfg(feature = "xchacha")]
     const OFFSET_1ZB: u128 = (64u128) << 64;
 
     #[test]
@@ -114,7 +114,6 @@ mod overflow {
         }
     }
 
-    #[cfg(feature = "xchacha")]
     #[test]
     fn xchacha_256gb() {
         let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
@@ -132,7 +131,6 @@ mod overflow {
             .expect("Couldn't encrypt past the last byte of 256GB");
     }
 
-    #[cfg(feature = "xchacha")]
     #[test]
     fn xchacha_upper_limit() {
         let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
@@ -149,7 +147,6 @@ mod overflow {
             .expect_err("Could encrypt past 1 zebibyte");
     }
 
-    #[cfg(feature = "xchacha")]
     #[test]
     fn xchacha_has_a_big_counter() {
         let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
@@ -219,17 +216,9 @@ mod chacha20test {
     // <https://datatracker.ietf.org/doc/html/rfc8439#section-2.4.2>
     //
 
-    const KEY: [u8; 32] = hex!(
-        "
-        000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
-    "
-    );
+    const KEY: [u8; 32] = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
-    const IV: [u8; 12] = hex!(
-        "
-        000000000000004a00000000
-    "
-    );
+    const IV: [u8; 12] = hex!("000000000000004a00000000");
 
     const PLAINTEXT: [u8; 114] = hex!(
         "
@@ -241,7 +230,7 @@ mod chacha20test {
         746865206675747572652c2073756e73
         637265656e20776f756c642062652069
         742e
-    "
+        "
     );
 
     const KEYSTREAM: [u8; 114] = hex!(
@@ -251,7 +240,7 @@ mod chacha20test {
         9334794cba40c63e34cdea212c4cf07d41b769a6749f3f
         630f4122cafe28ec4dc47e26d4346d70b98c73f3e9c53a
         c40c5945398b6eda1a832c89c167eacd901d7e2bf363
-    "
+        "
     );
 
     const CIPHERTEXT: [u8; 114] = hex!(
@@ -264,7 +253,7 @@ mod chacha20test {
         52bc514d16ccf806818ce91ab7793736
         5af90bbf74a35be6b40b8eedf2785e42
         874d
-    "
+        "
     );
 
     #[test]
@@ -294,7 +283,6 @@ mod chacha20test {
     }
 }
 
-#[cfg(feature = "xchacha")]
 #[rustfmt::skip]
 mod xchacha20 {
     use chacha20::{Key, XChaCha20, XNonce};

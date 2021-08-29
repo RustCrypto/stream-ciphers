@@ -16,7 +16,6 @@ use cipher::{
 use core::convert::TryInto;
 
 /// EXtended ChaCha20 nonce (192-bits/24-bytes)
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XNonce = cipher::Nonce<XChaCha20>;
 
 /// XChaCha20 is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
@@ -34,24 +33,12 @@ pub type XNonce = cipher::Nonce<XChaCha20>;
 /// and is documented in an (expired) IETF draft:
 ///
 /// <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
-///
-/// The `xchacha` Cargo feature must be enabled in order to use this
-/// (which it is by default).
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha20 = XChaCha<R20>;
 
 /// XChaCha12 stream cipher (reduced-round variant of [`XChaCha20`] with 12 rounds)
-///
-/// The `xchacha` Cargo feature must be enabled in order to use this
-/// (which it is by default).
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha12 = XChaCha<R12>;
 
 /// XChaCha8 stream cipher (reduced-round variant of [`XChaCha20`] with 8 rounds)
-///
-/// The `xchacha` Cargo feature must be enabled in order to use this
-/// (which it is by default).
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub type XChaCha8 = XChaCha<R8>;
 
 /// XChaCha family stream cipher, generic around a number of rounds.
@@ -60,7 +47,6 @@ pub type XChaCha8 = XChaCha<R8>;
 /// a specific number of rounds.
 ///
 /// Generally [`XChaCha20`] is preferred.
-#[cfg_attr(docsrs, doc(cfg(feature = "xchacha")))]
 pub struct XChaCha<R: Rounds>(ChaCha<R, C64>);
 
 impl<R: Rounds> NewCipher for XChaCha<R> {
