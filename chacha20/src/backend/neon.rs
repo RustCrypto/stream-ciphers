@@ -89,6 +89,15 @@ impl QuadWord {
     unsafe fn rol<const BY: i32, const REST: i32>(self) -> Self {
         QuadWord(vsliq_n_u32(vshrq_n_u32(self.0, REST), self.0, BY))
     }
+
+    #[inline]
+    #[must_use]
+    #[target_feature(enable = "neon")]
+    unsafe fn rol_16(self) -> Self {
+        QuadWord(vreinterpretq_u32_u16(vrev32q_u16(vreinterpretq_u16_u32(
+            self.0,
+        ))))
+    }
 }
 
 /// The state required to process four blocks in parallel.
@@ -419,7 +428,7 @@ unsafe fn vec4_quarter_round(
 ) {
     // a += b; d ^= a; d <<<= (16, 16, 16, 16);
     *a = a.add(*b);
-    *d = d.xor(*a).rol::<16, 16>();
+    *d = d.xor(*a).rol_16();
 
     // c += d; b ^= c; b <<<= (12, 12, 12, 12);
     *c = c.add(*d);
