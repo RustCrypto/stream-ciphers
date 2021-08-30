@@ -74,28 +74,14 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_root_url = "https://docs.rs/chacha20/0.8.0"
+    html_root_url = "https://docs.rs/chacha20/0.8.1"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(
+    all(feature = "neon", target_arch = "aarch64", target_feature = "neon"),
+    feature(stdsimd, aarch64_target_feature)
+)]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
-#![cfg_attr(
-    all(
-        feature = "neon",
-        target_arch = "aarch64",
-        target_feature = "neon",
-        not(feature = "force-soft")
-    ),
-    feature(stdsimd)
-)]
-#![cfg_attr(
-    all(
-        feature = "neon",
-        target_arch = "aarch64",
-        target_feature = "neon",
-        not(feature = "force-soft")
-    ),
-    feature(aarch64_target_feature)
-)]
 
 mod backend;
 #[cfg(feature = "cipher")]
