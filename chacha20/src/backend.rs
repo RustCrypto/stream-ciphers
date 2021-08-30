@@ -5,6 +5,8 @@
 
 use cfg_if::cfg_if;
 
+pub(crate) mod soft;
+
 cfg_if! {
     if #[cfg(all(
         any(target_arch = "x86", target_arch = "x86_64"),
@@ -14,12 +16,19 @@ cfg_if! {
         pub(crate) mod autodetect;
         pub(crate) mod avx2;
         pub(crate) mod sse2;
-        pub(crate) mod soft;
 
         pub(crate) use self::autodetect::BUFFER_SIZE;
         pub use self::autodetect::Core;
+    } else if #[cfg(all(
+        feature = "nightly",
+        target_arch = "aarch64",
+        target_feature = "neon",
+        not(feature = "force-soft")
+    ))] {
+        pub(crate) mod neon;
+        pub(crate) use self::neon::BUFFER_SIZE;
+        pub use self::neon::Core;
     } else {
-        pub(crate) mod soft;
         pub(crate) use self::soft::BUFFER_SIZE;
         pub use self::soft::Core;
     }

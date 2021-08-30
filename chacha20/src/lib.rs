@@ -78,6 +78,24 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
+#![cfg_attr(
+    all(
+        feature = "nightly",
+        target_arch = "aarch64",
+        target_feature = "neon",
+        not(feature = "force-soft")
+    ),
+    feature(stdsimd)
+)]
+#![cfg_attr(
+    all(
+        feature = "nightly",
+        target_arch = "aarch64",
+        target_feature = "neon",
+        not(feature = "force-soft")
+    ),
+    feature(aarch64_target_feature)
+)]
 
 mod backend;
 #[cfg(feature = "cipher")]
