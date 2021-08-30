@@ -163,6 +163,11 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             rust: stable
 
+          # ARM64 with NEON backend
+          - target: aarch64-unknown-linux-gnu
+            rust: nightly
+            features: --features neon
+
           # PPC32
           - target: powerpc-unknown-linux-gnu
             rust: 1.51.0 # MSRV
@@ -180,7 +185,7 @@ jobs:
           profile: minimal
           override: true
       - run: cargo install cross
-      - run: cross test --target ${{ matrix.target }} --release
+      - run: cross test --target ${{ matrix.target }} --release ${{ matrix.features }}
       - run: cross test --target ${{ matrix.target }} --release --features force-soft
       - run: cross test --target ${{ matrix.target }} --release --features rng
       - run: cross test --target ${{ matrix.target }} --release --features std

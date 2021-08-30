@@ -37,6 +37,7 @@ expose-core = []
 force-soft = []
 hchacha = ["cipher"]
 legacy = ["cipher"]
+neon = []
 rng = ["rand_core"]
 std = ["cipher/std"]
 
