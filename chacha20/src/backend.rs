@@ -20,7 +20,7 @@ cfg_if! {
         pub(crate) use self::autodetect::BUFFER_SIZE;
         pub use self::autodetect::Core;
     } else if #[cfg(all(
-        feature = "nightly",
+        feature = "neon",
         target_arch = "aarch64",
         target_feature = "neon",
         not(feature = "force-soft")

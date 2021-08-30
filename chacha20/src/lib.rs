@@ -80,7 +80,7 @@
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 #![cfg_attr(
     all(
-        feature = "nightly",
+        feature = "neon",
         target_arch = "aarch64",
         target_feature = "neon",
         not(feature = "force-soft")
@@ -89,7 +89,7 @@
 )]
 #![cfg_attr(
     all(
-        feature = "nightly",
+        feature = "neon",
         target_arch = "aarch64",
         target_feature = "neon",
         not(feature = "force-soft")
