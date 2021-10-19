@@ -241,5 +241,11 @@ fn xor(buf: &mut [u8], key: &[u8]) {
 #[inline(always)]
 fn to_slice<C: BlockEncrypt>(blocks: &ParBlocks<C>) -> &[u8] {
     let blocks_len = C::BlockSize::to_usize() * C::ParBlocks::to_usize();
+    // SAFETY:
+    // - `blocks` is a `GenericArray<GenericArray<u8, C::BlockSize>, C::ParBlocks>`, and
+    //   so `blocks.as_ptr()` returns a pointer to the `&[GenericArray<u8, C::BlockSize>]`
+    //   slice represented by `blocks`.
+    // - `GenericArray<T, N>` has the same layout as `[T; N]`.
+    // - `[[u8; M]; N]` has the same layout as `[u8; M * N]`.
     unsafe { core::slice::from_raw_parts(blocks.as_ptr() as *const u8, blocks_len) }
 }
