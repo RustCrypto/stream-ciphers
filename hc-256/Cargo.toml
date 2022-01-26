@@ -1,6 +1,6 @@
 [package]
 name = "hc-256"
-version = "0.4.1" # Also update html_root_url in lib.rs when bumping this
+version = "0.5.0" # Also update html_root_url in lib.rs when bumping this
 authors = ["Eric McCorkle <eric@metricspace.net>"]
 license = "MIT OR Apache-2.0"
 description = "HC-256 Stream Cipher"
