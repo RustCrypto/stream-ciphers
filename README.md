@@ -20,6 +20,7 @@ received any formal cryptographic and security reviews/audits.
 | [`cfb8`]     | [![crates.io](https://img.shields.io/crates/v/cfb8.svg)](https://crates.io/crates/cfb8) | [![Documentation](https://docs.rs/cfb8/badge.svg)](https://docs.rs/cfb8) | 1.41 |
 | [`chacha20`] | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | 1.51 |
 | [`ctr`]      | [![crates.io](https://img.shields.io/crates/v/ctr.svg)](https://crates.io/crates/ctr) | [![Documentation](https://docs.rs/ctr/badge.svg)](https://docs.rs/ctr) | 1.41 |
+| [`hc-128`]   | [![crates.io](https://img.shields.io/crates/v/hc-128.svg)](https://crates.io/crates/hc-128) | [![Documentation](https://docs.rs/hc-128/badge.svg)](https://docs.rs/hc-256) | 1.58 |
 | [`hc-256`]   | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | 1.41 |
 | [`ofb`]      | [![crates.io](https://img.shields.io/crates/v/ofb.svg)](https://crates.io/crates/ofb) | [![Documentation](https://docs.rs/ofb/badge.svg)](https://docs.rs/ofb) | 1.41 |
 | [`rabbit`]  | [![crates.io](https://img.shields.io/crates/v/rabbit.svg)](https://crates.io/crates/rabbit) | [![Documentation](https://docs.rs/rabbit/badge.svg)](https://docs.rs/rabbit) | 1.41 |
@@ -104,6 +105,7 @@ dual licensed as above, without any additional terms or conditions.
 [`cfb8`]: https://github.com/RustCrypto/stream-ciphers/tree/master/cfb8
 [`chacha20`]: https://github.com/RustCrypto/stream-ciphers/tree/master/chacha20
 [`ctr`]: https://github.com/RustCrypto/stream-ciphers/tree/master/ctr
+[`hc-128`]: https://github.com/RustCrypto/stream-ciphers/tree/master/hc-128
 [`hc-256`]: https://github.com/RustCrypto/stream-ciphers/tree/master/hc-256
 [`ofb`]: https://github.com/RustCrypto/stream-ciphers/tree/master/ofb
 [`rabbit`]: https://github.com/RustCrypto/stream-ciphers/tree/master/rabbit
