@@ -4,7 +4,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_root_url = "https://docs.rs/hc-256/0.4.1"
+    html_root_url = "https://docs.rs/hc-256/0.5.0"
 )]
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
@@ -22,7 +22,7 @@ use zeroize::Zeroize;
 
 const TABLE_SIZE: usize = 1024;
 const TABLE_MASK: usize = TABLE_SIZE - 1;
-const INIT_SIZE: usize = 2660;
+const INIT_SIZE: usize = 2560;
 const KEY_BITS: usize = 256;
 const KEY_WORDS: usize = KEY_BITS / 32;
 const IV_BITS: usize = 256;
@@ -134,10 +134,10 @@ impl Hc256 {
 
     #[inline]
     fn h2(&self, x: u32) -> u32 {
-        self.qtable[(x & 0xff) as usize]
-            .wrapping_add(self.qtable[(256 + ((x >> 8) & 0xff)) as usize])
-            .wrapping_add(self.qtable[(512 + ((x >> 16) & 0xff)) as usize])
-            .wrapping_add(self.qtable[(768 + ((x >> 24) & 0xff)) as usize])
+        self.ptable[(x & 0xff) as usize]
+            .wrapping_add(self.ptable[(256 + ((x >> 8) & 0xff)) as usize])
+            .wrapping_add(self.ptable[(512 + ((x >> 16) & 0xff)) as usize])
+            .wrapping_add(self.ptable[(768 + ((x >> 24) & 0xff)) as usize])
     }
 
     fn gen_word(&mut self) -> u32 {

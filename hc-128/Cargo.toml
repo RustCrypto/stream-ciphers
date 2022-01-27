@@ -1,9 +1,9 @@
 [package]
-name = "hc-256"
-version = "0.5.0" # Also update html_root_url in lib.rs when bumping this
-authors = ["Eric McCorkle <eric@metricspace.net>"]
+name = "hc-128"
+version = "0.1.0"
+authors = ["Quentin K"]
 license = "MIT OR Apache-2.0"
-description = "HC-256 Stream Cipher"
+description = "HC-128 Stream Cipher"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
