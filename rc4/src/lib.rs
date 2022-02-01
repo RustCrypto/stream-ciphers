@@ -32,7 +32,7 @@ impl Rc4 {
     /// Create new stream cipher instance from variable length key and nonce
     /// given as byte slices.
     pub fn new_from_slices(key: &[u8]) -> Result<Self, InvalidLength> {
-        if key.len() < 1 || key.len() > 256 {
+        if key.is_empty() || key.len() > 256 {
             return Err(InvalidLength);
         }
 
@@ -61,7 +61,7 @@ impl Rc4 {
             *x = i as u8;
         });
 
-        let i_iter = (0..256usize).into_iter();
+        let i_iter = 0..256usize;
         let key_iter = key.iter().cycle();
 
         let mut j = 0u8;
