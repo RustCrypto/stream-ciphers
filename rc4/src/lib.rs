@@ -1,4 +1,30 @@
 //! An implementation of the RC4 (also sometimes called ARC4) stream cipher.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use rc4::{Rc4, Key, nonce};
+//! use rc4::{consts::*, NewCipher, StreamCipher};
+//!
+//! let mut rc4 = Rc4::new(b"Key".into(), &nonce());
+//! let mut data = b"Plaintext".to_vec();
+//! rc4.apply_keystream(&mut data);
+//! assert_eq!(data, [0xBB, 0xF3, 0x16, 0xE8, 0xD9, 0x40, 0xAF, 0x0A, 0xD3]);
+//!
+//! let mut rc4 = Rc4::new(b"Wiki".into(), &nonce());
+//! let mut data = b"pedia".to_vec();
+//! rc4.apply_keystream(&mut data);
+//! assert_eq!(data, [0x10, 0x21, 0xBF, 0x04, 0x20]);
+//!
+//! let key = Key::<U6>::from_slice(b"Secret");
+//! let mut rc4 = Rc4::<_>::new(key, &nonce());
+//! let mut data = b"Attack at dawn".to_vec();
+//! rc4.apply_keystream(&mut data);
+//! assert_eq!(
+//!     data,
+//!     [0x45, 0xA0, 0x1F, 0x64, 0x5F, 0xC3, 0x5B, 0x38, 0x35, 0x52, 0x54, 0x4B, 0x9B, 0xF5]
+//! );
+//! ```
 
 #![no_std]
 #![doc(
@@ -11,13 +37,30 @@
 
 pub use cipher;
 
-use cipher::{consts::U0, errors::LoopError, generic_array::ArrayLength, NewCipher, StreamCipher};
+use cipher::{
+    errors::LoopError,
+    generic_array::{ArrayLength, GenericArray},
+};
 
 use core::marker::PhantomData;
 #[cfg(cargo_feature = "zeroize")]
 use std::ops::Drop;
 #[cfg(cargo_feature = "zeroize")]
 use zeroize::Zeroize;
+
+/// Rc4 key type (8–2048 bits/ 1-256 bytes)
+///
+/// Implemented as an alias for [`GenericArray`].
+pub type Key<KeySize> = GenericArray<u8, KeySize>;
+
+/// default Nonce for Rc4
+///
+/// Implemented as an alias for [`GenericArray`].
+pub fn nonce() -> GenericArray<u8, consts::U0> {
+    Default::default()
+}
+
+pub use cipher::{consts, NewCipher, StreamCipher};
 
 /// The RC-4 stream cipher
 pub struct Rc4<KeySize> {
@@ -32,11 +75,11 @@ impl<KeySize> NewCipher for Rc4<KeySize>
 where
     KeySize: ArrayLength<u8>,
 {
-    type NonceSize = U0;
+    type NonceSize = consts::U0;
     type KeySize = KeySize;
 
     fn new(key: &cipher::CipherKey<Self>, _nonce: &cipher::Nonce<Self>) -> Self {
-        assert!(key.len() >= 1 && key.len() < 256);
+        assert!(key.len() >= 1 && key.len() <= 256);
 
         let mut rc4 = Rc4 {
             state: [0; 256],
@@ -115,6 +158,8 @@ impl Zeroize for Rc4 {
         self.state.zeroize();
         self.i.zeroize();
         self.j.zeroize();
+
+        self.key_size.zeroize();
     }
 }
 
@@ -123,24 +168,4 @@ impl Drop for Rc4 {
     fn drop(&mut self) {
         self.zeroize();
     }
-}
-
-#[test]
-fn test() {
-    let mut rc4 = Rc4::new(b"Key".into(), &Default::default());
-
-    let mut data = b"Plaintext".to_vec();
-    rc4.try_apply_keystream(&mut data).unwrap();
-    assert_eq!(data, [0xBB, 0xF3, 0x16, 0xE8, 0xD9, 0x40, 0xAF, 0x0A, 0xD3]);
-}
-
-#[test]
-fn test2() {
-    use cipher::consts::U3; 
-
-    let mut rc4 = Rc4::<U3>::new_from_slices(b"Key", Default::default()).unwrap();
-
-    let mut data = b"Plaintext".to_vec();
-    rc4.try_apply_keystream(&mut data).unwrap();
-    assert_eq!(data, [0xBB, 0xF3, 0x16, 0xE8, 0xD9, 0x40, 0xAF, 0x0A, 0xD3]);
 }
