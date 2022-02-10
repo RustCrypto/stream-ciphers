@@ -1,2 +1,2 @@
 target/
-benches/Cargo.lock
+**/Cargo.lock

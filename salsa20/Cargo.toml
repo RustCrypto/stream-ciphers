@@ -1,28 +1,28 @@
 [package]
 name = "salsa20"
-version = "0.9.0" # Also update html_root_url in lib.rs when bumping this
+version = "0.10.0" # Also update html_root_url in lib.rs when bumping this
+description = "Salsa20 Stream Cipher"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
-description = "Salsa20 Stream Cipher"
+edition = "2021"
+rust-version = "1.56"
+readme = "README.md"
+documentation = "https://docs.rs/salsa20"
 repository = "https://github.com/RustCrypto/stream-ciphers"
 keywords = ["crypto", "stream-cipher", "trait", "xsalsa20"]
 categories = ["cryptography", "no-std"]
-readme = "README.md"
-edition = "2018"
 
 [dependencies]
-cipher = "0.3"
-
-# optional dependencies
-zeroize = { version = ">=1, <1.4", optional = true, default-features = false }
+cipher = "0.4"
 
 [dev-dependencies]
-cipher = { version = "0.3", features = ["dev"] }
+cipher = { version = "0.4", features = ["dev"] }
+hex-literal = "0.3"
 
 [features]
-expose-core = []
-hsalsa20 = []
+std = ["cipher/std"]
+zeroize = ["cipher/zeroize"]
 
 [package.metadata.docs.rs]
-features = ["hsalsa20"]
+all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

@@ -1,27 +1,23 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
-use crate::{
-    backend::soft::quarter_round,
-    chacha::Key,
-    max_blocks::C64,
-    rounds::{Rounds, R12, R20, R8},
-    ChaCha, CONSTANTS,
-};
+use super::{backends::soft::quarter_round, ChaChaCore, Key, Nonce, CONSTANTS};
 use cipher::{
-    consts::{U16, U24, U32},
-    errors::{LoopError, OverflowError},
-    generic_array::GenericArray,
-    NewCipher, SeekNum, StreamCipher, StreamCipherSeek,
+    consts::{U10, U16, U24, U32, U4, U6, U64},
+    generic_array::{typenum::Unsigned, GenericArray},
+    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
+    StreamCipherSeekCore, StreamClosure,
 };
-use core::convert::TryInto;
 
-/// EXtended ChaCha20 nonce (192-bits/24-bytes)
-pub type XNonce = cipher::Nonce<XChaCha20>;
+#[cfg(feature = "zeroize")]
+use cipher::zeroize::ZeroizeOnDrop;
 
-/// XChaCha20 is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
+/// Nonce type used by XChaCha variants.
+pub type XNonce = GenericArray<u8, U24>;
+
+/// XChaCha is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
 ///
 /// The construction is an adaptation of the same techniques used by
-/// XSalsa20 as described in the paper "Extending the Salsa20 Nonce",
+/// XChaCha as described in the paper "Extending the Salsa20 Nonce",
 /// applied to the 96-bit nonce variant of ChaCha20, and derive a
 /// separate subkey/nonce for each extended nonce:
 ///
@@ -33,54 +29,65 @@ pub type XNonce = cipher::Nonce<XChaCha20>;
 /// and is documented in an (expired) IETF draft:
 ///
 /// <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
-pub type XChaCha20 = XChaCha<R20>;
-
+pub type XChaCha20 = StreamCipherCoreWrapper<XChaChaCore<U10>>;
 /// XChaCha12 stream cipher (reduced-round variant of [`XChaCha20`] with 12 rounds)
-pub type XChaCha12 = XChaCha<R12>;
-
+pub type XChaCha12 = StreamCipherCoreWrapper<XChaChaCore<U6>>;
 /// XChaCha8 stream cipher (reduced-round variant of [`XChaCha20`] with 8 rounds)
-pub type XChaCha8 = XChaCha<R8>;
+pub type XChaCha8 = StreamCipherCoreWrapper<XChaChaCore<U4>>;
 
-/// XChaCha family stream cipher, generic around a number of rounds.
-///
-/// Use the [`XChaCha8`], [`XChaCha12`], or [`XChaCha20`] type aliases to select
-/// a specific number of rounds.
-///
-/// Generally [`XChaCha20`] is preferred.
-pub struct XChaCha<R: Rounds>(ChaCha<R, C64>);
+/// The XChaCha core function.
+pub struct XChaChaCore<R: Unsigned>(ChaChaCore<R>);
 
-impl<R: Rounds> NewCipher for XChaCha<R> {
-    /// Key size in bytes
+impl<R: Unsigned> KeySizeUser for XChaChaCore<R> {
     type KeySize = U32;
+}
 
-    /// Nonce size in bytes
-    type NonceSize = U24;
+impl<R: Unsigned> IvSizeUser for XChaChaCore<R> {
+    type IvSize = U24;
+}
 
-    #[allow(unused_mut, clippy::let_and_return)]
-    fn new(key: &Key, nonce: &XNonce) -> Self {
-        // TODO(tarcieri): zeroize subkey
-        let subkey = hchacha::<R>(key, nonce[..16].as_ref().into());
-        let mut padded_iv = GenericArray::default();
-        padded_iv[4..].copy_from_slice(&nonce[16..]);
-        XChaCha(ChaCha::new(&subkey, &padded_iv))
+impl<R: Unsigned> BlockSizeUser for XChaChaCore<R> {
+    type BlockSize = U64;
+}
+
+impl<R: Unsigned> KeyIvInit for XChaChaCore<R> {
+    fn new(key: &Key, iv: &XNonce) -> Self {
+        let subkey = hchacha::<R>(key, iv[..16].as_ref().into());
+        let mut padded_iv = Nonce::default();
+        padded_iv[4..].copy_from_slice(&iv[16..]);
+        XChaChaCore(ChaChaCore::new(&subkey, &padded_iv))
     }
 }
 
-impl<R: Rounds> StreamCipher for XChaCha<R> {
-    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
-        self.0.try_apply_keystream(data)
+impl<R: Unsigned> StreamCipherCore for XChaChaCore<R> {
+    #[inline(always)]
+    fn remaining_blocks(&self) -> Option<usize> {
+        self.0.remaining_blocks()
+    }
+
+    #[inline(always)]
+    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+        self.0.process_with_backend(f);
     }
 }
 
-impl<R: Rounds> StreamCipherSeek for XChaCha<R> {
-    fn try_current_pos<T: SeekNum>(&self) -> Result<T, OverflowError> {
-        self.0.try_current_pos()
+impl<R: Unsigned> StreamCipherSeekCore for XChaChaCore<R> {
+    type Counter = u32;
+
+    #[inline(always)]
+    fn get_block_pos(&self) -> u32 {
+        self.0.get_block_pos()
     }
 
-    fn try_seek<T: SeekNum>(&mut self, pos: T) -> Result<(), LoopError> {
-        self.0.try_seek(pos)
+    #[inline(always)]
+    fn set_block_pos(&mut self, pos: u32) {
+        self.0.set_block_pos(pos);
     }
 }
+
+#[cfg(feature = "zeroize")]
+#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
+impl<R: Unsigned> ZeroizeOnDrop for XChaChaCore<R> {}
 
 /// The HChaCha function: adapts the ChaCha core function in the same
 /// manner that HSalsa adapts the Salsa function.
@@ -96,21 +103,21 @@ impl<R: Rounds> StreamCipherSeek for XChaCha<R> {
 /// For more information on HSalsa on which HChaCha is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
-#[cfg_attr(docsrs, doc(cfg(feature = "hchacha")))]
-pub fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+pub fn hchacha<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
     let mut state = [0u32; 16];
     state[..4].copy_from_slice(&CONSTANTS);
 
-    for (i, chunk) in key.chunks(4).take(8).enumerate() {
-        state[4 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
+    let key_chunks = key.chunks_exact(4);
+    for (v, chunk) in state[4..12].iter_mut().zip(key_chunks) {
+        *v = u32::from_le_bytes(chunk.try_into().unwrap());
     }
-
-    for (i, chunk) in input.chunks(4).enumerate() {
-        state[12 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
+    let input_chunks = input.chunks_exact(4);
+    for (v, chunk) in state[12..16].iter_mut().zip(input_chunks) {
+        *v = u32::from_le_bytes(chunk.try_into().unwrap());
     }
 
     // R rounds consisting of R/2 column rounds and R/2 diagonal rounds
-    for _ in 0..(R::COUNT / 2) {
+    for _ in 0..R::USIZE {
         // column rounds
         quarter_round(0, 4, 8, 12, &mut state);
         quarter_round(1, 5, 9, 13, &mut state);
@@ -126,12 +133,12 @@ pub fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericAr
 
     let mut output = GenericArray::default();
 
-    for (i, chunk) in output.chunks_mut(4).take(4).enumerate() {
-        chunk.copy_from_slice(&state[i].to_le_bytes());
+    for (chunk, val) in output[..16].chunks_exact_mut(4).zip(&state[..4]) {
+        chunk.copy_from_slice(&val.to_le_bytes());
     }
 
-    for (i, chunk) in output.chunks_mut(4).skip(4).enumerate() {
-        chunk.copy_from_slice(&state[i + 12].to_le_bytes());
+    for (chunk, val) in output[16..].chunks_exact_mut(4).zip(&state[12..]) {
+        chunk.copy_from_slice(&val.to_le_bytes());
     }
 
     output
@@ -140,32 +147,25 @@ pub fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericAr
 #[cfg(test)]
 mod hchacha20_tests {
     use super::*;
+    use hex_literal::hex;
 
-    //
-    // Test vectors from:
-    // https://tools.ietf.org/id/draft-arciszewski-xchacha-03.html#rfc.section.2.2.1
-    //
-
-    const KEY: [u8; 32] = [
-        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
-        0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d,
-        0x1e, 0x1f,
-    ];
-
-    const INPUT: [u8; 16] = [
-        0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00, 0x31, 0x41, 0x59,
-        0x27,
-    ];
-
-    const OUTPUT: [u8; 32] = [
-        0x82, 0x41, 0x3b, 0x42, 0x27, 0xb2, 0x7b, 0xfe, 0xd3, 0xe, 0x42, 0x50, 0x8a, 0x87, 0x7d,
-        0x73, 0xa0, 0xf9, 0xe4, 0xd5, 0x8a, 0x74, 0xa8, 0x53, 0xc1, 0x2e, 0xc4, 0x13, 0x26, 0xd3,
-        0xec, 0xdc,
-    ];
-
+    /// Test vectors from:
+    /// https://tools.ietf.org/id/draft-arciszewski-xchacha-03.html#rfc.section.2.2.1
     #[test]
     fn test_vector() {
-        let actual = hchacha::<R20>(
+        const KEY: [u8; 32] = hex!(
+            "000102030405060708090a0b0c0d0e0f"
+            "101112131415161718191a1b1c1d1e1f"
+        );
+
+        const INPUT: [u8; 16] = hex!("000000090000004a0000000031415927");
+
+        const OUTPUT: [u8; 32] = hex!(
+            "82413b4227b27bfed30e42508a877d73"
+            "a0f9e4d58a74a853c12ec41326d3ecdc"
+        );
+
+        let actual = hchacha::<U10>(
             GenericArray::from_slice(&KEY),
             &GenericArray::from_slice(&INPUT),
         );

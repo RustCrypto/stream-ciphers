@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 use criterion_cycles_per_byte::CyclesPerByte;
 
 use chacha20::{
-    cipher::{NewCipher, StreamCipher},
+    cipher::{KeyIvInit, StreamCipher},
     ChaCha20,
 };
 
@@ -21,7 +21,6 @@ fn bench(c: &mut Criterion<CyclesPerByte>) {
             let key = Default::default();
             let nonce = Default::default();
             let mut cipher = ChaCha20::new(&key, &nonce);
-
             b.iter(|| cipher.apply_keystream(&mut buf));
         });
     }
