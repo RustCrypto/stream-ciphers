@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.51.0 # MSRV
+          - 1.56.0 # MSRV
           - stable
         target:
           - thumbv7em-none-eabi
@@ -38,11 +38,8 @@ jobs:
           target: ${{ matrix.target }}
           override: true
           profile: minimal
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features cipher
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features hchacha
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features legacy
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rng
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features cipher,force-soft,legacy,rng,zeroize
+      - run: cargo build --target ${{ matrix.target }}
+      - run: cargo build --target ${{ matrix.target }} --features zeroize
 
   # Tests for runtime AVX2 detection
   autodetect:
@@ -52,7 +49,7 @@ jobs:
         include:
           # 32-bit Linux
           - target: i686-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
             deps: sudo apt update && sudo apt install gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: stable
@@ -60,7 +57,7 @@ jobs:
 
           # 64-bit Linux
           - target: x86_64-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
           - target: x86_64-unknown-linux-gnu
             rust: stable
     steps:
@@ -73,23 +70,20 @@ jobs:
           profile: minimal
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
-      - run: cargo test --target ${{ matrix.target }} --release
-      - run: cargo test --target ${{ matrix.target }} --release --features std
-      - run: cargo test --target ${{ matrix.target }} --release --features rng
-      - run: cargo test --target ${{ matrix.target }} --release --features zeroize
-      - run: cargo test --target ${{ matrix.target }} --release --features std,rng,zeroize
+      - run: cargo test --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --features std,zeroize
 
   # Tests for the AVX2 backend
   avx2:
     runs-on: ubuntu-latest
     env:
-      RUSTFLAGS: -Ctarget-cpu=haswell -Dwarnings # Enables `avx2` target feature
+      RUSTFLAGS: -Ctarget-feature=+avx2 -Dwarnings
     strategy:
       matrix:
         include:
           # 32-bit Linux
           - target: i686-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
             deps: sudo apt update && sudo apt install gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: stable
@@ -97,7 +91,7 @@ jobs:
 
           # 64-bit Linux
           - target: x86_64-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
           - target: x86_64-unknown-linux-gnu
             rust: stable
     steps:
@@ -110,22 +104,20 @@ jobs:
           override: true
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
-      - run: cargo test --target ${{ matrix.target }} --release
-      - run: cargo test --target ${{ matrix.target }} --release --features force-soft
-      - run: cargo test --target ${{ matrix.target }} --release --features std
-      - run: cargo test --target ${{ matrix.target }} --release --features rng
-      - run: cargo test --target ${{ matrix.target }} --release --features zeroize
-      - run: cargo test --target ${{ matrix.target }} --release --all-features
+      - run: cargo test --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --features std,zeroize
 
   # Tests for the portable software backend (i.e. `force-soft`)
   soft:
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: --cfg chacha20_force_soft -Dwarnings
     strategy:
       matrix:
         include:
           # 32-bit Linux
           - target: i686-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
             deps: sudo apt update && sudo apt install gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: stable
@@ -133,7 +125,7 @@ jobs:
 
           # 64-bit Linux
           - target: x86_64-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
           - target: x86_64-unknown-linux-gnu
             rust: stable
     steps:
@@ -146,11 +138,8 @@ jobs:
           override: true
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
-      - run: cargo test --target ${{ matrix.target }} --release --features force-soft
-      - run: cargo test --target ${{ matrix.target }} --release --features force-soft,std
-      - run: cargo test --target ${{ matrix.target }} --release --features force-soft,rng
-      - run: cargo test --target ${{ matrix.target }} --release --features force-soft,rng,zeroize
-      - run: cargo test --target ${{ matrix.target }} --release --all-features
+      - run: cargo test --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --features std,zeroize
 
   # Cross-compiled tests
   cross:
@@ -159,7 +148,7 @@ jobs:
         include:
           # ARM64
           - target: aarch64-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
           - target: aarch64-unknown-linux-gnu
             rust: stable
 
@@ -170,11 +159,15 @@ jobs:
 
           # PPC32
           - target: powerpc-unknown-linux-gnu
-            rust: 1.51.0 # MSRV
+            rust: 1.56.0 # MSRV
           - target: powerpc-unknown-linux-gnu
             rust: stable
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Cross mounts only current package, i.e. by default it ignores workspace's Cargo.toml
+        working-directory: .  
     steps:
       - uses: actions/checkout@v1
       - run: ${{ matrix.deps }}
@@ -184,9 +177,12 @@ jobs:
           target: ${{ matrix.target }}
           profile: minimal
           override: true
-      - run: cargo install cross
-      - run: cross test --target ${{ matrix.target }} --release ${{ matrix.features }}
-      - run: cross test --target ${{ matrix.target }} --release --features force-soft
-      - run: cross test --target ${{ matrix.target }} --release --features rng
-      - run: cross test --target ${{ matrix.target }} --release --features std
-      - run: cross test --target ${{ matrix.target }} --release --all-features
+      - name: Install precompiled cross
+        run: |
+          export URL=$(curl -s https://api.github.com/repos/cross-rs/cross/releases/latest | \
+            jq -r '.assets[] | select(.name | contains("x86_64-unknown-linux-gnu.tar.gz")) | .browser_download_url')
+          wget -O /tmp/binaries.tar.gz $URL
+          tar -C /tmp -xzf /tmp/binaries.tar.gz
+          mv /tmp/cross ~/.cargo/bin
+        shell: bash
+      - run: cross test --package chacha20 --target ${{ matrix.target }} ${{ matrix.features }}

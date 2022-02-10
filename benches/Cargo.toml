@@ -12,9 +12,13 @@ publish = false
 [dev-dependencies]
 criterion = "0.3"
 criterion-cycles-per-byte = "0.1"
-chacha20 = { path = "../chacha20/", features = ["cipher"] }
+chacha20 = { path = "../chacha20/" }
 
 [[bench]]
 name = "chacha20"
 path = "src/chacha20.rs"
 harness = false
+
+[patch.crates-io]
+cipher = { git = "https://github.com/RustCrypto/traits/", branch = "cipher_v0.4" }
+inout = { git = "https://github.com/RustCrypto/utils", branch = "add_inout" }

@@ -1,11 +1,10 @@
 [workspace]
 members = [
-    "cfb8",
-    "cfb-mode",
     "chacha20",
-    "ctr",
     "hc-256",
-    "ofb",
     "rabbit",
     "salsa20",
 ]
+
+[profile.dev]
+opt-level = 2
