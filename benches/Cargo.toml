@@ -18,7 +18,3 @@ chacha20 = { path = "../chacha20/" }
 name = "chacha20"
 path = "src/chacha20.rs"
 harness = false
-
-[patch.crates-io]
-cipher = { git = "https://github.com/RustCrypto/traits/", branch = "cipher_v0.4" }
-inout = { git = "https://github.com/RustCrypto/utils", branch = "add_inout" }
