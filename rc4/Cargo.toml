@@ -10,8 +10,13 @@ categories = ["cryptography", "no-std"]
 edition = "2018"
 
 [dependencies]
-cipher = "0.3"
-zeroize = { version = ">=1, <1.5", optional = true, default-features = false }
+cipher = "0.4"
+
 
 [dev-dependencies]
 hex-literal = "0.2"
+
+
+[features]
+std = ["cipher/std"]
+zeroize = ["cipher/zeroize"]

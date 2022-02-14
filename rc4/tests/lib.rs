@@ -1,8 +1,8 @@
 /// https://datatracker.ietf.org/doc/html/rfc6229#section-2
 mod test {
     use hex_literal::hex;
-    use rc4::{consts::*, NewCipher, StreamCipher};
-    use rc4::{nonce, Key, Rc4};
+    use rc4::{consts::*, KeyInit, StreamCipher};
+    use rc4::{Key, Rc4};
 
     #[test]
     fn test_rfc6229_length_40_bits_key1() {
@@ -33,10 +33,10 @@ mod test {
         );
 
         let key = Key::<U5>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -75,10 +75,10 @@ mod test {
         );
 
         let key = Key::<U7>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -117,10 +117,10 @@ mod test {
         );
 
         let key = Key::<U8>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -159,10 +159,10 @@ mod test {
         );
 
         let key = Key::<U10>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -202,10 +202,10 @@ mod test {
         );
 
         let key = Key::<U16>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -244,10 +244,10 @@ mod test {
         );
 
         let key = Key::<U24>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -288,10 +288,10 @@ mod test {
         );
 
         let key = Key::<U32>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -330,10 +330,10 @@ mod test {
         );
 
         let key = Key::<U5>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -372,10 +372,10 @@ mod test {
         );
 
         let key = Key::<U7>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -414,10 +414,10 @@ mod test {
         );
 
         let key = Key::<U8>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -456,10 +456,10 @@ mod test {
         );
 
         let key = Key::<U10>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -499,10 +499,10 @@ mod test {
         );
 
         let key = Key::<U16>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -541,10 +541,10 @@ mod test {
         );
 
         let key = Key::<U24>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {
@@ -585,10 +585,10 @@ mod test {
         );
 
         let key = Key::<U32>::from_slice(&KEY);
-        let mut cipher = Rc4::<_>::new(key, &nonce());
+        let mut cipher = Rc4::<_>::new(key);
 
         let mut data = [0u8; 0x1010];
-        cipher.apply_TEST_VECTORS(&mut data);
+        cipher.apply_keystream(&mut data);
 
         let chunk_size = /* offset */2 + 16;
         for chunk in TEST_VECTORS.chunks(chunk_size) {

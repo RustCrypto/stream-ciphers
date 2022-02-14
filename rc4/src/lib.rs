@@ -3,21 +3,22 @@
 //! # Usage
 //!
 //! ```rust
-//! use rc4::{Rc4, Key, nonce};
-//! use rc4::{consts::*, NewCipher, StreamCipher};
+//! use hex_literal::hex;
+//! use rc4::{consts::*, KeyInit, StreamCipher};
+//! use rc4::{Key, Rc4};
 //!
-//! let mut rc4 = Rc4::new(b"Key".into(), &nonce());
+//! let mut rc4 = Rc4::new(b"Key".into());
 //! let mut data = b"Plaintext".to_vec();
 //! rc4.apply_keystream(&mut data);
 //! assert_eq!(data, [0xBB, 0xF3, 0x16, 0xE8, 0xD9, 0x40, 0xAF, 0x0A, 0xD3]);
 //!
-//! let mut rc4 = Rc4::new(b"Wiki".into(), &nonce());
+//! let mut rc4 = Rc4::new(b"Wiki".into());
 //! let mut data = b"pedia".to_vec();
 //! rc4.apply_keystream(&mut data);
 //! assert_eq!(data, [0x10, 0x21, 0xBF, 0x04, 0x20]);
 //!
 //! let key = Key::<U6>::from_slice(b"Secret");
-//! let mut rc4 = Rc4::<_>::new(key, &nonce());
+//! let mut rc4 = Rc4::<_>::new(key);
 //! let mut data = b"Attack at dawn".to_vec();
 //! rc4.apply_keystream(&mut data);
 //! assert_eq!(
@@ -35,80 +36,112 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-pub use cipher;
+pub use cipher::{
+    self, consts, KeyInit, KeySizeUser, StreamCipher, StreamCipherCore, StreamCipherCoreWrapper,
+};
 
 use cipher::{
-    errors::LoopError,
     generic_array::{ArrayLength, GenericArray},
+    Block, BlockSizeUser, ParBlocksSizeUser, StreamBackend, StreamClosure,
 };
 
 use core::marker::PhantomData;
-#[cfg(cargo_feature = "zeroize")]
-use std::ops::Drop;
-#[cfg(cargo_feature = "zeroize")]
-use zeroize::Zeroize;
+
+#[cfg(feature = "zeroize")]
+use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Rc4 key type (8–2048 bits/ 1-256 bytes)
 ///
 /// Implemented as an alias for [`GenericArray`].
 pub type Key<KeySize> = GenericArray<u8, KeySize>;
 
-/// default Nonce for Rc4
-///
-/// Implemented as an alias for [`GenericArray`].
-pub fn nonce() -> GenericArray<u8, consts::U0> {
-    Default::default()
-}
+type BlockSize = consts::U1;
 
-pub use cipher::{consts, NewCipher, StreamCipher};
+/// The Rc4 stream cipher initializied with key
+pub type Rc4<KeySize> = StreamCipherCoreWrapper<Rc4Core<KeySize>>;
 
-/// The RC-4 stream cipher
-pub struct Rc4<KeySize> {
-    state: [u8; 256],
-    i: u8,
-    j: u8,
+/// Core state of the Rc4 stream cipher initialized only with key.
+pub struct Rc4Core<KeySize> {
+    state: Rc4State,
 
     key_size: PhantomData<KeySize>,
 }
 
-impl<KeySize> NewCipher for Rc4<KeySize>
+impl<KeySize> KeySizeUser for Rc4Core<KeySize>
 where
     KeySize: ArrayLength<u8>,
 {
-    type NonceSize = consts::U0;
     type KeySize = KeySize;
+}
 
-    fn new(key: &cipher::CipherKey<Self>, _nonce: &cipher::Nonce<Self>) -> Self {
-        assert!(key.len() >= 1 && key.len() <= 256);
+impl<KeySize> KeyInit for Rc4Core<KeySize>
+where
+    KeySize: ArrayLength<u8>,
+{
+    fn new(key: &Key<KeySize>) -> Self {
+        Self {
+            state: Rc4State::new(key),
+            key_size: Default::default(),
+        }
+    }
+}
 
-        let mut rc4 = Rc4 {
+impl<KeySize> BlockSizeUser for Rc4Core<KeySize> {
+    type BlockSize = BlockSize;
+}
+
+impl<KeySize> StreamCipherCore for Rc4Core<KeySize> {
+    #[inline(always)]
+    fn remaining_blocks(&self) -> Option<usize> {
+        None
+    }
+
+    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+        f.call(&mut Backend(&mut self.state));
+    }
+}
+
+#[cfg(feature = "zeroize")]
+#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
+impl<KeySize> ZeroizeOnDrop for Rc4Core<KeySize> where KeySize: ArrayLength<u8> {}
+
+struct Backend<'a>(&'a mut Rc4State);
+
+impl<'a> BlockSizeUser for Backend<'a> {
+    type BlockSize = BlockSize;
+}
+
+impl<'a> ParBlocksSizeUser for Backend<'a> {
+    type ParBlocksSize = consts::U1;
+}
+
+impl<'a> StreamBackend for Backend<'a> {
+    #[inline(always)]
+    fn gen_ks_block(&mut self, block: &mut Block<Self>) {
+        block[0] = self.0.prga();
+    }
+}
+
+#[derive(Clone)]
+struct Rc4State {
+    state: [u8; 256],
+    i: u8,
+    j: u8,
+}
+
+impl Rc4State {
+    fn new(key: &[u8]) -> Self {
+        let mut state = Self {
             state: [0; 256],
             i: 0,
             j: 0,
-
-            key_size: Default::default(),
         };
 
-        rc4.ksa(key);
+        state.ksa(key);
 
-        rc4
+        state
     }
-}
 
-impl<KeySize> StreamCipher for Rc4<KeySize>
-where
-    KeySize: ArrayLength<u8>,
-{
-    fn try_apply_keystream(&mut self, data: &mut [u8]) -> Result<(), LoopError> {
-        self.process(data);
-        Ok(())
-    }
-}
-
-impl<KeySize> Rc4<KeySize>
-where
-    KeySize: ArrayLength<u8>,
-{
     fn ksa(&mut self, key: &[u8]) {
         self.state.iter_mut().enumerate().for_each(|(i, x)| {
             *x = i as u8;
@@ -144,28 +177,13 @@ where
 
         self.state[index]
     }
-
-    fn process(&mut self, data: &mut [u8]) {
-        data.iter_mut().for_each(|x| {
-            *x ^= self.prga();
-        });
-    }
 }
 
-#[cfg(cargo_feature = "zeroize")]
-impl Zeroize for Rc4 {
-    fn zeroize(&mut self) {
+#[cfg(feature = "zeroize")]
+impl core::ops::Drop for Rc4State {
+    fn drop(&mut self) {
         self.state.zeroize();
         self.i.zeroize();
         self.j.zeroize();
-
-        self.key_size.zeroize();
-    }
-}
-
-#[cfg(cargo_feature = "zeroize")]
-impl Drop for Rc4 {
-    fn drop(&mut self) {
-        self.zeroize();
     }
 }
