@@ -1,6 +1,15 @@
 //! An implementation of the RC4 (also sometimes called ARC4) stream cipher.
 //!
-//! # Usage
+//! Cipher functionality is accessed using traits from re-exported [`cipher`] crate.
+//!
+//! # ⚠️ Security Warning: Hazmat!
+//!
+//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
+//! is not verified, which can lead to serious vulnerabilities!
+//!
+//! USE AT YOUR OWN RISK!
+//!
+//! # Example
 //!
 //! ```rust
 //! use hex_literal::hex;
@@ -36,13 +45,12 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-pub use cipher::{
-    self, consts, KeyInit, KeySizeUser, StreamCipher, StreamCipherCore, StreamCipherCoreWrapper,
-};
+pub use cipher::{self, consts, KeyInit, StreamCipher};
 
 use cipher::{
     generic_array::{ArrayLength, GenericArray},
-    Block, BlockSizeUser, ParBlocksSizeUser, StreamBackend, StreamClosure,
+    Block, BlockSizeUser, KeySizeUser, ParBlocksSizeUser, StreamBackend, StreamCipherCore,
+    StreamCipherCoreWrapper, StreamClosure,
 };
 
 use core::marker::PhantomData;

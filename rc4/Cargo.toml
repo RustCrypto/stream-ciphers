@@ -1,13 +1,17 @@
 [package]
 name = "rc4"
 version = "0.1.0"
+description = "RC4 Stream Cipher"
 authors = ["The Rust-Crypto Project Developers"]
 license = "MIT OR Apache-2.0"
-description = "RC4 Stream Cipher"
+edition = "2021"
+rust-version = "1.56"
+readme = "README.md"
+documentation = "https://docs.rs/rc4"
 repository = "https://github.com/RustCrypto/stream-ciphers"
-keywords = ["crypto", "stream-cipher", "trait"]
+keywords = ["crypto", "Rc4", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
-edition = "2018"
+
 
 [dependencies]
 cipher = "0.4"
