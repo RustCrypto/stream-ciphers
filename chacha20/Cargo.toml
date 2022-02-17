@@ -1,6 +1,6 @@
 [package]
 name = "chacha20"
-version = "0.9.1" # Also update html_root_url in lib.rs when bumping this
+version = "0.9.0" # Also update html_root_url in lib.rs when bumping this
 description = """
 The ChaCha20 stream cipher (RFC 8439) implemented in pure Rust using traits
 from the RustCrypto `cipher` crate, with optional architecture-specific
