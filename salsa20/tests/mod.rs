@@ -1,6 +1,6 @@
 //! Salsa20 tests
 
-use cipher::{generic_array::GenericArray, KeyIvInit, StreamCipher, StreamCipherSeek};
+use cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
 use hex_literal::hex;
 use salsa20::Salsa20;
 use salsa20::XSalsa20;
@@ -89,7 +89,7 @@ const EXPECTED_XSALSA20_HELLO_WORLD: [u8; 12] = hex!("002d4513843fc240c401e541")
 
 #[test]
 fn salsa20_key1_iv0() {
-    let mut cipher = Salsa20::new(&GenericArray::from(KEY1), &GenericArray::from(IV0));
+    let mut cipher = Salsa20::new(&KEY1.into(), &IV0.into());
     let mut buf = [0; 64];
 
     cipher.apply_keystream(&mut buf);
@@ -101,7 +101,7 @@ fn salsa20_key1_iv0() {
 
 #[test]
 fn salsa20_key0_iv1() {
-    let mut cipher = Salsa20::new(&GenericArray::from(KEY0), &GenericArray::from(IV1));
+    let mut cipher = Salsa20::new(&KEY0.into(), &IV1.into());
     let mut buf = [0; 64];
 
     cipher.apply_keystream(&mut buf);
@@ -113,7 +113,7 @@ fn salsa20_key0_iv1() {
 
 #[test]
 fn salsa20_key0_ivhi() {
-    let mut cipher = Salsa20::new(&GenericArray::from(KEY0), &GenericArray::from(IVHI));
+    let mut cipher = Salsa20::new(&KEY0.into(), &IVHI.into());
     let mut buf = [0; 64];
 
     cipher.apply_keystream(&mut buf);
@@ -125,7 +125,7 @@ fn salsa20_key0_ivhi() {
 
 #[test]
 fn salsa20_long() {
-    let mut cipher = Salsa20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
+    let mut cipher = Salsa20::new(&KEY_LONG.into(), &IV_LONG.into());
     let mut buf = [0; 256];
 
     cipher.apply_keystream(&mut buf);
@@ -141,8 +141,7 @@ fn salsa20_offsets() {
     for idx in 0..256 {
         for middle in idx..256 {
             for last in middle..256 {
-                let mut cipher =
-                    Salsa20::new(&GenericArray::from(KEY_LONG), &GenericArray::from(IV_LONG));
+                let mut cipher = Salsa20::new(&KEY_LONG.into(), &IV_LONG.into());
                 let mut buf = [0; 256];
 
                 cipher.seek(idx as u64);
@@ -159,10 +158,7 @@ fn salsa20_offsets() {
 
 #[test]
 fn xsalsa20_encrypt_zeros() {
-    let key = GenericArray::from(KEY_XSALSA20);
-    let iv = GenericArray::from(IV_XSALSA20);
-
-    let mut cipher = XSalsa20::new(&key, &iv);
+    let mut cipher = XSalsa20::new(&KEY_XSALSA20.into(), &IV_XSALSA20.into());
     let mut buf = [0; 64];
     cipher.apply_keystream(&mut buf);
 
@@ -173,10 +169,7 @@ fn xsalsa20_encrypt_zeros() {
 
 #[test]
 fn xsalsa20_encrypt_hello_world() {
-    let key = GenericArray::from(KEY_XSALSA20);
-    let iv = GenericArray::from(IV_XSALSA20);
-
-    let mut cipher = XSalsa20::new(&key, &iv);
+    let mut cipher = XSalsa20::new(&KEY_XSALSA20.into(), &IV_XSALSA20.into());
     let mut buf = *b"Hello world!";
     cipher.apply_keystream(&mut buf);
 
