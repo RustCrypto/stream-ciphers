@@ -68,7 +68,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_root_url = "https://docs.rs/salsa20/0.10.1"
+    html_root_url = "https://docs.rs/salsa20/0.10.2"
 )]
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
@@ -123,6 +123,19 @@ pub struct SalsaCore<R: Unsigned> {
     state: [u32; STATE_WORDS],
     /// Number of rounds to perform
     rounds: PhantomData<R>,
+}
+
+impl<R: Unsigned> SalsaCore<R> {
+    /// Create new Salsa core from raw state.
+    ///
+    /// This method is mainly intended for the `scrypt` crate.
+    /// Other users generally should not use this method.
+    pub fn from_raw_state(state: [u32; STATE_WORDS]) -> Self {
+        Self {
+            state,
+            rounds: PhantomData,
+        }
+    }
 }
 
 impl<R: Unsigned> KeySizeUser for SalsaCore<R> {
