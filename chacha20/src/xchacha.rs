@@ -1,6 +1,6 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
-use super::{backends::soft::quarter_round, ChaChaCore, Key, Nonce, CONSTANTS};
+use super::{ChaChaCore, Key, Nonce, CONSTANTS, STATE_WORDS};
 use cipher::{
     consts::{U10, U16, U24, U32, U4, U6, U64},
     generic_array::{typenum::Unsigned, GenericArray},
@@ -104,7 +104,7 @@ impl<R: Unsigned> ZeroizeOnDrop for XChaChaCore<R> {}
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
 pub fn hchacha<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
-    let mut state = [0u32; 16];
+    let mut state = [0u32; STATE_WORDS];
     state[..4].copy_from_slice(&CONSTANTS);
 
     let key_chunks = key.chunks_exact(4);
@@ -142,6 +142,26 @@ pub fn hchacha<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> Generic
     }
 
     output
+}
+
+/// The ChaCha20 quarter round function
+// for simplicity this function is copied from the software backend
+fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; STATE_WORDS]) {
+    state[a] = state[a].wrapping_add(state[b]);
+    state[d] ^= state[a];
+    state[d] = state[d].rotate_left(16);
+
+    state[c] = state[c].wrapping_add(state[d]);
+    state[b] ^= state[c];
+    state[b] = state[b].rotate_left(12);
+
+    state[a] = state[a].wrapping_add(state[b]);
+    state[d] ^= state[a];
+    state[d] = state[d].rotate_left(8);
+
+    state[c] = state[c].wrapping_add(state[d]);
+    state[b] ^= state[c];
+    state[b] = state[b].rotate_left(7);
 }
 
 #[cfg(test)]

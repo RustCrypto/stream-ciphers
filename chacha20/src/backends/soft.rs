@@ -54,14 +54,7 @@ fn run_rounds<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS] {
 }
 
 /// The ChaCha20 quarter round function
-#[inline]
-pub(crate) fn quarter_round(
-    a: usize,
-    b: usize,
-    c: usize,
-    d: usize,
-    state: &mut [u32; STATE_WORDS],
-) {
+fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; STATE_WORDS]) {
     state[a] = state[a].wrapping_add(state[b]);
     state[d] ^= state[a];
     state[d] = state[d].rotate_left(16);

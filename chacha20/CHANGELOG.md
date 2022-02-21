@@ -5,15 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## UNRELEASED
+## 0.9.0 (2021-02-21)
+### Added
+- `chacha20_force_soft`, `chacha20_force_sse2`, and `chacha20_force_avx2`
+configuration flags ([#293])
+
 ### Changed
 - Bump `cipher` dependency to v0.4 ([#276])
 
 ### Fixed
 - Minimal versions build ([#290])
 
+### Removed
+- `neon`, `force-soft`, `expose-core`, `hchacha`, `legacy`, and `rng` features ([#276], [#293])
+
 [#276]: https://github.com/RustCrypto/stream-ciphers/pull/276
 [#290]: https://github.com/RustCrypto/stream-ciphers/pull/290
+[#293]: https://github.com/RustCrypto/stream-ciphers/pull/293
 
 ## 0.8.1 (2021-08-30)
 ### Added
