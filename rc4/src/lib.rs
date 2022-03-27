@@ -1,15 +1,14 @@
-//! An implementation of the RC4 (also sometimes called ARC4) stream cipher.
-//!
-//! Cipher functionality is accessed using traits from re-exported [`cipher`] crate.
-//!
-//! # ⚠️ Security Warning: Hazmat!
-//!
-//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
-//! is not verified, which can lead to serious vulnerabilities!
-//!
-//! USE AT YOUR OWN RISK!
-//!
-//! # Example
+#![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
+)]
+#![forbid(unsafe_code)]
+#![warn(missing_docs, rust_2018_idioms)]
+
+//! # Usage
 //!
 //! ```rust
 //! use hex_literal::hex;
@@ -35,15 +34,6 @@
 //!     [0x45, 0xA0, 0x1F, 0x64, 0x5F, 0xC3, 0x5B, 0x38, 0x35, 0x52, 0x54, 0x4B, 0x9B, 0xF5]
 //! );
 //! ```
-
-#![no_std]
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_root_url = "https://docs.rs/rc4/0.1.0"
-)]
-#![forbid(unsafe_code)]
-#![warn(missing_docs, rust_2018_idioms)]
 
 pub use cipher::{self, consts, KeyInit, StreamCipher};
 
