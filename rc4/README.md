@@ -12,15 +12,16 @@ Pure Rust implementation of the [Rc4 Stream Cipher Algorithm][1].
 
 [Documentation][docs-link]
 
-## ⚠️ Security Warning: [Hazmat!][hazmat-link]
+## ⚠️ Security Warning
 
-This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
-verify ciphertext integrity), which can lead to serious vulnerabilities
-if used incorrectly!
+This crate is provided for the purposes of legacy interoperability with
+protocols and systems which mandate the use of RC4.
 
-No security audits of this crate have ever been performed, and it has not been
-thoroughly assessed to ensure its operation is constant-time on common CPU
-architectures.
+However, RC4 is [cryptographically broken and unsuitable for further use][2].
+
+[RFC7465][3] and [RFC8758][4] prohibit the use of RC4 in TLS and SSH protocols
+respectively, noting that cryptographic weaknesses in the cipher's design make
+it practical to recover repeatedly encrypted plaintexts.
 
 **USE AT YOUR OWN RISK!**
 
@@ -69,3 +70,6 @@ dual licensed as above, without any additional terms or conditions.
 [//]: # (footnotes)
 
 [1]: https://en.wikipedia.org/wiki/RC4
+[2]: https://www.usenix.org/system/files/conference/usenixsecurity13/sec13-paper_alfardan.pdf
+[3]: https://datatracker.ietf.org/doc/html/rfc7465
+[4]: https://datatracker.ietf.org/doc/html/rfc8758
