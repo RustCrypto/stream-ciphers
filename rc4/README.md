@@ -17,7 +17,7 @@ Pure Rust implementation of the [Rc4 Stream Cipher Algorithm][1].
 This crate is provided for the purposes of legacy interoperability with
 protocols and systems which mandate the use of RC4.
 
-However, RC4 is [cryptographically broken and unsuitable for further use][2].
+However, RC4 is [cryptographically broken and unsuitable for further use][2]!!!
 
 [RFC7465][3] and [RFC8758][4] prohibit the use of RC4 in TLS and SSH protocols
 respectively, noting that cryptographic weaknesses in the cipher's design make
