@@ -2,10 +2,10 @@
 
 [![Crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
+[![Build Status][build-image]][build-link]
 ![Apache2/MIT licensed][license-image]
 ![Rust Version][rustc-image]
 [![Project Chat][chat-image]][chat-link]
-[![Build Status][build-image]][build-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
 Pure Rust implementation of the [Rc4 Stream Cipher Algorithm][1].
@@ -62,8 +62,8 @@ dual licensed as above, without any additional terms or conditions.
 [rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
-[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/Rc4/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3ARc4
+[build-image]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/rc4.yml/badge.svg
+[build-link]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/rc4.yml
 [hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
 [hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
