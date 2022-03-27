@@ -9,7 +9,7 @@ rust-version = "1.56"
 readme = "README.md"
 documentation = "https://docs.rs/rc4"
 repository = "https://github.com/RustCrypto/stream-ciphers"
-keywords = ["crypto", "stream-cipher", "trait"]
+keywords = ["arc4", "arcfour", "crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
