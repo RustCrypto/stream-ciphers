@@ -19,14 +19,25 @@ received any formal cryptographic and security reviews/audits.
 **USE AT YOUR OWN RISK!**
 
 ## Crates
-| Name     | Crate name | Crates.io | Docs | MSRV |
-|----------|------------|-----------|------|------|
-| [ChaCha] | [`chacha20`] | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | ![MSRV 1.56][msrv-1.56] |
-| [HC-256] | [`hc-256`]   | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![MSRV 1.56][msrv-1.56] |
-| [Rabbit] | [`rabbit`]  | [![crates.io](https://img.shields.io/crates/v/rabbit.svg)](https://crates.io/crates/rabbit) | [![Documentation](https://docs.rs/rabbit/badge.svg)](https://docs.rs/rabbit) | ![MSRV 1.56][msrv-1.56] |
-| [Salsa20] | [`salsa20`]  | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![MSRV 1.56][msrv-1.56] |
+| Name     | Crate name | Crates.io | Docs | MSRV | Security |
+|----------|------------|-----------|------|------|----------|
+| [ChaCha] | [`chacha20`] | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | ![MSRV 1.56][msrv-1.56] | 💚 |
+| [HC-256] | [`hc-256`]   | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![MSRV 1.56][msrv-1.56] | 💛 |
+| [Rabbit] | [`rabbit`]  | [![crates.io](https://img.shields.io/crates/v/rabbit.svg)](https://crates.io/crates/rabbit) | [![Documentation](https://docs.rs/rabbit/badge.svg)](https://docs.rs/rabbit) | ![MSRV 1.56][msrv-1.56] | 💛 |
+| [RC4]    | [`rc4`]  | [![crates.io](https://img.shields.io/crates/v/rc4.svg)](https://crates.io/crates/rc4) | [![Documentation](https://docs.rs/rc4/badge.svg)](https://docs.rs/rc4) | ![MSRV 1.56][msrv-1.56] | 💔 |
+| [Salsa20] | [`salsa20`]  | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![MSRV 1.56][msrv-1.56] | 💚 |
 
-### Minimum Supported Rust Version (MSRV) Policy
+### Security Level Legend
+
+The following describes the security level ratings associated with each hash function (i.e. algorithms, not the specific implementation):
+
+| Heart          | Description |
+|----------------|-------------|
+| :green_heart:  | No known successful attacks |
+| :yellow_heart: | Theoretical break: security lower than claimed |
+| :broken_heart: | Attack demonstrated in practice: avoid if at all possible |
+
+## Minimum Supported Rust Version (MSRV) Policy
 
 MSRV bump is considered a breaking change and will be performed only with a minor version bump.
 
@@ -108,6 +119,7 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 [`chacha20`]: ./chacha20
 [`hc-256`]: ./hc-256
 [`rabbit`]: ./rabbit
+[`rc4`]: ./rc4
 [`salsa20`]: ./salsa20
 
 [//]: # (links)
@@ -115,4 +127,5 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 [ChaCha]: https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant
 [HC-256]: https://en.wikipedia.org/wiki/HC-256
 [Rabbit]: https://en.wikipedia.org/wiki/Rabbit_(cipher)
+[RC4]: https://en.wikipedia.org/wiki/RC4
 [Salsa20]: https://en.wikipedia.org/wiki/Salsa20
