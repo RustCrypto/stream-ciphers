@@ -22,9 +22,9 @@ received any formal cryptographic and security reviews/audits.
 | Name     | Crate name | Crates.io | Docs | MSRV | Security |
 |----------|------------|-----------|------|------|----------|
 | [ChaCha] | [`chacha20`] | [![crates.io](https://img.shields.io/crates/v/chacha20.svg)](https://crates.io/crates/chacha20) | [![Documentation](https://docs.rs/chacha20/badge.svg)](https://docs.rs/chacha20) | ![MSRV 1.56][msrv-1.56] | 💚 |
-| [HC-256] | [`hc-256`]   | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![MSRV 1.56][msrv-1.56] | 💛 |
-| [Rabbit] | [`rabbit`]  | [![crates.io](https://img.shields.io/crates/v/rabbit.svg)](https://crates.io/crates/rabbit) | [![Documentation](https://docs.rs/rabbit/badge.svg)](https://docs.rs/rabbit) | ![MSRV 1.56][msrv-1.56] | 💛 |
-| [RC4]    | [`rc4`]  | [![crates.io](https://img.shields.io/crates/v/rc4.svg)](https://crates.io/crates/rc4) | [![Documentation](https://docs.rs/rc4/badge.svg)](https://docs.rs/rc4) | ![MSRV 1.56][msrv-1.56] | 💔 |
+| [HC-256] | [`hc-256`]   | [![crates.io](https://img.shields.io/crates/v/hc-256.svg)](https://crates.io/crates/hc-256) | [![Documentation](https://docs.rs/hc-256/badge.svg)](https://docs.rs/hc-256) | ![MSRV 1.56][msrv-1.56] | [💛](https://link.springer.com/chapter/10.1007/978-3-642-04846-3_4) |
+| [Rabbit] | [`rabbit`]  | [![crates.io](https://img.shields.io/crates/v/rabbit.svg)](https://crates.io/crates/rabbit) | [![Documentation](https://docs.rs/rabbit/badge.svg)](https://docs.rs/rabbit) | ![MSRV 1.56][msrv-1.56] | [💛](https://eprint.iacr.org/2013/780.pdf) |
+| [RC4]    | [`rc4`]  | [![crates.io](https://img.shields.io/crates/v/rc4.svg)](https://crates.io/crates/rc4) | [![Documentation](https://docs.rs/rc4/badge.svg)](https://docs.rs/rc4) | ![MSRV 1.56][msrv-1.56] | [💔](https://www.usenix.org/system/files/conference/usenixsecurity13/sec13-paper_alfardan.pdf) |
 | [Salsa20] | [`salsa20`]  | [![crates.io](https://img.shields.io/crates/v/salsa20.svg)](https://crates.io/crates/salsa20) | [![Documentation](https://docs.rs/salsa20/badge.svg)](https://docs.rs/salsa20) | ![MSRV 1.56][msrv-1.56] | 💚 |
 
 ### Security Level Legend
