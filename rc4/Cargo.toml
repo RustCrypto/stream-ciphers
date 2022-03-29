@@ -1,6 +1,6 @@
 [package]
 name = "rc4"
-version = "0.0.0"
+version = "0.1.0"
 description = "Pure Rust implementation of the RC4 stream cipher"
 authors = ["The Rust-Crypto Project Developers"]
 license = "MIT OR Apache-2.0"

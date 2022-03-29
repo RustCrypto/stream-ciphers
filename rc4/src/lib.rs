@@ -48,17 +48,17 @@ use core::marker::PhantomData;
 #[cfg(feature = "zeroize")]
 use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 
-/// Rc4 key type (8–2048 bits/ 1-256 bytes)
+/// RC4 key type (8–2048 bits/ 1-256 bytes)
 ///
 /// Implemented as an alias for [`GenericArray`].
 pub type Key<KeySize> = GenericArray<u8, KeySize>;
 
 type BlockSize = consts::U1;
 
-/// The Rc4 stream cipher initializied with key
+/// The RC4 stream cipher initialized with key.
 pub type Rc4<KeySize> = StreamCipherCoreWrapper<Rc4Core<KeySize>>;
 
-/// Core state of the Rc4 stream cipher initialized only with key.
+/// Core state of the RC4 stream cipher initialized only with key.
 pub struct Rc4Core<KeySize> {
     state: Rc4State,
 

@@ -1,4 +1,4 @@
-# RustCrypto: Rc4 Stream Cipher Algorithm
+# RustCrypto: RC4
 
 [![Crate][crate-image]][crate-link]
 [![Docs][docs-image]][docs-link]
@@ -8,7 +8,7 @@
 [![Project Chat][chat-image]][chat-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
-Pure Rust implementation of the [Rc4 Stream Cipher Algorithm][1].
+Pure Rust implementation of the [RC4 stream cipher][1].
 
 [Documentation][docs-link]
 
