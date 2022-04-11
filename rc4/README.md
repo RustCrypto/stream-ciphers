@@ -12,16 +12,17 @@ Pure Rust implementation of the [RC4 stream cipher][1].
 
 [Documentation][docs-link]
 
-## ⚠️ Security Warning
+## 🚨 Warning: Cryptographically Broken 🚨
 
-This crate is provided for the purposes of legacy interoperability with
-protocols and systems which mandate the use of RC4.
-
-However, RC4 is [cryptographically broken and unsuitable for further use][2]!!!
+RC4 is [cryptographically broken and unsuitable for further use][2]!
 
 [RFC7465][3] and [RFC8758][4] prohibit the use of RC4 in TLS and SSH protocols
 respectively, noting that cryptographic weaknesses in the cipher's design make
 it practical to recover repeatedly encrypted plaintexts.
+
+This crate is provided for the purposes of legacy interoperability with
+protocols and systems which continue to mandate the use of RC4. It should not be
+relied on for security/confidentiality.
 
 **USE AT YOUR OWN RISK!**
 
