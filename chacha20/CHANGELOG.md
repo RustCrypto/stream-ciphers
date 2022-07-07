@@ -23,6 +23,12 @@ configuration flags ([#293])
 [#290]: https://github.com/RustCrypto/stream-ciphers/pull/290
 [#293]: https://github.com/RustCrypto/stream-ciphers/pull/293
 
+## 0.8.2 (2022-07-07)
+### Changed
+- Unpin `zeroize` dependency ([#301])
+
+[#301]: https://github.com/RustCrypto/stream-ciphers/pull/301
+
 ## 0.8.1 (2021-08-30)
 ### Added
 - NEON implementation for aarch64 ([#274])
