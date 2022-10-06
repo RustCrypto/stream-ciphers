@@ -14,7 +14,7 @@
 //! - [`XChaCha8`] / [`XChaCha12`]: reduced round variants of XChaCha20
 //! - [`ChaCha20Legacy`]: "djb" variant with 64-bit nonce.
 //! **WARNING:** This implementation internally uses 32-bit counter,
-//! while the original implementation uses 64-bit coutner. In other words,
+//! while the original implementation uses 64-bit counter. In other words,
 //! it does not allow encryption of more than 256 GiB of data.
 //!
 //! # ⚠️ Security Warning: Hazmat!
@@ -89,7 +89,7 @@
 //! - `chacha20_force_avx2`: force AVX2 backend. Requires enabled AVX2 target feature,
 //! ignored on non-x86(-64) targets.
 //!
-//! The flags can be enabled using `RUSTFLAGS` enviromental variable
+//! The flags can be enabled using `RUSTFLAGS` environmental variable
 //! (e.g. `RUSTFLAGS="--cfg chacha20_force_avx2"`) or by modifying `.cargo/config`.
 //!
 //! You SHOULD NOT enable several `force` flags simultaneously.
