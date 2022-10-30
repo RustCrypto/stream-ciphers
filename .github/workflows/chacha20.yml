@@ -197,9 +197,9 @@ jobs:
             rust: stable
 
           # ARM64 with NEON backend
-          #- target: aarch64-unknown-linux-gnu
-          #  rust: nightly
-          #  features: --features neon
+          - target: aarch64-unknown-linux-gnu
+            rust: stable
+            features: --features neon
 
           # PPC32
           - target: powerpc-unknown-linux-gnu
