@@ -34,6 +34,8 @@ work on stable Rust with the following `RUSTFLAGS`:
 - `x86` / `x86_64`
   - `avx2`: (~1.4cpb) `-Ctarget-cpu=haswell -Ctarget-feature=+avx2`
   - `sse2`: (~2.5cpb) `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
+- `aarch64`
+  - `neon` (~2-3x faster than `soft`) requires Rust 1.61+ and the `neon` feature enabled
 - Portable
   - `soft`: (~5 cpb on x86/x86_64)
 
@@ -76,8 +78,8 @@ done with a minor version bump.
 
 Licensed under either of:
 
- * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
- * [MIT license](http://opensource.org/licenses/MIT)
+- [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+- [MIT license](http://opensource.org/licenses/MIT)
 
 at your option.
 
