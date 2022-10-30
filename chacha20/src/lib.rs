@@ -282,6 +282,10 @@ impl<R: Unsigned> StreamCipherCore for ChaChaCore<R> {
                         }
                     }
                 }
+            } else if #[cfg(any(target_arch = "aarch64"))] {
+                unsafe {
+                    backends::neon::inner::<R, _>(&mut self.state, f);
+                }
             } else {
                 f.call(&mut backends::soft::Backend(self));
             }
