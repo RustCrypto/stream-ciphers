@@ -1,6 +1,6 @@
 [package]
 name = "salsa20"
-version = "0.10.2" # Also update html_root_url in lib.rs when bumping this
+version = "0.11.0"
 description = "Salsa20 Stream Cipher"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
@@ -13,10 +13,10 @@ keywords = ["crypto", "stream-cipher", "trait", "xsalsa20"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
-cipher = "0.4.2"
+cipher = "0.5.0-pre"
 
 [dev-dependencies]
-cipher = { version = "0.4.2", features = ["dev"] }
+cipher = { version = "0.5.0-pre", features = ["dev"] }
 hex-literal = "0.3.3"
 
 [features]
