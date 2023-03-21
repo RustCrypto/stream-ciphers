@@ -33,12 +33,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          override: true
-          profile: minimal
+          targets: ${{ matrix.target }}
       - run: cargo build --target ${{ matrix.target }}
       - run: cargo build --target ${{ matrix.target }} --features zeroize
 
@@ -69,12 +67,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          override: true
-          profile: minimal
+          targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
       - run: cargo test --target ${{ matrix.target }}
@@ -104,12 +100,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
+          targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
       - run: cargo test --target ${{ matrix.target }}
@@ -139,12 +133,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
+          targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
       - run: cargo test --target ${{ matrix.target }}
@@ -174,12 +166,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
+          targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
       - run: cargo test --target ${{ matrix.target }}
@@ -216,12 +206,10 @@ jobs:
       - uses: actions/checkout@v3
       - uses: RustCrypto/actions/cargo-cache@master
       - run: ${{ matrix.deps }}
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          profile: minimal
-          override: true
+          targets: ${{ matrix.target }}
       - name: Install precompiled cross
         run: |
           export URL=$(curl -s https://api.github.com/repos/cross-rs/cross/releases/latest | \
