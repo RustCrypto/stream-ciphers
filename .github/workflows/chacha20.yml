@@ -189,7 +189,7 @@ jobs:
           # ARM64 with NEON backend
           - target: aarch64-unknown-linux-gnu
             rust: stable
-            features: --features neon
+            rustflags: --cfg chacha20_force_neon
 
           # PPC32
           - target: powerpc-unknown-linux-gnu
@@ -210,12 +210,5 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
-      - name: Install precompiled cross
-        run: |
-          export URL=$(curl -s https://api.github.com/repos/cross-rs/cross/releases/latest | \
-            jq -r '.assets[] | select(.name | contains("x86_64-unknown-linux-gnu.tar.gz")) | .browser_download_url')
-          wget -O /tmp/binaries.tar.gz $URL
-          tar -C /tmp -xzf /tmp/binaries.tar.gz
-          mv /tmp/cross ~/.cargo/bin
-        shell: bash
-      - run: cross test --package chacha20 --target ${{ matrix.target }} ${{ matrix.features }}
+      - uses: RustCrypto/actions/cross-install@master
+      - run: RUSTFLAGS="${{ matrix.rustflags }}" cross test --package chacha20 --target ${{ matrix.target }}
