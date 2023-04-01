@@ -13,7 +13,7 @@ keywords = ["arc4", "arcfour", "crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
-cipher = "0.4.3"
+cipher = "0.4.4"
 
 [dev-dependencies]
 hex-literal = "0.3"
