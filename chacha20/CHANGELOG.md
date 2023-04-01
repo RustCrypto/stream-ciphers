@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.9.0 (2021-02-21)
+## 0.9.1 (2023-04-01)
+### Added
+- NEON support via `chacha20_force_neon` cfg attribute ([#310], [#317])
+
+[#310]: https://github.com/RustCrypto/stream-ciphers/pull/310
+[#317]: https://github.com/RustCrypto/stream-ciphers/pull/317
+
+## 0.9.0 (2022-02-21)
 ### Added
 - `chacha20_force_soft`, `chacha20_force_sse2`, and `chacha20_force_avx2`
 configuration flags ([#293])
