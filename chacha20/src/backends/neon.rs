@@ -1,13 +1,14 @@
-//! NEON-optimized implementation for aarch64 CPUs adapted from the Crypto++ `chacha_simd`
-//! implementation by Jack Lloyd and Jeffrey Walton (public domain).
+//! NEON-optimized implementation for aarch64 CPUs.
+//!
+//! Adapted from the Crypto++ `chacha_simd` implementation by Jack Lloyd and
+//! Jeffrey Walton (public domain).
+
 use crate::{Block, StreamClosure, Unsigned, STATE_WORDS};
 use cipher::{
     consts::{U4, U64},
     BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamBackend,
 };
-use core::marker::PhantomData;
-
-use core::arch::aarch64::*;
+use core::{arch::aarch64::*, marker::PhantomData};
 
 #[inline]
 #[target_feature(enable = "neon")]
