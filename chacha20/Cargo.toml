@@ -27,7 +27,7 @@ cpufeatures = "0.2"
 
 [dev-dependencies]
 cipher = { version = "0.4.4", features = ["dev"] }
-hex-literal = "0.3.3"
+hex-literal = "0.4.0"
 
 [features]
 std = ["cipher/std"]
