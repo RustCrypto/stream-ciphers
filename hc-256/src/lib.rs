@@ -198,10 +198,10 @@ impl Hc256Core {
 
     #[inline]
     fn h2(&self, x: u32) -> u32 {
-        self.qtable[(x & 0xff) as usize]
-            .wrapping_add(self.qtable[(256 + ((x >> 8) & 0xff)) as usize])
-            .wrapping_add(self.qtable[(512 + ((x >> 16) & 0xff)) as usize])
-            .wrapping_add(self.qtable[(768 + ((x >> 24) & 0xff)) as usize])
+        self.ptable[(x & 0xff) as usize]
+            .wrapping_add(self.ptable[(256 + ((x >> 8) & 0xff)) as usize])
+            .wrapping_add(self.ptable[(512 + ((x >> 16) & 0xff)) as usize])
+            .wrapping_add(self.ptable[(768 + ((x >> 24) & 0xff)) as usize])
     }
 
     fn gen_word(&mut self) -> u32 {
