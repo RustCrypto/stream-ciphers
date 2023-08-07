@@ -187,7 +187,7 @@ mod hchacha20_tests {
 
         let actual = hchacha::<U10>(
             GenericArray::from_slice(&KEY),
-            &GenericArray::from_slice(&INPUT),
+            GenericArray::from_slice(&INPUT),
         );
         assert_eq!(actual.as_slice(), &OUTPUT);
     }
