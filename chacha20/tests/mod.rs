@@ -73,7 +73,7 @@ mod chacha20test {
     #[test]
     fn chacha20_encryption() {
         let mut cipher = ChaCha20::new(&Key::from(KEY), &Nonce::from(IV));
-        let mut buf = PLAINTEXT.clone();
+        let mut buf = PLAINTEXT;
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut prefix = [0u8; 64];
@@ -160,7 +160,7 @@ mod xchacha20 {
     #[test]
     fn xchacha20_encryption() {
         let mut cipher = XChaCha20::new(&Key::from(KEY), &XNonce::from(IV));
-        let mut buf = PLAINTEXT.clone();
+        let mut buf = PLAINTEXT;
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut prefix = [0u8; 64];

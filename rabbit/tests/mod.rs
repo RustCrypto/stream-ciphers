@@ -34,7 +34,7 @@ fn test_rabbit_key_only() {
     for (key, ks) in tests.iter() {
         for n in 1..ks.len() {
             let mut rabbit = RabbitKeyOnly::new_from_slice(key).unwrap();
-            let mut d = ks.clone();
+            let mut d = *ks;
             for chunk in d.chunks_mut(n) {
                 rabbit.apply_keystream(chunk);
             }
@@ -75,7 +75,7 @@ fn test_rabbit_key_iv() {
     for (iv, ks) in tests.iter() {
         for n in 1..ks.len() {
             let mut rabbit = Rabbit::new_from_slices(key, iv).unwrap();
-            let mut d = ks.clone();
+            let mut d = *ks;
             for chunk in d.chunks_mut(n) {
                 rabbit.apply_keystream(chunk);
             }
