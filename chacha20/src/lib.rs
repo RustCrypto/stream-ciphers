@@ -231,6 +231,7 @@ impl<R: Unsigned> KeyIvInit for ChaChaCore<R> {
                     }
                 }
             } else {
+                #[allow(clippy::let_unit_value)]
                 let tokens = ();
             }
         }
