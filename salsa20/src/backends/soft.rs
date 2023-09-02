@@ -21,6 +21,7 @@ impl<'a, R: Unsigned> StreamBackend for Backend<'a, R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         let res = run_rounds::<R>(&self.0.state);
+
         self.0.set_block_pos(self.0.get_block_pos() + 1);
 
         for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {

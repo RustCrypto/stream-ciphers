@@ -9,7 +9,6 @@ cfg_if! {
                 pub(crate) mod sse2;
             } else {
                 pub(crate) mod soft;
-                pub(crate) mod sse2;
             }
         }
     } else {
