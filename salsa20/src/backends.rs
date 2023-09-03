@@ -7,7 +7,10 @@ cfg_if! {
         cfg_if! {
             if #[cfg(salsa20_force_sse2)] {
                 pub(crate) mod sse2;
+            } else if #[cfg(salsa20_force_soft)] {
+                pub(crate) mod soft;
             } else {
+                pub(crate) mod sse2;
                 pub(crate) mod soft;
             }
         }
