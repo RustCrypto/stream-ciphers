@@ -38,15 +38,15 @@ struct Backend<R: Unsigned> {
     _pd: PhantomData<R>,
 }
 
-impl<'a, R: Unsigned> BlockSizeUser for Backend<R> {
+impl<R: Unsigned> BlockSizeUser for Backend<R> {
     type BlockSize = U64;
 }
 
-impl<'a, R: Unsigned> ParBlocksSizeUser for Backend<R> {
+impl<R: Unsigned> ParBlocksSizeUser for Backend<R> {
     type ParBlocksSize = U1;
 }
 
-impl<'a, R: Unsigned> StreamBackend for Backend<R> {
+impl<R: Unsigned> StreamBackend for Backend<R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         unsafe {
@@ -55,8 +55,8 @@ impl<'a, R: Unsigned> StreamBackend for Backend<R> {
             self.v[2] = _mm_add_epi32(self.v[2], _mm_set_epi32(0, 0, 0, 1));
             let block_ptr = block.as_mut_ptr() as *mut __m128i;
 
-            for i in 0..4 {
-                _mm_storeu_si128(block_ptr.add(i), res[i]);
+            for (i, v) in res.iter().enumerate() {
+                _mm_storeu_si128(block_ptr.add(i), *v);
             }
         }
     }
