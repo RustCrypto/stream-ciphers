@@ -29,6 +29,7 @@ where
     };
 
     f.call(&mut backend);
+
     state[8] = _mm_cvtsi128_si32(backend.v[2]) as u32;
 }
 
@@ -67,7 +68,7 @@ unsafe fn rounds<R: Unsigned>(v: &[__m128i; 4]) -> [__m128i; 4] {
     let mut res = *v;
 
     for _ in 0..R::USIZE {
-        double_quarter_round(&mut res);
+        double_round(&mut res);
     }
 
     for i in 0..4 {
@@ -75,41 +76,20 @@ unsafe fn rounds<R: Unsigned>(v: &[__m128i; 4]) -> [__m128i; 4] {
     }
 
     transpose(&mut res);
-
     res[1] = _mm_shuffle_epi32(res[1], 0b_10_01_00_11);
     res[2] = _mm_shuffle_epi32(res[2], 0b_01_00_11_10);
     res[3] = _mm_shuffle_epi32(res[3], 0b_00_11_10_01);
-
     transpose(&mut res);
 
     res
 }
 
+/// The Salsa20 doubleround function for SSE2.
+///
+/// https://users.rust-lang.org/t/can-the-compiler-infer-sse-instructions/59976
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn double_quarter_round(v: &mut [__m128i; 4]) {
-    add_xor_rot(v);
-}
-
-#[inline]
-#[target_feature(enable = "sse2")]
-unsafe fn transpose([a, b, c, d]: &mut [__m128i; 4]) {
-    // attempt from https://randombit.net/bitbashing/posts/integer_matrix_transpose_in_sse2.html
-    let t0 = _mm_unpacklo_epi32(*a, *b);
-    let t1 = _mm_unpacklo_epi32(*c, *d);
-    let t2 = _mm_unpackhi_epi32(*a, *b);
-    let t3 = _mm_unpackhi_epi32(*c, *d);
-
-    /* Assigning transposed values back into I[0-3] */
-    *a = _mm_unpacklo_epi64(t0, t1);
-    *b = _mm_unpackhi_epi64(t0, t1);
-    *c = _mm_unpacklo_epi64(t2, t3);
-    *d = _mm_unpackhi_epi64(t2, t3);
-}
-
-#[inline]
-#[target_feature(enable = "sse2")]
-unsafe fn add_xor_rot([a, b, c, d]: &mut [__m128i; 4]) {
+unsafe fn double_round([a, b, c, d]: &mut [__m128i; 4]) {
     let mut t_sum: __m128i;
     let mut t_rotl: __m128i;
 
@@ -131,9 +111,9 @@ unsafe fn add_xor_rot([a, b, c, d]: &mut [__m128i; 4]) {
     *a = _mm_xor_si128(*a, t_rotl);
 
     // Rearrange data.
-    *b = _mm_shuffle_epi32(*b, 0x93); // 10_01_00_11
-    *c = _mm_shuffle_epi32(*c, 0x4E); // 01_00_11_10
-    *d = _mm_shuffle_epi32(*d, 0x39); // 00_11_10_01
+    *b = _mm_shuffle_epi32(*b, 0b_10_01_00_11);
+    *c = _mm_shuffle_epi32(*c, 0b_01_00_11_10);
+    *d = _mm_shuffle_epi32(*d, 0b_00_11_10_01);
 
     // Operate on "rows".
     t_sum = _mm_add_epi32(*a, *b);
@@ -153,7 +133,24 @@ unsafe fn add_xor_rot([a, b, c, d]: &mut [__m128i; 4]) {
     *a = _mm_xor_si128(*a, t_rotl);
 
     // Rearrange data.
-    *b = _mm_shuffle_epi32(*b, 0x39); // 00_11_10_01
-    *c = _mm_shuffle_epi32(*c, 0x4E); // 01_00_11_10
-    *d = _mm_shuffle_epi32(*d, 0x93); // 10_01_00_11
+    *b = _mm_shuffle_epi32(*b, 0b_00_11_10_01);
+    *c = _mm_shuffle_epi32(*c, 0b_01_00_11_10);
+    *d = _mm_shuffle_epi32(*d, 0b_10_01_00_11);
+}
+
+/// Transpose an integer 4 by 4 matrix in SSE2.
+///
+/// https://randombit.net/bitbashing/posts/integer_matrix_transpose_in_sse2.html
+#[inline]
+#[target_feature(enable = "sse2")]
+unsafe fn transpose([a, b, c, d]: &mut [__m128i; 4]) {
+    let t0 = _mm_unpacklo_epi32(*a, *b);
+    let t1 = _mm_unpacklo_epi32(*c, *d);
+    let t2 = _mm_unpackhi_epi32(*a, *b);
+    let t3 = _mm_unpackhi_epi32(*c, *d);
+
+    *a = _mm_unpacklo_epi64(t0, t1);
+    *b = _mm_unpackhi_epi64(t0, t1);
+    *c = _mm_unpacklo_epi64(t2, t3);
+    *d = _mm_unpackhi_epi64(t2, t3);
 }
