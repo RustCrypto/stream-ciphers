@@ -23,6 +23,7 @@ pub type XSalsa12 = StreamCipherCoreWrapper<XSalsaCore<U6>>;
 pub type XSalsa8 = StreamCipherCoreWrapper<XSalsaCore<U4>>;
 
 /// The XSalsa core function.
+#[derive(Clone)]
 pub struct XSalsaCore<R: Unsigned>(SalsaCore<R>);
 
 impl<R: Unsigned> KeySizeUser for XSalsaCore<R> {

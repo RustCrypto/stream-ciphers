@@ -22,6 +22,7 @@ pub type LegacyNonce = GenericArray<u8, U8>;
 pub type ChaCha20Legacy = StreamCipherCoreWrapper<ChaCha20LegacyCore>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
+#[derive(Clone)]
 pub struct ChaCha20LegacyCore(ChaChaCore<U10>);
 
 impl KeySizeUser for ChaCha20LegacyCore {

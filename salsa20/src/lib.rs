@@ -118,6 +118,7 @@ const STATE_WORDS: usize = 16;
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// The Salsa20 core function.
+#[derive(Clone)]
 pub struct SalsaCore<R: Unsigned> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],

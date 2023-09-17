@@ -82,6 +82,7 @@ const IV_WORDS: usize = IV_BITS / 32;
 pub type Hc256 = StreamCipherCoreWrapper<Hc256Core>;
 
 /// The HC-256 stream cipher core
+#[derive(Clone)]
 pub struct Hc256Core {
     ptable: [u32; TABLE_SIZE],
     qtable: [u32; TABLE_SIZE],

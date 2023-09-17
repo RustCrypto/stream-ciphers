@@ -36,6 +36,7 @@ pub type XChaCha12 = StreamCipherCoreWrapper<XChaChaCore<U6>>;
 pub type XChaCha8 = StreamCipherCoreWrapper<XChaChaCore<U4>>;
 
 /// The XChaCha core function.
+#[derive(Clone)]
 pub struct XChaChaCore<R: Unsigned>(ChaChaCore<R>);
 
 impl<R: Unsigned> KeySizeUser for XChaChaCore<R> {

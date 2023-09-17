@@ -181,6 +181,7 @@ cfg_if! {
 }
 
 /// The ChaCha core function.
+#[derive(Clone)]
 pub struct ChaChaCore<R: Unsigned> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
