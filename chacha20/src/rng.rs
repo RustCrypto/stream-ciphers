@@ -19,7 +19,6 @@ use crate::{
     U64,
 };
 use cipher::StreamCipherSeekCore;
-use core::convert::TryInto;
 
 // NB. this must remain consistent with some currently hard-coded numbers in this module
 const BUF_BLOCKS: u8 = 4;
@@ -41,6 +40,7 @@ impl Default for BlockRngResults {
 
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
+        // Unsafe conversion, assuming continuous memory layout
         unsafe {
             let (_prefix, result, _suffix) = core::slice::from_raw_parts(
                 self.0.as_ptr() as *const u8,
@@ -83,28 +83,12 @@ impl Drop for BlockRngResults {
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for BlockRngResults {}
 
-/// This is the internal block of ChaChaCore, [u8; 64]
+/// This is the internal block of ChaChaCore
 #[derive(Copy, Clone)]
 struct LesserBlock(GenericArray<u8, U64>);
 impl AsRef<[u8]> for LesserBlock {
     fn as_ref(&self) -> &[u8] {
         &self.0
-    }
-}
-
-impl From<[u8; 64]> for LesserBlock {
-    fn from(value: [u8; 64]) -> Self {
-        Self(value.into())
-    }
-}
-impl AsMut<[u8]> for LesserBlock {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0
-    }
-}
-impl Default for LesserBlock {
-    fn default() -> Self {
-        Self([0u8; 64].into())
     }
 }
 
@@ -197,7 +181,7 @@ macro_rules! impl_chacha_rng {
             fn eq(&self, other: &Self) -> bool {
                 self.rng.core.counter == other.rng.core.counter
                     && self.get_seed() == other.get_seed()
-                    && self.get_stream() == other.get_stream()
+                    && self.get_stream_bytes() == other.get_stream_bytes()
                     && self.get_word_pos() == other.get_word_pos()
             }
         }
@@ -280,7 +264,7 @@ macro_rules! impl_chacha_rng {
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
             #[inline]
-            pub fn set_stream(&mut self, stream: [u8; 12]) {
+            pub fn set_stream_bytes(&mut self, stream: [u8; 12]) {
                 self.rng.core.block.set_stream(stream);
                 if self.rng.index() != 64 {
                     let wp = self.get_word_pos();
@@ -288,10 +272,29 @@ macro_rules! impl_chacha_rng {
                 }
             }
 
+            /// Set the stream number. See also: `.set_stream_bytes()`
+            /// 
+            /// This is initialized to zero; 2<sup>96</sup> unique streams of output
+            /// are available per seed/key.
+            #[inline]
+            pub fn set_stream(&mut self, stream: u128) {
+                let mut upper_12_bytes = [0u8; 12];
+                upper_12_bytes.copy_from_slice(&stream.to_le_bytes()[4..16]);
+                self.rng.core.block.set_stream(upper_12_bytes);
+            }
+
             /// Get the stream number.
             #[inline]
-            pub fn get_stream(&self) -> [u8; 12] {
+            pub fn get_stream_bytes(&self) -> [u8; 12] {
                 self.rng.core.block.get_stream()
+            }
+
+            /// Get the stream number.
+            #[inline]
+            pub fn get_stream(&self) -> u128 {
+                let mut bytes = [0u8; 16];
+                bytes[4..16].copy_from_slice(&self.get_stream_bytes());
+                u128::from_le_bytes(bytes)
             }
 
             /// Get the seed.
@@ -345,6 +348,7 @@ mod tests {
 
     use super::*;
     use rand_core::{RngCore, SeedableRng};
+    use rand_chacha::ChaCha20Rng as OGChacha;
 
     const KEY: [u8; 32] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -371,7 +375,7 @@ mod tests {
     #[test]
     fn test_wrapping_add() {
         let mut rng = ChaCha20Rng::from_entropy();
-        rng.set_stream([35u8; 12]);
+        rng.set_stream(1337 as u128);
         // test counter wrapping-add
         rng.set_word_pos((2 as u64).pow(36) - 1);
         let mut output = [3u8; 128];
@@ -386,14 +390,19 @@ mod tests {
     fn test_set_and_get_equivalence() {
         let seed = [44u8; 32];
         let mut rng = ChaCha20Rng::from_seed(seed);
-        let stream = [32u8; 12];
+        let mut original_rng = OGChacha::from_seed(seed);
+        let stream = 1337 as u128;
         rng.set_stream(stream);
+        original_rng.set_stream(stream as u64);
         let word_pos = 3553439 as u64;
         rng.set_word_pos(word_pos);
+        original_rng.set_word_pos(word_pos as u128);
 
         assert_eq!(rng.get_seed(), seed);
         assert_eq!(rng.get_stream(), stream);
         // set_word_pos() rounds it down to the nearest multiple of 16
-        //assert_eq!(rng.get_word_pos(), word_pos);
+        // which would fail this:
+        // assert_eq!(rng.get_word_pos(), word_pos);
+        assert_eq!(rng.get_word_pos(), original_rng.get_word_pos() as u64);
     }
 }
