@@ -33,7 +33,6 @@ pub struct BlockRngResults(ParBlocks<LesserBlock>);
 
 impl Default for BlockRngResults {
     fn default() -> Self {
-        //Self([0u32; 64])
         Self(GenericArray::from([GenericArray::from([0u8; 64]); 4]))
     }
 }
@@ -257,6 +256,8 @@ macro_rules! impl_chacha_rng {
             pub fn set_word_pos(&mut self, word_offset: u64) {
                 let block = (word_offset / u64::from(BLOCK_WORDS)) as u32;
                 self.rng.core.block.set_block_pos(block);
+                self.rng
+                    .generate_and_set((word_offset % u64::from(BLOCK_WORDS)) as usize);
             }
 
             /// Set the stream number.
@@ -282,7 +283,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream(&mut self, stream: u128) {
                 let mut upper_12_bytes = [0u8; 12];
-                upper_12_bytes.copy_from_slice(&stream.to_le_bytes()[4..16]);
+                upper_12_bytes.copy_from_slice(&stream.to_le_bytes()[0..12]);
                 self.rng.core.block.set_stream(upper_12_bytes);
             }
 
@@ -296,7 +297,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> u128 {
                 let mut bytes = [0u8; 16];
-                bytes[4..16].copy_from_slice(&self.get_stream_bytes());
+                bytes[0..12].copy_from_slice(&self.get_stream_bytes());
                 u128::from_le_bytes(bytes)
             }
 
@@ -407,5 +408,6 @@ mod tests {
         // which would fail this:
         // assert_eq!(rng.get_word_pos(), word_pos);
         assert_eq!(rng.get_word_pos(), original_rng.get_word_pos() as u64);
+        assert_eq!(rng.get_word_pos(), word_pos);
     }
 }
