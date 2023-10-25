@@ -266,11 +266,11 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> [u8; 12] {
                 self.rng.core.block.get_stream()
-                // let mut result = 0u64;
+                // let mut result = 0u128;
                 // let stream_u32x2 = &self.rng.core.block.get_stream();
-                // result += stream_u32x2[0] as u64;
+                // result += stream_u32x2[0] as u128;
                 // result = result << 32;
-                // result += stream_u32x2[1] as u64;
+                // result += stream_u32x2[1] as u128;
                 // result
             }
 
