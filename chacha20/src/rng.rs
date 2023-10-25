@@ -1,21 +1,25 @@
 //! Block RNG based on rand_core::BlockRng
-use cipher::{Unsigned, StreamCipherCore, BlockSizeUser};
+use cipher::{BlockSizeUser, StreamCipherCore, Unsigned};
 use rand_core::{
     block::{BlockRng, BlockRngCore},
-    CryptoRng, Error, RngCore, SeedableRng
+    CryptoRng, Error, RngCore, SeedableRng,
 };
 
 #[cfg(feature = "zeroize")]
 use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
-    KeyIvInit, ChaChaCore,
-    U4, U6, U10, U64, U32,
-    cipher::{ParBlocks, ParBlocksSizeUser, generic_array::GenericArray}
-    //KEY_SIZE,
+    cipher::{generic_array::GenericArray, ParBlocks, ParBlocksSizeUser}, //KEY_SIZE,
+    ChaChaCore,
+    KeyIvInit,
+    U10,
+    U32,
+    U4,
+    U6,
+    U64,
 };
-use core::convert::TryInto;
 use cipher::StreamCipherSeekCore;
+use core::convert::TryInto;
 
 // NB. this must remain consistent with some currently hard-coded numbers in this module
 const BUF_BLOCKS: u8 = 4;
@@ -41,7 +45,8 @@ impl AsRef<[u32]> for BlockRngResults {
             let (_prefix, result, _suffix) = core::slice::from_raw_parts(
                 self.0.as_ptr() as *const u8,
                 self.0.len() * U64::USIZE,
-            ).align_to::<u32>();
+            )
+            .align_to::<u32>();
             result
         }
     }
@@ -54,7 +59,8 @@ impl AsMut<[u32]> for BlockRngResults {
             let (_prefix, result, _suffix) = core::slice::from_raw_parts_mut(
                 self.0.as_mut_ptr() as *mut u8,
                 self.0.len() * U64::USIZE,
-            ).align_to_mut::<u32>();
+            )
+            .align_to_mut::<u32>();
             result
         }
     }
@@ -111,13 +117,13 @@ trait AlteredState {
 
 impl<R: Unsigned> AlteredState for ChaChaCore<R> {
     fn set_stream(&mut self, stream: [u8; 12]) {
-        let (_prefix, result, _suffix) = unsafe {stream.align_to::<u32>()};
+        let (_prefix, result, _suffix) = unsafe { stream.align_to::<u32>() };
         for (val, chunk) in self.state[13..16].iter_mut().zip(result) {
             *val = *chunk;
         }
     }
     fn get_stream(&self) -> [u8; 12] {
-        let (_prefix, result_slice, _suffix) = unsafe {self.state[13..16].align_to::<u8>()};
+        let (_prefix, result_slice, _suffix) = unsafe { self.state[13..16].align_to::<u8>() };
         let mut result = [0u8; 12];
         result.copy_from_slice(result_slice);
         result
@@ -129,8 +135,8 @@ macro_rules! impl_chacha_rng {
         #[doc = $doc]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         #[derive(Clone)]
-        pub struct $name{
-            rng: BlockRng<$core>
+        pub struct $name {
+            rng: BlockRng<$core>,
         }
 
         impl SeedableRng for $name {
@@ -139,7 +145,9 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 let core = $core::from_seed(seed);
-                Self{rng: BlockRng::new(core)}
+                Self {
+                    rng: BlockRng::new(core),
+                }
             }
         }
 
@@ -176,10 +184,10 @@ macro_rules! impl_chacha_rng {
 
         impl PartialEq for $name {
             fn eq(&self, other: &Self) -> bool {
-                self.rng.core.counter == other.rng.core.counter &&
-                    self.get_seed() == other.get_seed() &&
-                    self.get_stream() == other.get_stream() &&
-                    self.get_word_pos() == other.get_word_pos()
+                self.rng.core.counter == other.rng.core.counter
+                    && self.get_seed() == other.get_seed()
+                    && self.get_stream() == other.get_stream()
+                    && self.get_word_pos() == other.get_word_pos()
             }
         }
         impl Eq for $name {}
@@ -211,7 +219,7 @@ macro_rules! impl_chacha_rng {
                 // through StreamBackend's .write_keystream_blocks()
                 // Buffer is [[u8; 64]; 4] and will run .gen_ks_block() 4 times if
                 // it uses soft.rs instead of SIMD
-                
+
                 self.block.write_keystream_blocks(&mut results.0);
 
                 self.counter = self.counter.wrapping_add(1);
@@ -281,8 +289,8 @@ macro_rules! impl_chacha_rng {
                 let mut result = [0u8; 32];
                 let seed = &self.rng.core.block.state[4..12];
                 unsafe {
-                let (_p, b, _t) = seed.align_to::<u8>();
-                result.copy_from_slice(&b);
+                    let (_p, b, _t) = seed.align_to::<u8>();
+                    result.copy_from_slice(&b);
                 }
                 result
             }
