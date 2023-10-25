@@ -72,6 +72,17 @@ impl BlockSizeUser for BlockRngResults {
         32
     }
 }
+
+#[cfg(feature = "zeroize")]
+impl Drop for BlockRngResults {
+    fn drop(&mut self) {
+        self.as_mut().zeroize();
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl ZeroizeOnDrop for BlockRngResults {}
+
 /// This is the internal block of ChaChaCore, [u8; 64]
 #[derive(Copy, Clone)]
 struct LesserBlock(GenericArray<u8, U64>);
