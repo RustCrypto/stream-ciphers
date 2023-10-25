@@ -25,23 +25,38 @@ const BLOCK_WORDS: u8 = 16;
 /// Array wrapper used for `BlockRngCore::Results` associated types.
 //pub type BlockRngResults = BlockX<u32, 32>;
 #[derive(Clone)]
-pub struct BlockRngResults([u32; 64]);
+//pub struct BlockRngResults([u32; 64]);
+pub struct BlockRngResults(ParBlocks<LesserBlock>);
 
 impl Default for BlockRngResults {
     fn default() -> Self {
-        Self([0u32; 64])
+        //Self([0u32; 64])
+        Self(GenericArray::from([GenericArray::from([0u8; 64]); 4]))
     }
 }
 
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
-        &self.0
+        unsafe {
+            let (_prefix, result, _suffix) = core::slice::from_raw_parts(
+                self.0.as_ptr() as *const u8,
+                self.0.len() * U64::USIZE,
+            ).align_to::<u32>();
+            result
+        }
     }
 }
 
 impl AsMut<[u32]> for BlockRngResults {
     fn as_mut(&mut self) -> &mut [u32] {
-        &mut self.0
+        // Unsafe conversion, assuming continuous memory layout
+        unsafe {
+            let (_prefix, result, _suffix) = core::slice::from_raw_parts_mut(
+                self.0.as_mut_ptr() as *mut u8,
+                self.0.len() * U64::USIZE,
+            ).align_to_mut::<u32>();
+            result
+        }
     }
 }
 
@@ -52,6 +67,7 @@ impl BlockSizeUser for BlockRngResults {
     }
 }
 /// This is the internal block of ChaChaCore, [u8; 64]
+#[derive(Copy, Clone)]
 struct LesserBlock(GenericArray<u8, U64>);
 impl AsRef<[u8]> for LesserBlock {
     fn as_ref(&self) -> &[u8] {
@@ -195,17 +211,8 @@ macro_rules! impl_chacha_rng {
                 // through StreamBackend's .write_keystream_blocks()
                 // Buffer is [[u8; 64]; 4] and will run .gen_ks_block() 4 times if
                 // it uses soft.rs instead of SIMD
-                let mut buffer: ParBlocks<LesserBlock> = GenericArray::from([GenericArray::from([0u8; 64]); 4]);
                 
-                self.block.write_keystream_blocks(&mut buffer);
-
-                let mut offset = 0;
-                for block in buffer.iter() {
-                    for (n, chunk) in results.0[offset..].as_mut().iter_mut().zip(block.chunks_exact(4)) {
-                        *n = u32::from_le_bytes(chunk.try_into().unwrap());
-                    }
-                    offset += 16;
-                }
+                self.block.write_keystream_blocks(&mut results.0);
 
                 self.counter = self.counter.wrapping_add(1);
             }
@@ -266,12 +273,6 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> [u8; 12] {
                 self.rng.core.block.get_stream()
-                // let mut result = 0u128;
-                // let stream_u32x2 = &self.rng.core.block.get_stream();
-                // result += stream_u32x2[0] as u128;
-                // result = result << 32;
-                // result += stream_u32x2[1] as u128;
-                // result
             }
 
             /// Get the seed.
