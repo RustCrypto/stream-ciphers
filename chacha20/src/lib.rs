@@ -126,6 +126,13 @@ use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 mod backends;
 mod legacy;
 mod xchacha;
+#[cfg(feature = "rand_core")]
+mod rng;
+
+#[cfg(feature = "rand_core")]
+pub use rng::{ChaCha8Core, ChaCha8Rng, ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng};
+#[cfg(feature = "rand_core")]
+pub use rand_core;
 
 pub use legacy::{ChaCha20Legacy, ChaCha20LegacyCore, LegacyNonce};
 pub use xchacha::{hchacha, XChaCha12, XChaCha20, XChaCha8, XChaChaCore, XNonce};
@@ -181,6 +188,7 @@ cfg_if! {
 }
 
 /// The ChaCha core function.
+#[cfg_attr(feature = "rand_core", derive(Clone))]
 pub struct ChaChaCore<R: Unsigned> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
