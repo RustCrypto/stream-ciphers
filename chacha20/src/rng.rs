@@ -265,7 +265,7 @@ macro_rules! impl_chacha_rng {
             /// Get the stream number.
             #[inline]
             pub fn get_stream(&self) -> [u8; 12] {
-                self.rng.core.block.get_stream();
+                self.rng.core.block.get_stream()
             }
 
             /// Get the seed.
