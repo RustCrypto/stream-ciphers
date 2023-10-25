@@ -272,8 +272,11 @@ macro_rules! impl_chacha_rng {
                 }
             }
 
-            /// Set the stream number. See also: `.set_stream_bytes()`
-            /// 
+            /// Set the stream number. The upper 96 bits are used and the rest are
+            /// discarded.
+            ///
+            /// See also: `.set_stream_bytes()`
+            ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
             #[inline]
@@ -347,8 +350,8 @@ impl_chacha_rng!(
 mod tests {
 
     use super::*;
-    use rand_core::{RngCore, SeedableRng};
     use rand_chacha::ChaCha20Rng as OGChacha;
+    use rand_core::{RngCore, SeedableRng};
 
     const KEY: [u8; 32] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
