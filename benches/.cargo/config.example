@@ -1,0 +1,9 @@
+# This config file will choose which Rust Flag to use for the benches.
+# Rename this file to "config" and uncomment out a rustflag to use it.
+# The config file will be excluded with `*/.cargo/config` in the .gitignore
+
+[build]
+#rustflags = "--cfg chacha20_force_avx2"
+#rustflags = "--cfg chacha20_force_sse2"
+#rustflags = "--cfg chacha20_force_neon"
+rustflags = "--cfg chacha20_force_soft"
