@@ -37,7 +37,7 @@ impl Default for BlockRngResults {
     }
 }
 // These 2 impls allow the [[u8; 64]; 4] to be used as a [u32; 64].
-// Alternatively, it might be able to be put in a `union`, but they 
+// Alternatively, it might be able to be put in a `union`, but they
 // would both require some unsafe code
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
