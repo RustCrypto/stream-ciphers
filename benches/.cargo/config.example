@@ -3,7 +3,7 @@
 # The config file will be excluded with `*/.cargo/config` in the .gitignore
 
 [build]
-#rustflags = "--cfg chacha20_force_avx2"
-#rustflags = "--cfg chacha20_force_sse2"
+#rustflags = "--cfg chacha20_force_avx2 -C target-feature=+avx2"
+#rustflags = "--cfg chacha20_force_sse2" # untested
 #rustflags = "--cfg chacha20_force_neon"
 rustflags = "--cfg chacha20_force_soft"
