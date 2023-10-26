@@ -12,7 +12,8 @@ publish = false
 [dev-dependencies]
 criterion = "0.3"
 criterion-cycles-per-byte = "0.1"
-chacha20 = { path = "../chacha20/" }
+chacha20 = { path = "../chacha20/", features = ["rand_core"] }
+rand_chacha = {version = "0.3.1"}
 
 [[bench]]
 name = "chacha20"
