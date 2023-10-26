@@ -88,14 +88,9 @@ fn bench_chacha20rng(c: &mut Criterion) {
 
         chacha_aarch64.throughput(Throughput::Bytes(*size as u64));
 
-        chacha_aarch64.bench_function(BenchmarkId::new("fill_bytes_chacha20", size), |b| {
+        chacha_aarch64.bench_function(BenchmarkId::new("fill_bytes", size), |b| {
             let mut rng = chacha20::ChaCha20Rng::from_seed([0u8; 32]);
             //let mut rng = rand_chacha::ChaCha20Rng::from_seed([0u8; 32]);
-            b.iter(|| rng.fill_bytes(&mut buf));
-        });
-        chacha_aarch64.bench_function(BenchmarkId::new("fill_bytes_c2-chacha", size), |b| {
-            //let mut rng = chacha20::ChaCha20Rng::from_seed([0u8; 32]);
-            let mut rng = rand_chacha::ChaCha20Rng::from_seed([0u8; 32]);
             b.iter(|| rng.fill_bytes(&mut buf));
         });
     }
