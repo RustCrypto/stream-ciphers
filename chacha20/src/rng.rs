@@ -36,7 +36,9 @@ impl Default for BlockRngResults {
         Self(GenericArray::from([GenericArray::from([0u8; 64]); 4]))
     }
 }
-
+// These 2 impls allow the [[u8; 64]; 4] to be used as a [u32; 64].
+// Alternatively, it might be able to be put in a `union`, but they 
+// would both require some unsafe code
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
         // Unsafe conversion, assuming continuous memory layout
