@@ -108,14 +108,18 @@ trait AlteredState {
 
 impl<R: Unsigned> AlteredState for ChaChaCore<R> {
     fn set_stream(&mut self, stream: [u8; 12]) {
-        for (n, chunk) in self.state[13..16].as_mut().iter_mut().zip(stream.chunks_exact(4)) {
+        for (n, chunk) in self.state[13..16]
+            .as_mut()
+            .iter_mut()
+            .zip(stream.chunks_exact(4))
+        {
             *n = u32::from_le_bytes(chunk.try_into().unwrap());
         }
     }
     fn get_stream(&self) -> [u8; 12] {
         let mut result = [0u8; 12];
         for (i, &big) in self.state[13..16].iter().enumerate() {
-            let index = i*4;
+            let index = i * 4;
             result[index + 0] = big as u8;
             result[index + 1] = (big >> 8) as u8;
             result[index + 2] = (big >> 16) as u8;
@@ -126,7 +130,7 @@ impl<R: Unsigned> AlteredState for ChaChaCore<R> {
     fn get_seed(&self) -> [u8; 32] {
         let mut result = [0u8; 32];
         for (i, &big) in self.state[4..12].iter().enumerate() {
-            let index = i*4;
+            let index = i * 4;
             result[index + 0] = big as u8;
             result[index + 1] = (big >> 8) as u8;
             result[index + 2] = (big >> 16) as u8;
@@ -243,10 +247,10 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 let block = ChaChaCore::<$rounds>::new(&seed.into(), &[0u8; 12].into());
-                Self { 
-                    block, 
-                    counter: 0, 
-                    parallel_blocks: GenericArray::from([GenericArray::from([0u8; 64]); 4])
+                Self {
+                    block,
+                    counter: 0,
+                    parallel_blocks: GenericArray::from([GenericArray::from([0u8; 64]); 4]),
                 }
             }
         }
@@ -263,7 +267,11 @@ macro_rules! impl_chacha_rng {
                 self.block.write_keystream_blocks(&mut self.parallel_blocks);
                 let mut offset = 0;
                 for block in self.parallel_blocks {
-                    for (n, chunk) in results.0[offset..].as_mut().iter_mut().zip(block.chunks_exact(4)) {
+                    for (n, chunk) in results.0[offset..]
+                        .as_mut()
+                        .iter_mut()
+                        .zip(block.chunks_exact(4))
+                    {
                         *n = u32::from_le_bytes(chunk.try_into().unwrap());
                     }
                     offset += 16;
@@ -371,7 +379,7 @@ macro_rules! impl_chacha_rng {
                 self.parallel_blocks[3].zeroize();
             }
         }
-        
+
         #[cfg(feature = "zeroize")]
         impl ZeroizeOnDrop for $ChaChaXCore {}
 
@@ -750,16 +758,15 @@ mod tests {
         // The test vectors omit the first 64-bytes of the keystream
         let mut discard_first_64 = [0u8; 64];
         rng.fill_bytes(&mut discard_first_64);
-        
+
         let mut results = [0u32; 16];
         for i in results.iter_mut() {
             *i = rng.next_u32();
         }
         let expected = [
-            0xe4e7f110,  0x15593bd1,  0x1fdd0f50,  0xc47120a3,
-            0xc7f4d1c7,  0x0368c033,  0x9aaa2204,  0x4e6cd4c3,
-            0x466482d2,  0x09aa9f07,  0x05d7c214,  0xa2028bd9,
-            0xd19c12b5,  0xb94e16de,  0xe883d0cb,  0x4e3c50a2,
+            0xe4e7f110, 0x15593bd1, 0x1fdd0f50, 0xc47120a3, 0xc7f4d1c7, 0x0368c033, 0x9aaa2204,
+            0x4e6cd4c3, 0x466482d2, 0x09aa9f07, 0x05d7c214, 0xa2028bd9, 0xd19c12b5, 0xb94e16de,
+            0xe883d0cb, 0x4e3c50a2,
         ];
 
         assert_eq!(results, expected);
