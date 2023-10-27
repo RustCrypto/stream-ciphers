@@ -6,6 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![forbid(unsafe_code)]
 //! Block RNG based on rand_core::BlockRng
 use cipher::{BlockSizeUser, StreamCipherCore, Unsigned};
 use rand_core::{
@@ -36,39 +37,24 @@ const BUF_BLOCKS: u8 = 4;
 const BLOCK_WORDS: u8 = 16;
 
 /// Array wrapper used for `BlockRngCore::Results` associated types.
-pub union BlockRngResults {
-    parallel_blocks: ParBlocks<LesserBlock>,
-    uniform_block: [u32; 64],
-}
+#[derive(Clone)]
+pub struct BlockRngResults([u32; 64]);
 
 impl Default for BlockRngResults {
     fn default() -> Self {
-        Self {
-            uniform_block: [0u32; 64],
-        }
+        Self([0u32; 64])
     }
 }
 
-impl Clone for BlockRngResults {
-    fn clone(&self) -> Self {
-        Self {
-            uniform_block: unsafe { self.uniform_block },
-        }
-    }
-}
-
-// These 2 impls allow the [[u8; 64]; 4] to be used as a [u32; 64].
-// Alternatively, it might be able to be put in a `union`, but they
-// would both require some unsafe code
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
-        unsafe { &self.uniform_block }
+        &self.0
     }
 }
 
 impl AsMut<[u32]> for BlockRngResults {
     fn as_mut(&mut self) -> &mut [u32] {
-        unsafe { &mut self.uniform_block }
+        &mut self.0
     }
 }
 
@@ -116,24 +102,36 @@ trait AlteredState {
     fn set_stream(&mut self, stream: [u8; 12]);
     /// Get the stream identifier
     fn get_stream(&self) -> [u8; 12];
+    /// Get the seed
+    fn get_seed(&self) -> [u8; 32];
 }
 
 impl<R: Unsigned> AlteredState for ChaChaCore<R> {
     fn set_stream(&mut self, stream: [u8; 12]) {
-        unsafe {
-            self.state[13..16]
-                .align_to_mut::<u8>()
-                .1
-                .copy_from_slice(&stream);
-            if self.state[13..16].align_to::<u8>().1 != stream {
-                panic!();
-            }
+        for (n, chunk) in self.state[13..16].as_mut().iter_mut().zip(stream.chunks_exact(4)) {
+            *n = u32::from_le_bytes(chunk.try_into().unwrap());
         }
     }
     fn get_stream(&self) -> [u8; 12] {
-        let (_prefix, result_slice, _suffix) = unsafe { self.state[13..16].align_to::<u8>() };
         let mut result = [0u8; 12];
-        result.copy_from_slice(result_slice);
+        for (i, &big) in self.state[13..16].iter().enumerate() {
+            let index = i*4;
+            result[index + 0] = big as u8;
+            result[index + 1] = (big >> 8) as u8;
+            result[index + 2] = (big >> 16) as u8;
+            result[index + 3] = (big >> 24) as u8;
+        }
+        result
+    }
+    fn get_seed(&self) -> [u8; 32] {
+        let mut result = [0u8; 32];
+        for (i, &big) in self.state[4..12].iter().enumerate() {
+            let index = i*4;
+            result[index + 0] = big as u8;
+            result[index + 1] = (big >> 8) as u8;
+            result[index + 2] = (big >> 16) as u8;
+            result[index + 3] = (big >> 24) as u8;
+        }
         result
     }
 }
@@ -235,6 +233,7 @@ macro_rules! impl_chacha_rng {
         #[derive(Clone)]
         pub struct $ChaChaXCore {
             block: ChaChaCore<$rounds>,
+            parallel_blocks: ParBlocks<LesserBlock>,
             counter: u32,
         }
 
@@ -244,7 +243,11 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 let block = ChaChaCore::<$rounds>::new(&seed.into(), &[0u8; 12].into());
-                Self { block, counter: 0 }
+                Self { 
+                    block, 
+                    counter: 0, 
+                    parallel_blocks: GenericArray::from([GenericArray::from([0u8; 64]); 4])
+                }
             }
         }
 
@@ -257,8 +260,14 @@ macro_rules! impl_chacha_rng {
                 // through StreamBackend's .write_keystream_blocks()
                 // Buffer is [[u8; 64]; 4] and will run .gen_ks_block() 4 times if
                 // it uses soft.rs instead of SIMD
-                self.block
-                    .write_keystream_blocks(unsafe { &mut results.parallel_blocks });
+                self.block.write_keystream_blocks(&mut self.parallel_blocks);
+                let mut offset = 0;
+                for block in self.parallel_blocks {
+                    for (n, chunk) in results.0[offset..].as_mut().iter_mut().zip(block.chunks_exact(4)) {
+                        *n = u32::from_le_bytes(chunk.try_into().unwrap());
+                    }
+                    offset += 16;
+                }
 
                 self.counter = self.counter.wrapping_add(1);
             }
@@ -348,13 +357,7 @@ macro_rules! impl_chacha_rng {
             /// Get the seed.
             #[inline]
             pub fn get_seed(&self) -> [u8; 32] {
-                let mut result = [0u8; 32];
-                let seed = &self.rng.core.block.state[4..12];
-                unsafe {
-                    let (_p, b, _t) = seed.align_to::<u8>();
-                    result.copy_from_slice(&b);
-                }
-                result
+                self.rng.core.block.get_seed()
             }
         }
 
@@ -362,6 +365,10 @@ macro_rules! impl_chacha_rng {
         impl Drop for $ChaChaXCore {
             fn drop(&mut self) {
                 self.counter.zeroize();
+                self.parallel_blocks[0].zeroize();
+                self.parallel_blocks[1].zeroize();
+                self.parallel_blocks[2].zeroize();
+                self.parallel_blocks[3].zeroize();
             }
         }
         
@@ -743,21 +750,17 @@ mod tests {
         // The test vectors omit the first 64-bytes of the keystream
         let mut discard_first_64 = [0u8; 64];
         rng.fill_bytes(&mut discard_first_64);
+        
         let mut results = [0u32; 16];
         for i in results.iter_mut() {
             *i = rng.next_u32();
         }
-        let expected = unsafe {
-            hex!(
-                "
-            10 f1 e7 e4 d1 3b 59 15 50 0f dd 1f a3 20 71 c4
-            c7 d1 f4 c7 33 c0 68 03 04 22 aa 9a c3 d4 6c 4e
-            d2 82 64 46 07 9f aa 09 14 c2 d7 05 d9 8b 02 a2
-            b5 12 9c d1 de 16 4e b9 cb d0 83 e8 a2 50 3c 4e"
-            )
-            .align_to::<u32>()
-            .1
-        };
+        let expected = [
+            0xe4e7f110,  0x15593bd1,  0x1fdd0f50,  0xc47120a3,
+            0xc7f4d1c7,  0x0368c033,  0x9aaa2204,  0x4e6cd4c3,
+            0x466482d2,  0x09aa9f07,  0x05d7c214,  0xa2028bd9,
+            0xd19c12b5,  0xb94e16de,  0xe883d0cb,  0x4e3c50a2,
+        ];
 
         assert_eq!(results, expected);
     }
