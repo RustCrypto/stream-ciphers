@@ -9,21 +9,21 @@
 //! Block RNG based on rand_core::BlockRng
 use cipher::{BlockSizeUser, StreamCipherCore, Unsigned};
 use rand_core::{
-    block::{BlockRng, BlockRngCore, BlockRng64},
+    block::{BlockRng, BlockRngCore},
     CryptoRng, Error, RngCore, SeedableRng,
 };
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[cfg(feature = "serde1")] use serde::{Serialize, Deserialize, Serializer, Deserializer};
-
-#[cfg(feature = "zeroize")] use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
+#[cfg(feature = "zeroize")]
+use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     cipher::{generic_array::GenericArray, ParBlocks, ParBlocksSizeUser}, //KEY_SIZE,
     ChaChaCore,
     KeyIvInit,
     U10,
-    U32,
     U4,
     U6,
     U64,
@@ -38,18 +38,22 @@ const BLOCK_WORDS: u8 = 16;
 /// Array wrapper used for `BlockRngCore::Results` associated types.
 pub union BlockRngResults {
     parallel_blocks: ParBlocks<LesserBlock>,
-    uniform_block: [u32; 64]
+    uniform_block: [u32; 64],
 }
 
 impl Default for BlockRngResults {
     fn default() -> Self {
-        Self {uniform_block: [0u32; 64]}
+        Self {
+            uniform_block: [0u32; 64],
+        }
     }
 }
 
 impl Clone for BlockRngResults {
     fn clone(&self) -> Self {
-        Self {uniform_block: unsafe {self.uniform_block}}
+        Self {
+            uniform_block: unsafe { self.uniform_block },
+        }
     }
 }
 
@@ -58,13 +62,13 @@ impl Clone for BlockRngResults {
 // would both require some unsafe code
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
-        unsafe {&self.uniform_block}
+        unsafe { &self.uniform_block }
     }
 }
 
 impl AsMut<[u32]> for BlockRngResults {
     fn as_mut(&mut self) -> &mut [u32] {
-        unsafe {&mut self.uniform_block}
+        unsafe { &mut self.uniform_block }
     }
 }
 
@@ -72,8 +76,8 @@ impl BlockSizeUser for BlockRngResults {
     type BlockSize = U64;
     fn block_size() -> usize {
         256 // for U32x64
-        //512 // for U64x64
-        //256 // for U64x32
+            //512 // for U64x64
+            //256 // for U64x32
     }
 }
 
@@ -117,7 +121,10 @@ trait AlteredState {
 impl<R: Unsigned> AlteredState for ChaChaCore<R> {
     fn set_stream(&mut self, stream: [u8; 12]) {
         unsafe {
-            self.state[13..16].align_to_mut::<u8>().1.copy_from_slice(&stream);
+            self.state[13..16]
+                .align_to_mut::<u8>()
+                .1
+                .copy_from_slice(&stream);
             if self.state[13..16].align_to::<u8>().1 != stream {
                 panic!();
             }
@@ -171,7 +178,7 @@ macro_rules! impl_chacha_rng {
         ///
         /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](
         ///       http://www.ecrypt.eu.org/stream/)
-        /// 
+        ///
         /// [^3]: Internet Research Task Force, [*ChaCha20 and Poly1305 for IETF Protocols*](
         ///       https://datatracker.ietf.org/doc/html/rfc7539#section-2.1)
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
@@ -261,7 +268,8 @@ macro_rules! impl_chacha_rng {
                 // Buffer is [[u8; 64]; 4] and will run .gen_ks_block() 4 times if
                 // it uses soft.rs instead of SIMD
 
-                self.block.write_keystream_blocks(unsafe {&mut results.parallel_blocks});
+                self.block
+                    .write_keystream_blocks(unsafe { &mut results.parallel_blocks });
 
                 self.counter = self.counter.wrapping_add(1);
             }
@@ -374,13 +382,18 @@ macro_rules! impl_chacha_rng {
         #[cfg(feature = "serde1")]
         impl Serialize for $ChaChaXRng {
             fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
-            where S: Serializer {
+            where
+                S: Serializer,
+            {
                 $abst::$ChaChaXRng::from(self).serialize(s)
             }
         }
         #[cfg(feature = "serde1")]
         impl<'de> Deserialize<'de> for $ChaChaXRng {
-            fn deserialize<D>(d: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+            fn deserialize<D>(d: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
                 $abst::$ChaChaXRng::deserialize(d).map(|x| Self::from(&x))
             }
         }
@@ -394,16 +407,14 @@ macro_rules! impl_chacha_rng {
         }
 
         mod $abst {
-            #[cfg(feature = "serde1")] use serde::{Serialize, Deserialize};
+            #[cfg(feature = "serde1")]
+            use serde::{Deserialize, Serialize};
 
             // The abstract state of a ChaCha stream, independent of implementation choices. The
             // comparison and serialization of this object is considered a semver-covered part of
             // the API.
             #[derive(Debug, PartialEq, Eq)]
-            #[cfg_attr(
-                feature = "serde1",
-                derive(Serialize, Deserialize),
-            )]
+            #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
             pub(crate) struct $ChaChaXRng {
                 seed: [u8; 32],
                 stream: u128,
@@ -433,30 +444,14 @@ macro_rules! impl_chacha_rng {
                 }
             }
         }
-
-    };  
+    };
 }
 
-impl_chacha_rng!(
-    ChaCha8Rng,
-    ChaCha8Core,
-    U4,
-    abst8
-);
+impl_chacha_rng!(ChaCha8Rng, ChaCha8Core, U4, abst8);
 
-impl_chacha_rng!(
-    ChaCha12Rng,
-    ChaCha12Core,
-    U6,
-    abst12
-);
+impl_chacha_rng!(ChaCha12Rng, ChaCha12Core, U6, abst12);
 
-impl_chacha_rng!(
-    ChaCha20Rng,
-    ChaCha20Core,
-    U10,
-    abst20
-);
+impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, U10, abst20);
 
 #[cfg(test)]
 mod tests {
@@ -465,8 +460,8 @@ mod tests {
     use rand_chacha::ChaCha20Rng as OGChacha;
     use rand_core::{RngCore, SeedableRng};
 
-    
-#[cfg(feature = "serde1")] use serde_json;
+    #[cfg(feature = "serde1")]
+    use serde_json;
 
     const KEY: [u8; 32] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -526,7 +521,8 @@ mod tests {
         assert_eq!(rng.get_word_pos(), word_pos);
     }
 
-    #[cfg(feature = "serde1")] use super::{ChaCha20Rng, ChaCha12Rng, ChaCha8Rng};
+    #[cfg(feature = "serde1")]
+    use super::{ChaCha12Rng, ChaCha20Rng, ChaCha8Rng};
 
     type ChaChaRng = ChaCha20Rng;
 
@@ -534,8 +530,8 @@ mod tests {
     #[test]
     fn test_chacha_serde_roundtrip() {
         let seed = [
-            1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0, 0, 0,
-            0, 2, 92,
+            1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0,
+            0, 0, 0, 2, 92,
         ];
         let mut rng1 = ChaCha20Rng::from_seed(seed);
         let mut rng2 = ChaCha12Rng::from_seed(seed);
@@ -789,7 +785,7 @@ mod tests {
 
     #[test]
     fn test_chacha_word_pos_wrap_exact() {
-        use super::{BUF_BLOCKS, BLOCK_WORDS};
+        use super::{BLOCK_WORDS, BUF_BLOCKS};
         let mut rng = ChaChaRng::from_seed(Default::default());
         // refilling the buffer in set_word_pos will wrap the block counter to 0
         let last_block = (1 << 36) - u64::from(BUF_BLOCKS * BLOCK_WORDS);
@@ -826,5 +822,3 @@ mod tests {
         }
     }
 }
-
-
