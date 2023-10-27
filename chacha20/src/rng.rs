@@ -180,7 +180,7 @@ macro_rules! impl_chacha_rng {
         ///       http://www.ecrypt.eu.org/stream/)
         ///
         /// [^3]: Internet Research Task Force, [*ChaCha20 and Poly1305 for IETF Protocols*](
-        ///       https://datatracker.ietf.org/doc/html/rfc7539#section-2.1)
+        ///       https://www.rfc-editor.org/rfc/rfc8439)
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         #[derive(Clone)]
         pub struct $ChaChaXRng {
@@ -230,16 +230,6 @@ macro_rules! impl_chacha_rng {
             }
         }
 
-        impl PartialEq for $ChaChaXRng {
-            fn eq(&self, other: &Self) -> bool {
-                self.rng.core.counter == other.rng.core.counter
-                    && self.get_seed() == other.get_seed()
-                    && self.get_stream_bytes() == other.get_stream_bytes()
-                    && self.get_word_pos() == other.get_word_pos()
-            }
-        }
-        impl Eq for $ChaChaXRng {}
-
         #[doc = "Core random number generator, for use with [`rand_core::block::BlockRng`]"]
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         #[derive(Clone)]
@@ -267,7 +257,6 @@ macro_rules! impl_chacha_rng {
                 // through StreamBackend's .write_keystream_blocks()
                 // Buffer is [[u8; 64]; 4] and will run .gen_ks_block() 4 times if
                 // it uses soft.rs instead of SIMD
-
                 self.block
                     .write_keystream_blocks(unsafe { &mut results.parallel_blocks });
 
@@ -375,9 +364,19 @@ macro_rules! impl_chacha_rng {
                 self.counter.zeroize();
             }
         }
-
+        
         #[cfg(feature = "zeroize")]
         impl ZeroizeOnDrop for $ChaChaXCore {}
+
+        impl PartialEq<$ChaChaXRng> for $ChaChaXRng {
+            fn eq(&self, rhs: &$ChaChaXRng) -> bool {
+                let a: $abst::$ChaChaXRng = self.into();
+                let b: $abst::$ChaChaXRng = rhs.into();
+                a == b
+            }
+        }
+
+        impl Eq for $ChaChaXRng {}
 
         #[cfg(feature = "serde1")]
         impl Serialize for $ChaChaXRng {
@@ -567,7 +566,7 @@ mod tests {
     #[cfg(feature = "serde1")]
     #[test]
     fn test_chacha_serde_format_stability() {
-        let j = r#"{"seed":[4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8],"stream":27182818284,"word_pos":314159265359}"#;
+        let j = r#"{"seed":[4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8],"stream":27182818284,"word_pos":3141592653}"#;
         let r: ChaChaRng = serde_json::from_str(&j).unwrap();
         let j1 = serde_json::to_string(&r).unwrap();
         assert_eq!(j, j1);
@@ -733,24 +732,33 @@ mod tests {
 
     #[test]
     fn test_chacha_nonce() {
+        use hex_literal::hex;
         // Test vector 5 from
-        // https://tools.ietf.org/html/draft-nir-cfrg-chacha20-poly1305-04
-        // Although we do not support setting a nonce, we try it here anyway so
-        // we can use this test vector.
-        let seed = [0u8; 32];
+        // https://www.rfc-editor.org/rfc/rfc8439#section-2.3.2
+        let seed = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
         let mut rng = ChaChaRng::from_seed(seed);
-        // 96-bit nonce in LE order is: 0,0,0,0, 0,0,0,0, 0,0,0,2
-        rng.set_stream(2u128 << (24 + 32));
 
+        rng.set_stream_bytes(hex!("000000090000004a00000000"));
+
+        // The test vectors omit the first 64-bytes of the keystream
+        let mut discard_first_64 = [0u8; 64];
+        rng.fill_bytes(&mut discard_first_64);
         let mut results = [0u32; 16];
         for i in results.iter_mut() {
             *i = rng.next_u32();
         }
-        let expected = [
-            0x374dc6c2, 0x3736d58c, 0xb904e24a, 0xcd3f93ef, 0x88228b1a, 0x96a4dfb3, 0x5b76ab72,
-            0xc727ee54, 0x0e0e978a, 0xf3145c95, 0x1b748ea8, 0xf786c297, 0x99c28f5f, 0x628314e8,
-            0x398a19fa, 0x6ded1b53,
-        ];
+        let expected = unsafe {
+            hex!(
+                "
+            10 f1 e7 e4 d1 3b 59 15 50 0f dd 1f a3 20 71 c4
+            c7 d1 f4 c7 33 c0 68 03 04 22 aa 9a c3 d4 6c 4e
+            d2 82 64 46 07 9f aa 09 14 c2 d7 05 d9 8b 02 a2
+            b5 12 9c d1 de 16 4e b9 cb d0 83 e8 a2 50 3c 4e"
+            )
+            .align_to::<u32>()
+            .1
+        };
+
         assert_eq!(results, expected);
     }
 
