@@ -36,44 +36,36 @@ const BUF_BLOCKS: u8 = 4;
 const BLOCK_WORDS: u8 = 16;
 
 /// Array wrapper used for `BlockRngCore::Results` associated types.
-//pub type BlockRngResults = BlockX<u32, 32>;
-#[derive(Clone)]
-//pub struct BlockRngResults([u32; 64]);
-pub struct BlockRngResults(ParBlocks<LesserBlock>);
+pub union BlockRngResults {
+    parallel_blocks: ParBlocks<LesserBlock>,
+    uniform_block: [u32; 64]
+}
 
 impl Default for BlockRngResults {
     fn default() -> Self {
-        Self(GenericArray::from([GenericArray::from([0u8; 64]); 4]))
+        Self {uniform_block: [0u32; 64]}
     }
 }
+
+impl Clone for BlockRngResults {
+    fn clone(&self) -> Self {
+        Self {uniform_block: unsafe {self.uniform_block}}
+    }
+}
+
 // These 2 impls allow the [[u8; 64]; 4] to be used as a [u32; 64].
 // Alternatively, it might be able to be put in a `union`, but they
 // would both require some unsafe code
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
         // Unsafe conversion, assuming continuous memory layout
-        unsafe {
-            let (_prefix, result, _suffix) = core::slice::from_raw_parts(
-                self.0.as_ptr() as *const u8,
-                self.0.len() * U64::USIZE,
-            )
-            .align_to::<u32>();
-            result
-        }
+        unsafe {&self.uniform_block}
     }
 }
 
 impl AsMut<[u32]> for BlockRngResults {
     fn as_mut(&mut self) -> &mut [u32] {
-        // Unsafe conversion, assuming continuous memory layout
-        unsafe {
-            let (_prefix, result, _suffix) = core::slice::from_raw_parts_mut(
-                self.0.as_mut_ptr() as *mut u8,
-                self.0.len() * U64::USIZE,
-            )
-            .align_to_mut::<u32>();
-            result
-        }
+        unsafe {&mut self.uniform_block}
     }
 }
 
@@ -265,7 +257,7 @@ macro_rules! impl_chacha_rng {
                 // Buffer is [[u8; 64]; 4] and will run .gen_ks_block() 4 times if
                 // it uses soft.rs instead of SIMD
 
-                self.block.write_keystream_blocks(&mut results.0);
+                self.block.write_keystream_blocks(unsafe {&mut results.parallel_blocks});
 
                 self.counter = self.counter.wrapping_add(1);
             }
