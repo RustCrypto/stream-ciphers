@@ -9,7 +9,7 @@
 //! Block RNG based on rand_core::BlockRng
 use cipher::{BlockSizeUser, StreamCipherCore, Unsigned};
 use rand_core::{
-    block::{BlockRng, BlockRngCore},
+    block::{BlockRng, BlockRngCore, BlockRng64},
     CryptoRng, Error, RngCore, SeedableRng,
 };
 
@@ -58,7 +58,6 @@ impl Clone for BlockRngResults {
 // would both require some unsafe code
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
-        // Unsafe conversion, assuming continuous memory layout
         unsafe {&self.uniform_block}
     }
 }
@@ -70,9 +69,11 @@ impl AsMut<[u32]> for BlockRngResults {
 }
 
 impl BlockSizeUser for BlockRngResults {
-    type BlockSize = U32;
+    type BlockSize = U64;
     fn block_size() -> usize {
-        32
+        256 // for U32x64
+        //512 // for U64x64
+        //256 // for U64x32
     }
 }
 
@@ -117,6 +118,9 @@ impl<R: Unsigned> AlteredState for ChaChaCore<R> {
     fn set_stream(&mut self, stream: [u8; 12]) {
         unsafe {
             self.state[13..16].align_to_mut::<u8>().1.copy_from_slice(&stream);
+            if self.state[13..16].align_to::<u8>().1 != stream {
+                panic!();
+            }
         }
     }
     fn get_stream(&self) -> [u8; 12] {
@@ -234,7 +238,7 @@ macro_rules! impl_chacha_rng {
         #[derive(Clone)]
         pub struct $ChaChaXCore {
             block: ChaChaCore<$rounds>,
-            counter: u64,
+            counter: u32,
         }
 
         impl SeedableRng for $ChaChaXCore {
@@ -327,7 +331,7 @@ macro_rules! impl_chacha_rng {
             pub fn set_stream(&mut self, stream: u128) {
                 let mut upper_12_bytes = [0u8; 12];
                 upper_12_bytes.copy_from_slice(&stream.to_le_bytes()[0..12]);
-                self.rng.core.block.set_stream(upper_12_bytes);
+                self.set_stream_bytes(upper_12_bytes);
             }
 
             /// Get the stream number.
@@ -769,6 +773,11 @@ mod tests {
         rng.set_stream(51);
         assert_eq!(rng.get_stream(), 51);
         assert_eq!(clone.get_stream(), 0);
+        let mut fill_1 = [0u8; 7];
+        rng.fill_bytes(&mut fill_1);
+        let mut fill_2 = [0u8; 7];
+        clone.fill_bytes(&mut fill_2);
+        assert_ne!(fill_1, fill_2);
         for _ in 0..7 {
             assert!(rng.next_u64() != clone.next_u64());
         }
