@@ -321,13 +321,21 @@ macro_rules! impl_chacha_rng {
             /// 28 bits.
             #[inline]
             pub fn set_word_pos_bytes(&mut self, word_offset: &[u8; 8]) {
-                let mut original_word_offset = u64::from_le_bytes(*word_offset);
-                let mut block = original_word_offset >> 4;
-                self.rng.core.block.set_block_pos(block as u32);
-                self.rng
-                    .generate_and_set((original_word_offset - block) as usize);
+                #[cfg(not(feature = "zeroize"))]
+                {
+                    let original_word_offset = u64::from_le_bytes(*word_offset);
+                    let block = original_word_offset >> 4;
+                    self.rng.core.block.set_block_pos(block as u32);
+                    self.rng
+                        .generate_and_set((original_word_offset - block) as usize);
+                }
                 #[cfg(feature = "zeroize")]
                 {
+                    let mut original_word_offset = u64::from_le_bytes(*word_offset);
+                    let mut block = original_word_offset >> 4;
+                    self.rng.core.block.set_block_pos(block as u32);
+                    self.rng
+                        .generate_and_set((original_word_offset - block) as usize);
                     original_word_offset.zeroize();
                     block.zeroize();
                 }
