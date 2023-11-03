@@ -132,7 +132,7 @@ mod xchacha;
 #[cfg(feature = "rand_core")]
 pub use rand_core;
 #[cfg(feature = "rand_core")]
-pub use rng::{ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng, ChaCha8Core, ChaCha8Rng};
+pub use rng::{ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng, ChaCha8Core, ChaCha8Rng, Seed};
 
 pub use legacy::{ChaCha20Legacy, ChaCha20LegacyCore, LegacyNonce};
 pub use xchacha::{hchacha, XChaCha12, XChaCha20, XChaCha8, XChaChaCore, XNonce};
