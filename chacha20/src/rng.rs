@@ -23,7 +23,6 @@ use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 use crate::{
     cipher::{generic_array::GenericArray, ParBlocks, ParBlocksSizeUser}, //KEY_SIZE,
     ChaChaCore,
-    KeyIvInit,
     U10,
     U4,
     U6,
@@ -97,7 +96,7 @@ impl ParBlocksSizeUser for Block {
 /// A trait for altering the state of ChaChaCore<R>
 trait AlteredState {
     /// Set the stream identifier
-    fn set_stream(&mut self, stream: [u8; 12]);
+    fn set_stream(&mut self, stream: &[u8; 12]);
     /// Get the stream identifier
     fn get_stream(&self) -> [u8; 12];
     /// Get the seed
@@ -105,7 +104,7 @@ trait AlteredState {
 }
 
 impl<R: Unsigned> AlteredState for ChaChaCore<R> {
-    fn set_stream(&mut self, stream: [u8; 12]) {
+    fn set_stream(&mut self, stream: &[u8; 12]) {
         for (n, chunk) in self.state[13..16]
             .as_mut()
             .iter_mut()
@@ -244,7 +243,7 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let block = ChaChaCore::<$rounds>::new(&seed.into(), &[0u8; 12].into());
+                let block = ChaChaCore::<$rounds>::from_seed(&seed);
                 Self {
                     block,
                     counter: 0,
@@ -315,12 +314,31 @@ macro_rules! impl_chacha_rng {
                     .generate_and_set((word_offset % u64::from(BLOCK_WORDS)) as usize);
             }
 
+            /// Set the offset from the start of the stream, in 32-bit words.
+            ///
+            /// As with `get_word_pos`, we use a 36-bit number. Since the generator
+            /// simply cycles at the end of its period (256 GiB), we ignore the upper
+            /// 28 bits.
+            #[inline]
+            pub fn set_word_pos_bytes(&mut self, word_offset: &[u8; 8]) {
+                let mut original_word_offset = u64::from_le_bytes(*word_offset);
+                let mut block = original_word_offset >> 4;
+                self.rng.core.block.set_block_pos(block as u32);
+                self.rng
+                    .generate_and_set((original_word_offset - block) as usize);
+                #[cfg(feature = "zeroize")]
+                {
+                    original_word_offset.zeroize();
+                    block.zeroize();
+                }
+            }
+
             /// Set the stream number.
             ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
             #[inline]
-            pub fn set_stream_bytes(&mut self, stream: [u8; 12]) {
+            pub fn set_stream_bytes(&mut self, stream: &[u8; 12]) {
                 self.rng.core.block.set_stream(stream);
                 if self.rng.index() != 64 {
                     let wp = self.get_word_pos();
@@ -339,7 +357,7 @@ macro_rules! impl_chacha_rng {
             pub fn set_stream(&mut self, stream: u128) {
                 let mut upper_12_bytes = [0u8; 12];
                 upper_12_bytes.copy_from_slice(&stream.to_le_bytes()[0..12]);
-                self.set_stream_bytes(upper_12_bytes);
+                self.set_stream_bytes(&upper_12_bytes);
             }
 
             /// Get the stream number.
@@ -744,7 +762,7 @@ mod tests {
         let seed = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
         let mut rng = ChaChaRng::from_seed(seed);
 
-        rng.set_stream_bytes(hex!("000000090000004a00000000"));
+        rng.set_stream_bytes(&hex!("000000090000004a00000000"));
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut discard_first_64 = [0u8; 64];
