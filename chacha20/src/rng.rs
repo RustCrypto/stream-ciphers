@@ -321,22 +321,22 @@ macro_rules! impl_chacha_rng {
             /// 28 bits.
             #[inline]
             pub fn set_word_pos_bytes(&mut self, word_offset: &[u8; 8]) {
-                #[cfg(feature = "zeroize")]
-                let mut original_word_offset = u64::from_le_bytes(*word_offset);
-                #[cfg(feature = "zeroize")]
-                let mut block = original_word_offset >> 4;
-
                 #[cfg(not(feature = "zeroize"))]
-                let original_word_offset = u64::from_le_bytes(*word_offset);
-                #[cfg(not(feature = "zeroize"))]
-                let block = original_word_offset >> 4;
-
-                self.rng.core.block.set_block_pos(block as u32);
-                self.rng
-                    .generate_and_set((original_word_offset - block) as usize);
+                {
+                    let original_word_offset = u64::from_le_bytes(*word_offset);
+                    let block = original_word_offset >> 4;
+                    self.rng.core.block.set_block_pos(block as u32);
+                    self.rng
+                        .generate_and_set((original_word_offset & 15) as usize);
+                }
 
                 #[cfg(feature = "zeroize")]
                 {
+                    let mut original_word_offset = u64::from_le_bytes(*word_offset);
+                    let mut block = original_word_offset >> 4;
+                    self.rng.core.block.set_block_pos(block as u32);
+                    self.rng
+                        .generate_and_set((original_word_offset & 15) as usize);
                     original_word_offset.zeroize();
                     block.zeroize();
                 }
@@ -545,11 +545,14 @@ mod tests {
         original_rng.set_stream(stream as u64);
         let word_pos = 3553439 as u64;
         rng.set_word_pos(word_pos);
+
         original_rng.set_word_pos(word_pos as u128);
 
         assert_eq!(rng.get_seed(), seed);
         assert_eq!(rng.get_stream(), stream);
         assert_eq!(rng.get_word_pos(), original_rng.get_word_pos() as u64);
+        assert_eq!(rng.get_word_pos(), word_pos);
+        rng.set_word_pos_bytes(&word_pos.to_le_bytes());
         assert_eq!(rng.get_word_pos(), word_pos);
     }
 
