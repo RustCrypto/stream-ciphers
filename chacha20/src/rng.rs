@@ -254,9 +254,25 @@ macro_rules! impl_chacha_rng {
         /// seed      seed      seed      seed
         /// counter   stream_id stream_id stream_id
         /// ```
-        ///
         /// This implementation uses an output buffer of sixteen `u32` words, and uses
         /// [`BlockRng`] to implement the [`RngCore`] methods.
+        /// # Example for `ChaCha20Rng`
+        ///
+        /// ```rust
+        /// use chacha20::ChaCha20Rng;
+        /// // use rand_core traits
+        /// use rand_core::{SeedableRng, RngCore};
+        ///
+        /// let seed = [42u8; 32];
+        /// let mut rng = ChaCha20Rng::from_seed(seed.into());
+        /// rng.set_stream(100);
+        /// rng.set_word_pos(5);
+        /// let x = rng.next_u32();
+        /// let mut array = [0u8; 32];
+        /// rng.fill_bytes(&mut array);
+        /// ```
+        ///
+        /// The other Rngs from this crate are initialized similarly.
         ///
         /// [^1]: D. J. Bernstein, [*ChaCha, a variant of Salsa20*](
         ///       https://cr.yp.to/chacha.html)
