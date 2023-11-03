@@ -199,42 +199,6 @@ pub struct ChaChaCore<R: Unsigned> {
     rounds: PhantomData<R>,
 }
 
-impl<R: Unsigned> ChaChaCore<R> {
-    /// Copied from ChaChaCore<R>::new() to avoid using KeyIvInit/Key/Nonce
-    #[inline]
-    fn from_seed(seed: &[u8; 32]) -> Self {
-        let mut state = [0u32; STATE_WORDS];
-        state[0..4].copy_from_slice(&CONSTANTS);
-        let key_chunks = seed.chunks_exact(4);
-        for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
-            *val = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-        cfg_if! {
-            if #[cfg(chacha20_force_soft)] {
-                let tokens = ();
-            } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                cfg_if! {
-                    if #[cfg(chacha20_force_avx2)] {
-                        let tokens = ();
-                    } else if #[cfg(chacha20_force_sse2)] {
-                        let tokens = ();
-                    } else {
-                        let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
-                    }
-                }
-            } else {
-                let tokens = ();
-            }
-        }
-
-        Self {
-            state,
-            tokens,
-            rounds: PhantomData,
-        }
-    }
-}
-
 impl<R: Unsigned> KeySizeUser for ChaChaCore<R> {
     type KeySize = U32;
 }
