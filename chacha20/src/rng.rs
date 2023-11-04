@@ -118,7 +118,20 @@ impl Drop for Seed {
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for Seed {}
 
-/// A zeroizable wrapper for set_word_pos() input that can also be assembled from bytes.
+/// A zeroizing wrapper for `u64` that is used internally.
+struct WordPosU64(u64);
+impl From<u64> for WordPosU64 {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+/// A zeroizable wrapper for set_word_pos() input that can be assembled from:
+/// * `u64`
+/// * `[u8; 8]`
+///
+/// There is likely an insignificant difference in performance between the two,
+/// but a u64 input would have 1 less conversion than a [u8; 8].
 pub struct WordPosInput(u64);
 
 impl From<[u8; 8]> for WordPosInput {
@@ -140,28 +153,59 @@ impl Drop for WordPosInput {
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for WordPosInput {}
 
-/// A zeroizable wrapper for set_stream() input that can also be assembled from bytes
-pub struct StreamId(u128);
+/// A wrapper that converts a `u128` to bytes and zeroizes
+/// on drop when the `zeroize` feature is enabled. Mainly
+/// used for `u128::to_le_bytes()`
+struct ZeroizingU128Bytes([u8; 16]);
+impl From<u128> for ZeroizingU128Bytes {
+    fn from(value: u128) -> Self {
+        Self(value.to_le_bytes())
+    }
+}
+#[cfg(feature = "zeroize")]
+impl Drop for ZeroizingU128Bytes {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+#[cfg(feature = "zeroize")]
+impl ZeroizeOnDrop for ZeroizingU128Bytes {}
 
-impl From<u128> for StreamId {
+/// A zeroizable wrapper for a u128 for internal use.
+struct StreamIdU128(u128);
+impl From<u128> for StreamIdU128 {
     fn from(value: u128) -> Self {
         Self(value)
     }
 }
-impl From<[u8; 16]> for StreamId {
-    fn from(value: [u8; 16]) -> Self {
-        Self(u128::from_le_bytes(value))
+#[cfg(feature = "zeroize")]
+impl Drop for StreamIdU128 {
+    fn drop(&mut self) {
+        self.0.zeroize();
     }
 }
-// it would be challenging to allow for From<[u8; 12]> whilst zeroizing original data
-// It could require another struct to hold it or to just use a mutable reference like so
-impl From<&mut [u8; 12]> for StreamId {
-    fn from(value: &mut [u8; 12]) -> Self {
-        let mut result = [0u8; 16];
-        result[0..12].copy_from_slice(value);
-        #[cfg(feature = "zeroize")]
-        value.zeroize();
-        Self(u128::from_le_bytes(result))
+#[cfg(feature = "zeroize")]
+impl ZeroizeOnDrop for StreamIdU128 {}
+
+/// A zeroizing wrapper for the `stream_id`. It can be used with a `[u8; 12]` or
+/// a `u128`.
+///
+/// There is a minor performance benefit when using a `[u8; 12]` as the input, as
+/// it will avoid a copy, as well as a `u128::zeroize()` if the `zeroize` feature
+/// is enabled.
+pub struct StreamId([u8; 12]);
+impl From<[u8; 12]> for StreamId {
+    fn from(value: [u8; 12]) -> Self {
+        Self(value)
+    }
+}
+impl From<u128> for StreamId {
+    fn from(value: u128) -> Self {
+        let zeroize: StreamIdU128 = value.into();
+        let mut lower_12_bytes = [0u8; 12];
+        let bytes: ZeroizingU128Bytes = zeroize.0.into();
+        lower_12_bytes.copy_from_slice(&bytes.0[0..12]);
+        Self(lower_12_bytes)
     }
 }
 #[cfg(feature = "zeroize")]
@@ -312,18 +356,21 @@ macro_rules! impl_chacha_rng {
         /// // use rand_core traits
         /// use rand_core::{SeedableRng, RngCore};
         ///
-        /// // the following inputs are examples and are not recommended values
+        /// // the following inputs are examples and are neither recommended nor suggested values
         ///
         /// let seed = [42u8; 32];
         /// let mut rng = ChaCha20Rng::from_seed(seed);
         /// rng.set_stream(100);
         ///
-        /// // you can also use a [u8; 16] in `.set_stream()`, however, it only uses the
-        /// // lower 96 bits
+        /// // you can also use a [u8; 12] in `.set_stream()`, which has a *minor*
+        /// performance benefit over a u128
+        /// rng.set_stream([3u8; 12]);
+        ///
+        ///
         /// rng.set_word_pos(5);
         ///
         /// // you can also use a [u8; 8] in `.set_word_pos()`, however, it only uses the
-        /// // lower 36 bits
+        /// // lower 36 bits and there would be no performance benefit within the API method.
         /// rng.set_word_pos([2u8; 8]);
         ///
         /// let x = rng.next_u32();
@@ -352,7 +399,7 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let seed = seed.into();
+                let seed: Seed = seed.into();
                 let core = $ChaChaXCore::from_seed(seed);
                 Self {
                     rng: BlockRng::new(core),
@@ -468,33 +515,39 @@ macro_rules! impl_chacha_rng {
             /// * u64
             /// * [u8; 8]
             ///
+            /// There would be a negligible performance benefit from using a `u64` instead
+            /// of a `[u8; 8]`
+            ///
             /// As with `get_word_pos`, we use a 36-bit number. Since the generator
             /// simply cycles at the end of its period (256 GiB), we ignore the upper
             /// 28 bits.
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
-                let word_offset = word_offset.into();
+                let word_offset: WordPosInput = word_offset.into();
+                // extract the 32 bits before the last 4 bits
                 self.rng
                     .core
                     .block
                     .set_block_pos((word_offset.0 >> 4) as u32);
+                // extract the bits that used to be the last 4 bits
                 self.rng.generate_and_set((word_offset.0 & 0x0F) as usize);
             }
 
             /// Set the stream number. The lower 96 bits are used and the rest are
             /// discarded. This method takes either:
+            /// * [u8; 12]
             /// * u128
-            /// * [u8; 16]
-            /// * &mut [u8; 12]
             ///
-            /// This is initialized to zero; 2<sup>96</sup> unique streams of output
+            /// There is a minor performance benefit when using a `[u8; 12]` as the
+            /// input, although it may be negligible.
+            ///
+            /// This is initialized to zero, and using a `[u8; 12]` is slightly
+            /// ; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
-                let stream = stream.into();
-                let mut lower_12_bytes = [0u8; 12];
-                lower_12_bytes.copy_from_slice(&stream.0.to_le_bytes()[0..12]);
-                self.rng.core.block.set_stream(&lower_12_bytes);
+                let stream: StreamId = stream.into();
+                self.rng.core.block.set_stream(&stream.0);
                 if self.rng.index() != 64 {
                     let wp = self.get_word_pos();
                     self.set_word_pos(wp);
@@ -503,15 +556,9 @@ macro_rules! impl_chacha_rng {
 
             /// Get the stream number.
             #[inline]
-            pub fn get_stream_bytes(&self) -> [u8; 12] {
-                self.rng.core.block.get_stream()
-            }
-
-            /// Get the stream number.
-            #[inline]
             pub fn get_stream(&self) -> u128 {
                 let mut bytes = [0u8; 16];
-                bytes[0..12].copy_from_slice(&self.get_stream_bytes());
+                bytes[0..12].copy_from_slice(&self.rng.core.block.get_stream());
                 u128::from_le_bytes(bytes)
             }
 
@@ -652,6 +699,13 @@ mod tests {
             [167, 163, 252, 19, 79, 20, 152, 128, 232, 187, 43, 93, 35]
         );
     }
+
+    #[test]
+    /// there was a little error with the usize::from_le_bytes()
+    fn test_set_word_pos() {
+        let mut rng = ChaCha20Rng::from_entropy();
+        rng.set_word_pos(3533);
+    }
     #[test]
     fn test_wrapping_add() {
         let mut rng = ChaCha20Rng::from_entropy();
@@ -675,7 +729,7 @@ mod tests {
         let stream = 1337 as u128;
         rng.set_stream(stream);
         original_rng.set_stream(stream as u64);
-        let word_pos = 3553439 as u64;
+        let word_pos = 35534 as u64;
         rng.set_word_pos(word_pos);
 
         original_rng.set_word_pos(word_pos as u128);
@@ -904,7 +958,8 @@ mod tests {
         let seed = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
         let mut rng = ChaChaRng::from_seed(seed);
 
-        rng.set_stream(&mut hex!("000000090000004a00000000"));
+        let stream_id = hex!("000000090000004a00000000");
+        rng.set_stream(stream_id);
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut discard_first_64 = [0u8; 64];
