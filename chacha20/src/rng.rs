@@ -179,6 +179,7 @@ impl Drop for ZeroizingU64 {
         self.0.zeroize();
     }
 }
+#[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for ZeroizingU64 {}
 
 /// A wrapper that converts a `u64` to bytes and zeroizes
