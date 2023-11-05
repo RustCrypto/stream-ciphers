@@ -171,12 +171,23 @@ impl Drop for ZeroizingU128Bytes {
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for ZeroizingU128Bytes {}
 
+/// A wrapper that allows for a u64 to be zeroized on drop
+struct ZeroizingU64(u64);
+#[cfg(feature = "zeroize")]
+impl Drop for ZeroizingU64 {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+impl ZeroizeOnDrop for ZeroizingU64 {}
+
 /// A wrapper that converts a `u64` to bytes and zeroizes
 /// on drop when the `zeroize` feature is enabled
 struct ZeroizingU64Bytes([u8; 8]);
 impl From<u64> for ZeroizingU64Bytes {
     fn from(value: u64) -> Self {
-        Self(value.to_le_bytes())
+        let zeroizable = ZeroizingU64(value);
+        Self(zeroizable.0.to_le_bytes())
     }
 }
 #[cfg(feature = "zeroize")]
