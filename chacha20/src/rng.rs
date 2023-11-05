@@ -118,30 +118,30 @@ impl Drop for Seed {
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for Seed {}
 
-/// A zeroizing wrapper for `u64` that is used internally.
-struct WordPosU64(u64);
-impl From<u64> for WordPosU64 {
-    fn from(value: u64) -> Self {
-        Self(value)
-    }
-}
-
 /// A zeroizable wrapper for set_word_pos() input that can be assembled from:
 /// * `u64`
-/// * `[u8; 8]`
+/// * `[u8; 5]`
 ///
-/// There is likely an insignificant difference in performance between the two,
-/// but a u64 input would have 1 less conversion than a [u8; 8].
-pub struct WordPosInput(u64);
+/// There would be a minor performance benefit from using a `[u8; 5]`, as it
+/// avoids some copies, bit operations, and zeroizing.
+pub struct WordPosInput([u8; 5]);
 
-impl From<[u8; 8]> for WordPosInput {
-    fn from(value: [u8; 8]) -> Self {
-        Self(u64::from_le_bytes(value))
+impl From<[u8; 5]> for WordPosInput {
+    fn from(value: [u8; 5]) -> Self {
+        Self(value)
     }
 }
 impl From<u64> for WordPosInput {
     fn from(value: u64) -> Self {
-        Self(value)
+        let shifted: ZeroizingU64Bytes = (value >> 4).into();
+        let zeroize: ZeroizingU64Bytes = value.into();
+        let mut result = [0u8; 5];
+        // copy the "index" byte to Self.0[0]
+        result[0] = zeroize.0[0];
+        // copy the block_pos 32 bits to Self.0[1..5]
+        result[1..5].copy_from_slice(&shifted.0[0..4]);
+
+        Self(result)
     }
 }
 #[cfg(feature = "zeroize")]
@@ -170,6 +170,23 @@ impl Drop for ZeroizingU128Bytes {
 }
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for ZeroizingU128Bytes {}
+
+/// A wrapper that converts a `u64` to bytes and zeroizes
+/// on drop when the `zeroize` feature is enabled
+struct ZeroizingU64Bytes([u8; 8]);
+impl From<u64> for ZeroizingU64Bytes {
+    fn from(value: u64) -> Self {
+        Self(value.to_le_bytes())
+    }
+}
+#[cfg(feature = "zeroize")]
+impl Drop for ZeroizingU64Bytes {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+#[cfg(feature = "zeroize")]
+impl ZeroizeOnDrop for ZeroizingU64Bytes {}
 
 /// A zeroizable wrapper for a u128 for internal use.
 struct StreamIdU128(u128);
@@ -363,15 +380,15 @@ macro_rules! impl_chacha_rng {
         /// rng.set_stream(100);
         ///
         /// // you can also use a [u8; 12] in `.set_stream()`, which has a *minor*
-        /// performance benefit over a u128
+        /// // performance benefit over a u128
         /// rng.set_stream([3u8; 12]);
         ///
         ///
         /// rng.set_word_pos(5);
         ///
-        /// // you can also use a [u8; 8] in `.set_word_pos()`, however, it only uses the
-        /// // lower 36 bits and there would be no performance benefit within the API method.
-        /// rng.set_word_pos([2u8; 8]);
+        /// // you can also use a [u8; 5] in `.set_word_pos()`, which has a *minor*
+        /// // performance benefit over a u64
+        /// rng.set_word_pos([2u8; 5]);
         ///
         /// let x = rng.next_u32();
         /// let mut array = [0u8; 32];
@@ -513,10 +530,10 @@ macro_rules! impl_chacha_rng {
             /// Set the offset from the start of the stream, in 32-bit words. This method
             /// takes either:
             /// * u64
-            /// * [u8; 8]
+            /// * [u8; 5]
             ///
-            /// There would be a negligible performance benefit from using a `u64` instead
-            /// of a `[u8; 8]`
+            /// There would be a *minor* performance benefit from using a `[u8; 5]` instead
+            /// of a `u64`, as it avoids some copies and zeroizing.
             ///
             /// As with `get_word_pos`, we use a 36-bit number. Since the generator
             /// simply cycles at the end of its period (256 GiB), we ignore the upper
@@ -524,13 +541,12 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
                 let word_offset: WordPosInput = word_offset.into();
-                // extract the 32 bits before the last 4 bits
                 self.rng
                     .core
                     .block
-                    .set_block_pos((word_offset.0 >> 4) as u32);
-                // extract the bits that used to be the last 4 bits
-                self.rng.generate_and_set((word_offset.0 & 0x0F) as usize);
+                    .set_block_pos(u32::from_le_bytes(word_offset.0[1..5].try_into().unwrap()));
+                self.rng
+                    .generate_and_set((word_offset.0[0] & 0x0F) as usize);
             }
 
             /// Set the stream number. The lower 96 bits are used and the rest are
@@ -538,11 +554,10 @@ macro_rules! impl_chacha_rng {
             /// * [u8; 12]
             /// * u128
             ///
-            /// There is a minor performance benefit when using a `[u8; 12]` as the
+            /// There is a *minor* performance benefit when using a `[u8; 12]` as the
             /// input, although it may be negligible.
             ///
-            /// This is initialized to zero, and using a `[u8; 12]` is slightly
-            /// ; 2<sup>96</sup> unique streams of output
+            /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
