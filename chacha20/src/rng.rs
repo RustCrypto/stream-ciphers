@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![forbid(unsafe_code)]
+#![cfg_attr(not(test), forbid(unsafe_code))]
 //! Block RNG based on rand_core::BlockRng
 use core::fmt::Debug;
 
@@ -249,10 +249,10 @@ impl ZeroizeOnDrop for StreamId {}
 impl<R: Unsigned> ChaChaCore<R> {
     /// Copied from ChaChaCore<R>::new() to avoid using KeyIvInit/Key/Nonce
     #[inline]
-    fn from_seed(seed: &[u8; 32]) -> Self {
+    fn from_seed(seed: Seed) -> Self {
         let mut state = [0u32; super::STATE_WORDS];
         state[0..4].copy_from_slice(&super::CONSTANTS);
-        let key_chunks = seed.chunks_exact(4);
+        let key_chunks = seed.0.chunks_exact(4);
         for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
             *val = u32::from_le_bytes(chunk.try_into().unwrap());
         }
@@ -424,11 +424,10 @@ macro_rules! impl_chacha_rng {
         }
 
         impl SeedableRng for $ChaChaXRng {
-            type Seed = [u8; 32];
+            type Seed = Seed;
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let seed: Seed = seed.into();
                 let core = $ChaChaXCore::from_seed(seed);
                 Self {
                     rng: BlockRng::new(core),
@@ -481,7 +480,7 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let block = ChaChaCore::<$rounds>::from_seed(seed.as_ref());
+                let block = ChaChaCore::<$rounds>::from_seed(seed);
                 Self {
                     block,
                     counter: 0,
@@ -678,7 +677,7 @@ macro_rules! impl_chacha_rng {
                 // Construct one of the possible concrete RNGs realizing an abstract state.
                 fn from(a: &$ChaChaXRng) -> Self {
                     use rand_core::SeedableRng;
-                    let mut r = Self::from_seed(a.seed.0);
+                    let mut r = Self::from_seed(a.seed.0.into());
                     r.set_stream(a.stream);
                     r.set_word_pos(a.word_pos);
                     r
@@ -710,8 +709,31 @@ mod tests {
     ];
 
     #[test]
+    #[cfg(feature = "zeroize")]
+    fn test_zeroize_inputs_external() {
+        let initial_seed = KEY.clone();
+        let ptr = initial_seed.as_ptr();
+        {
+            let mut rng = ChaChaRng::from_seed(initial_seed.into());
+            rng.fill_bytes(&mut [0u8; 32]);
+        }
+        let memory_inspection = unsafe { core::slice::from_raw_parts(ptr, 32) };
+        assert_ne!(&KEY, memory_inspection);
+    }
+
+    #[test]
+    #[cfg(feature = "zeroize")]
+    fn test_zeroize_inputs_internal() {
+        let initial_seed: Seed = KEY.clone().into();
+        let ptr = initial_seed.0.as_ptr();
+        core::mem::drop(initial_seed);
+        let memory_inspection = unsafe { core::slice::from_raw_parts(ptr, 32) };
+        assert_ne!(&KEY, memory_inspection);
+    }
+
+    #[test]
     fn test_rng_output() {
-        let mut rng = ChaCha20Rng::from_seed(KEY);
+        let mut rng = ChaCha20Rng::from_seed(KEY.into());
         let mut bytes = [0u8; 13];
 
         rng.fill_bytes(&mut bytes);
@@ -751,8 +773,8 @@ mod tests {
     fn test_set_and_get_equivalence() {
         use rand_chacha::rand_core::SeedableRng;
         let seed = [44u8; 32];
-        let mut rng = ChaCha20Rng::from_seed(seed);
-        let mut original_rng = OGChacha::from_seed(seed);
+        let mut rng = ChaCha20Rng::from_seed(seed.into());
+        let mut original_rng = OGChacha::from_seed(seed.into());
         let stream = 1337 as u128;
         rng.set_stream(stream);
         original_rng.set_stream(stream as u64);
@@ -779,9 +801,9 @@ mod tests {
             1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0,
             0, 0, 0, 2, 92,
         ];
-        let mut rng1 = ChaCha20Rng::from_seed(seed);
-        let mut rng2 = ChaCha12Rng::from_seed(seed);
-        let mut rng3 = ChaCha8Rng::from_seed(seed);
+        let mut rng1 = ChaCha20Rng::from_seed(seed.into());
+        let mut rng2 = ChaCha12Rng::from_seed(seed.into());
+        let mut rng3 = ChaCha8Rng::from_seed(seed.into());
 
         let encoded1 = serde_json::to_string(&rng1).unwrap();
         let encoded2 = serde_json::to_string(&rng2).unwrap();
@@ -825,7 +847,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0,
             0, 0, 0,
         ];
-        let mut rng1 = ChaChaRng::from_seed(seed);
+        let mut rng1 = ChaChaRng::from_seed(seed.into());
         assert_eq!(rng1.next_u32(), 137206642);
 
         let mut rng2 = ChaChaRng::from_rng(rng1).unwrap();
@@ -837,7 +859,7 @@ mod tests {
         // Test vectors 1 and 2 from
         // https://tools.ietf.org/html/draft-nir-cfrg-chacha20-poly1305-04
         let seed = [0u8; 32];
-        let mut rng = ChaChaRng::from_seed(seed);
+        let mut rng = ChaChaRng::from_seed(seed.into());
 
         let mut results = [0u32; 16];
         for i in results.iter_mut() {
@@ -869,7 +891,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 1,
         ];
-        let mut rng = ChaChaRng::from_seed(seed);
+        let mut rng = ChaChaRng::from_seed(seed.into());
 
         // Skip block 0
         for _ in 0..16 {
@@ -905,7 +927,7 @@ mod tests {
         let mut results = [0u32; 16];
 
         // Test block 2 by skipping block 0 and 1
-        let mut rng1 = ChaChaRng::from_seed(seed);
+        let mut rng1 = ChaChaRng::from_seed(seed.into());
         for _ in 0..32 {
             rng1.next_u32();
         }
@@ -916,7 +938,7 @@ mod tests {
         assert_eq!(rng1.get_word_pos(), expected_end);
 
         // Test block 2 by using `set_word_pos`
-        let mut rng2 = ChaChaRng::from_seed(seed);
+        let mut rng2 = ChaChaRng::from_seed(seed.into());
         rng2.set_word_pos(2 * 16);
         for i in results.iter_mut() {
             *i = rng2.next_u32();
@@ -945,7 +967,7 @@ mod tests {
             0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7,
             0, 0, 0,
         ];
-        let mut rng = ChaChaRng::from_seed(seed);
+        let mut rng = ChaChaRng::from_seed(seed.into());
 
         // Store the 17*i-th 32-bit word,
         // i.e., the i-th word of the i-th 16-word block
@@ -967,7 +989,7 @@ mod tests {
     #[test]
     fn test_chacha_true_bytes() {
         let seed = [0u8; 32];
-        let mut rng = ChaChaRng::from_seed(seed);
+        let mut rng = ChaChaRng::from_seed(seed.into());
         let mut results = [0u8; 32];
         rng.fill_bytes(&mut results);
         let expected = [
@@ -983,7 +1005,7 @@ mod tests {
         // Test vector 5 from
         // https://www.rfc-editor.org/rfc/rfc8439#section-2.3.2
         let seed = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
-        let mut rng = ChaChaRng::from_seed(seed);
+        let mut rng = ChaChaRng::from_seed(seed.into());
 
         let stream_id = hex!("000000090000004a00000000");
         rng.set_stream(stream_id);
@@ -1011,7 +1033,7 @@ mod tests {
             0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7,
             0, 0, 0,
         ];
-        let mut rng = ChaChaRng::from_seed(seed);
+        let mut rng = ChaChaRng::from_seed(seed.into());
         let mut clone = rng.clone();
         for _ in 0..16 {
             assert_eq!(rng.next_u64(), clone.next_u64());
