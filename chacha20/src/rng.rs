@@ -100,8 +100,11 @@ impl AsMut<[u8]> for Seed {
     }
 }
 impl From<[u8; 32]> for Seed {
-    fn from(value: [u8; 32]) -> Self {
-        Self(value)
+    fn from(mut value: [u8; 32]) -> Self {
+        let seed = Self(value);
+        #[cfg(feature = "zeroize")]
+        value.zeroize();
+        seed
     }
 }
 impl Debug for Seed {
@@ -118,6 +121,32 @@ impl Drop for Seed {
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for Seed {}
 
+/// An internally used trait to help with zeroizing unsigned ints that are primarily
+/// used for le bytes
+trait ZeroizeToLeBytes {
+    type OutputBytes;
+    fn zeroize_to_le_bytes(&mut self) -> Self::OutputBytes;
+}
+
+// Define macro for ensuring zeroization of an unsigned int before it is converted to
+// le bytes
+macro_rules! impl_zeroize_to_le_bytes {
+    ($type:ident, $output_size:expr) => {
+        impl ZeroizeToLeBytes for $type {
+            type OutputBytes = [u8; $output_size];
+            fn zeroize_to_le_bytes(&mut self) -> Self::OutputBytes {
+                let bytes = self.to_le_bytes();
+                #[cfg(feature = "zeroize")]
+                self.zeroize();
+                bytes
+            }
+        }
+    };
+}
+
+impl_zeroize_to_le_bytes!(u64, 8);
+impl_zeroize_to_le_bytes!(u128, 16);
+
 /// A zeroizable wrapper for set_word_pos() input that can be assembled from:
 /// * `u64`
 /// * `[u8; 5]`
@@ -127,20 +156,22 @@ impl ZeroizeOnDrop for Seed {}
 pub struct WordPosInput([u8; 5]);
 
 impl From<[u8; 5]> for WordPosInput {
-    fn from(value: [u8; 5]) -> Self {
-        Self(value)
+    fn from(mut value: [u8; 5]) -> Self {
+        let input = Self(value);
+        #[cfg(feature = "zeroize")]
+        value.zeroize();
+        input
     }
 }
 impl From<u64> for WordPosInput {
-    fn from(value: u64) -> Self {
-        let shifted: ZeroizingU64Bytes = (value >> 4).into();
-        let zeroize: ZeroizingU64Bytes = value.into();
+    fn from(mut value: u64) -> Self {
+        let shifted = (value >> 4).zeroize_to_le_bytes();
+        let original = value.zeroize_to_le_bytes();
         let mut result = [0u8; 5];
         // copy the "index" byte to Self.0[0]
-        result[0] = zeroize.0[0];
+        result[0] = original[0];
         // copy the block_pos 32 bits to Self.0[1..5]
-        result[1..5].copy_from_slice(&shifted.0[0..4]);
-
+        result[1..5].copy_from_slice(&shifted[0..4]);
         Self(result)
     }
 }
@@ -152,69 +183,6 @@ impl Drop for WordPosInput {
 }
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for WordPosInput {}
-
-/// A wrapper that converts a `u128` to bytes and zeroizes
-/// on drop when the `zeroize` feature is enabled. Mainly
-/// used for `u128::to_le_bytes()`
-struct ZeroizingU128Bytes([u8; 16]);
-impl From<u128> for ZeroizingU128Bytes {
-    fn from(value: u128) -> Self {
-        Self(value.to_le_bytes())
-    }
-}
-#[cfg(feature = "zeroize")]
-impl Drop for ZeroizingU128Bytes {
-    fn drop(&mut self) {
-        self.0.zeroize();
-    }
-}
-#[cfg(feature = "zeroize")]
-impl ZeroizeOnDrop for ZeroizingU128Bytes {}
-
-/// A wrapper that allows for a u64 to be zeroized on drop
-struct ZeroizingU64(u64);
-#[cfg(feature = "zeroize")]
-impl Drop for ZeroizingU64 {
-    fn drop(&mut self) {
-        self.0.zeroize();
-    }
-}
-#[cfg(feature = "zeroize")]
-impl ZeroizeOnDrop for ZeroizingU64 {}
-
-/// A wrapper that converts a `u64` to bytes and zeroizes
-/// on drop when the `zeroize` feature is enabled
-struct ZeroizingU64Bytes([u8; 8]);
-impl From<u64> for ZeroizingU64Bytes {
-    fn from(value: u64) -> Self {
-        let zeroizable = ZeroizingU64(value);
-        Self(zeroizable.0.to_le_bytes())
-    }
-}
-#[cfg(feature = "zeroize")]
-impl Drop for ZeroizingU64Bytes {
-    fn drop(&mut self) {
-        self.0.zeroize();
-    }
-}
-#[cfg(feature = "zeroize")]
-impl ZeroizeOnDrop for ZeroizingU64Bytes {}
-
-/// A zeroizable wrapper for a u128 for internal use.
-struct StreamIdU128(u128);
-impl From<u128> for StreamIdU128 {
-    fn from(value: u128) -> Self {
-        Self(value)
-    }
-}
-#[cfg(feature = "zeroize")]
-impl Drop for StreamIdU128 {
-    fn drop(&mut self) {
-        self.0.zeroize();
-    }
-}
-#[cfg(feature = "zeroize")]
-impl ZeroizeOnDrop for StreamIdU128 {}
 
 /// A zeroizing wrapper for the `stream_id`. It can be used with a `[u8; 12]` or
 /// a `u128`.
@@ -229,11 +197,15 @@ impl From<[u8; 12]> for StreamId {
     }
 }
 impl From<u128> for StreamId {
-    fn from(value: u128) -> Self {
-        let zeroize: StreamIdU128 = value.into();
+    fn from(mut value: u128) -> Self {
         let mut lower_12_bytes = [0u8; 12];
-        let bytes: ZeroizingU128Bytes = zeroize.0.into();
-        lower_12_bytes.copy_from_slice(&bytes.0[0..12]);
+        let mut bytes = value.zeroize_to_le_bytes();
+
+        lower_12_bytes.copy_from_slice(&bytes[0..12]);
+
+        #[cfg(feature = "zeroize")]
+        bytes.zeroize();
+
         Self(lower_12_bytes)
     }
 }
@@ -424,11 +396,11 @@ macro_rules! impl_chacha_rng {
         }
 
         impl SeedableRng for $ChaChaXRng {
-            type Seed = Seed;
+            type Seed = [u8; 32];
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let core = $ChaChaXCore::from_seed(seed);
+                let core = $ChaChaXCore::from_seed(seed.into());
                 Self {
                     rng: BlockRng::new(core),
                 }
@@ -724,9 +696,10 @@ mod tests {
     #[test]
     #[cfg(feature = "zeroize")]
     fn test_zeroize_inputs_internal() {
-        let initial_seed: Seed = KEY.clone().into();
-        let ptr = initial_seed.0.as_ptr();
-        core::mem::drop(initial_seed);
+        let ptr = {
+            let initial_seed: Seed = KEY.clone().into();
+            initial_seed.0.as_ptr()
+        };
         let memory_inspection = unsafe { core::slice::from_raw_parts(ptr, 32) };
         assert_ne!(&KEY, memory_inspection);
     }
