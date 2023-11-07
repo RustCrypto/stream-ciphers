@@ -152,7 +152,7 @@ impl_zeroize_to_le_bytes!(u128, 16);
 /// * `[u8; 5]`
 ///
 /// There would be a minor performance benefit from using a `[u8; 5]`, as it
-/// avoids some copies, bit operations, and zeroizing.
+/// avoids some copies, bit operations, and extra zeroizing.
 pub struct WordPosInput([u8; 5]);
 
 impl From<[u8; 5]> for WordPosInput {
@@ -165,13 +165,17 @@ impl From<[u8; 5]> for WordPosInput {
 }
 impl From<u64> for WordPosInput {
     fn from(mut value: u64) -> Self {
-        let shifted = (value >> 4).zeroize_to_le_bytes();
-        let original = value.zeroize_to_le_bytes();
+        let mut shifted = (value >> 4).zeroize_to_le_bytes();
+        let mut original = value.zeroize_to_le_bytes();
         let mut result = [0u8; 5];
         // copy the "index" byte to Self.0[0]
-        result[0] = original[0];
+        result[4] = original[0];
         // copy the block_pos 32 bits to Self.0[1..5]
-        result[1..5].copy_from_slice(&shifted[0..4]);
+        result[0..4].copy_from_slice(&shifted[0..4]);
+        #[cfg(feature = "zeroize")]
+        shifted.zeroize();
+        #[cfg(feature = "zeroize")]
+        original.zeroize();
         Self(result)
     }
 }
@@ -516,20 +520,20 @@ macro_rules! impl_chacha_rng {
             /// * [u8; 5]
             ///
             /// There would be a *minor* performance benefit from using a `[u8; 5]` instead
-            /// of a `u64`, as it avoids some copies and zeroizing.
+            /// of a `u64`, as it avoids some copies and extra zeroizing.
             ///
             /// As with `get_word_pos`, we use a 36-bit number. Since the generator
-            /// simply cycles at the end of its period (256 GiB), we ignore the upper
-            /// 28 bits.
+            /// simply cycles at the end of its period (256 GiB), we only use the lower 
+            /// 36 bits.
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
                 let word_offset: WordPosInput = word_offset.into();
                 self.rng
                     .core
                     .block
-                    .set_block_pos(u32::from_le_bytes(word_offset.0[1..5].try_into().unwrap()));
+                    .set_block_pos(u32::from_le_bytes(word_offset.0[0..4].try_into().unwrap()));
                 self.rng
-                    .generate_and_set((word_offset.0[0] & 0x0F) as usize);
+                    .generate_and_set((word_offset.0[4] & 0x0F) as usize);
             }
 
             /// Set the stream number. The lower 96 bits are used and the rest are
@@ -680,18 +684,20 @@ mod tests {
         26, 27, 28, 29, 30, 31, 32,
     ];
 
-    #[test]
-    #[cfg(feature = "zeroize")]
-    fn test_zeroize_inputs_external() {
-        let initial_seed = KEY.clone();
-        let ptr = initial_seed.as_ptr();
-        {
-            let mut rng = ChaChaRng::from_seed(initial_seed.into());
-            rng.fill_bytes(&mut [0u8; 32]);
-        }
-        let memory_inspection = unsafe { core::slice::from_raw_parts(ptr, 32) };
-        assert_ne!(&KEY, memory_inspection);
-    }
+    // this test will not pass without the user passing a mutable input because the value
+    // is copied into the method
+    // #[test]
+    // #[cfg(feature = "zeroize")]
+    // fn test_zeroize_inputs_external() {
+    //     let initial_seed = KEY.clone();
+    //     let ptr = initial_seed.as_ptr();
+    //     {
+    //         let mut rng = ChaChaRng::from_seed(initial_seed.into());
+    //         rng.fill_bytes(&mut [0u8; 32]);
+    //     }
+    //     let memory_inspection = unsafe { core::slice::from_raw_parts(ptr, 32) };
+    //     assert_ne!(&KEY, memory_inspection);
+    // }
 
     #[test]
     #[cfg(feature = "zeroize")]
