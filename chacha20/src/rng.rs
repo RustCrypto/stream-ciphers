@@ -495,8 +495,9 @@ macro_rules! impl_chacha_rng {
             /// of a `u64`, as it avoids some copies and extra zeroizing.
             ///
             /// As with `get_word_pos`, we use a 36-bit number. Since the generator
-            /// simply cycles at the end of its period (256 GiB), we only use the lower
-            /// 36 bits.
+            /// simply cycles at the end of its period (256 GiB), we ignore the upper 28
+            /// bits of a `u64`. When given a `[u8; 5]`, we ignore the first 4 bits of the
+            /// last little endian byte.
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
                 let word_offset: WordPosInput = word_offset.into();
