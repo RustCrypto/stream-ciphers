@@ -293,50 +293,6 @@ impl ParBlocksSizeUser for Block {
     type ParBlocksSize = U4;
 }
 
-/// A trait for altering the state of ChaChaCore<R>
-trait AlteredState {
-    /// Set the stream identifier
-    fn set_stream(&mut self, stream: &[u8; 12]);
-    /// Get the stream identifier
-    fn get_stream(&self) -> [u8; 12];
-    /// Get the seed
-    fn get_seed(&self) -> [u8; 32];
-}
-
-impl<R: Unsigned> AlteredState for ChaChaCore<R> {
-    fn set_stream(&mut self, stream: &[u8; 12]) {
-        for (n, chunk) in self.state[13..16]
-            .as_mut()
-            .iter_mut()
-            .zip(stream.chunks_exact(4))
-        {
-            *n = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-    }
-    fn get_stream(&self) -> [u8; 12] {
-        let mut result = [0u8; 12];
-        for (i, &big) in self.state[13..16].iter().enumerate() {
-            let index = i * 4;
-            result[index + 0] = big as u8;
-            result[index + 1] = (big >> 8) as u8;
-            result[index + 2] = (big >> 16) as u8;
-            result[index + 3] = (big >> 24) as u8;
-        }
-        result
-    }
-    fn get_seed(&self) -> [u8; 32] {
-        let mut result = [0u8; 32];
-        for (i, &big) in self.state[4..12].iter().enumerate() {
-            let index = i * 4;
-            result[index + 0] = big as u8;
-            result[index + 1] = (big >> 8) as u8;
-            result[index + 2] = (big >> 16) as u8;
-            result[index + 3] = (big >> 24) as u8;
-        }
-        result
-    }
-}
-
 macro_rules! impl_chacha_rng {
     ($ChaChaXRng:ident, $ChaChaXCore:ident, $rounds:ident, $abst: ident) => {
         /// A cryptographically secure random number generator that uses the ChaCha algorithm.
@@ -565,7 +521,13 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                self.rng.core.block.set_stream(&stream.0);
+                for (n, chunk) in self.rng.core.block.state[13..16]
+                    .as_mut()
+                    .iter_mut()
+                    .zip(stream.0.chunks_exact(4))
+                {
+                    *n = u32::from_le_bytes(chunk.try_into().unwrap());
+                }
                 if self.rng.index() != 64 {
                     let wp = self.get_word_pos();
                     self.set_word_pos(wp);
@@ -575,15 +537,29 @@ macro_rules! impl_chacha_rng {
             /// Get the stream number.
             #[inline]
             pub fn get_stream(&self) -> u128 {
-                let mut bytes = [0u8; 16];
-                bytes[0..12].copy_from_slice(&self.rng.core.block.get_stream());
-                u128::from_le_bytes(bytes)
+                let mut result = [0u8; 16];
+                for (i, &big) in self.rng.core.block.state[13..16].iter().enumerate() {
+                    let index = i * 4;
+                    result[index + 0] = big as u8;
+                    result[index + 1] = (big >> 8) as u8;
+                    result[index + 2] = (big >> 16) as u8;
+                    result[index + 3] = (big >> 24) as u8;
+                }
+                u128::from_le_bytes(result)
             }
 
             /// Get the seed.
             #[inline]
             pub fn get_seed(&self) -> [u8; 32] {
-                self.rng.core.block.get_seed()
+                let mut result = [0u8; 32];
+                for (i, &big) in self.rng.core.block.state[4..12].iter().enumerate() {
+                    let index = i * 4;
+                    result[index + 0] = big as u8;
+                    result[index + 1] = (big >> 8) as u8;
+                    result[index + 2] = (big >> 16) as u8;
+                    result[index + 3] = (big >> 24) as u8;
+                }
+                result
             }
         }
 
