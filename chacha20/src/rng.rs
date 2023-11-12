@@ -143,37 +143,6 @@ impl Debug for Seed {
 
 impl_zeroize_on_drop!(Seed);
 
-/// An internally used trait to help with zeroizing unsigned ints that are primarily
-/// used for le bytes
-trait ZeroizeToLeBytes {
-    type Output;
-    fn zeroize_to_le_bytes(&mut self) -> Self::Output;
-}
-
-// Define macro for ensuring zeroization of an unsigned int before it is converted to
-// le bytes
-#[cfg(feature = "zeroize")]
-macro_rules! impl_zeroize_to_le_bytes {
-    ($type:ident, $output_size:expr, $byte_wrapper:ident) => {
-        struct $byte_wrapper([u8; $output_size]);
-
-        impl_zeroize_on_drop!($byte_wrapper);
-
-        impl ZeroizeToLeBytes for $type {
-            type Output = $byte_wrapper;
-            fn zeroize_to_le_bytes(&mut self) -> $byte_wrapper {
-                let bytes = $byte_wrapper(self.to_le_bytes());
-                self.zeroize();
-                bytes
-            }
-        }
-    };
-}
-#[cfg(feature = "zeroize")]
-impl_zeroize_to_le_bytes!(u64, 8, Zeroizing8Bytes);
-#[cfg(feature = "zeroize")]
-impl_zeroize_to_le_bytes!(u128, 16, Zeroizing16Bytes);
-
 /// A zeroizable wrapper for set_word_pos() input that can be assembled from:
 /// * `u64`
 /// * `[u8; 5]`
@@ -183,18 +152,6 @@ impl_zeroize_to_le_bytes!(u128, 16, Zeroizing16Bytes);
 pub struct WordPosInput([u8; 5]);
 
 impl From<u64> for WordPosInput {
-    #[cfg(feature = "zeroize")]
-    fn from(mut value: u64) -> Self {
-        let shifted = (value >> 4).zeroize_to_le_bytes();
-        let original = value.zeroize_to_le_bytes();
-        let mut result = [0u8; 5];
-        // copy the "index" byte to Self.0[0]
-        result[4] = original.0[0];
-        // copy the block_pos 32 bits to Self.0[1..5]
-        result[0..4].copy_from_slice(&shifted.0[0..4]);
-        Self(result)
-    }
-    #[cfg(not(feature = "zeroize"))]
     fn from(value: u64) -> Self {
         let shifted = (value >> 4).to_le_bytes();
         let original = value.to_le_bytes();
@@ -210,23 +167,10 @@ impl_zeroize_on_drop!(WordPosInput);
 /// a `u128`.
 ///
 /// There is a minor performance benefit when using a `[u8; 12]` as the input, as
-/// it will avoid a copy, as well as a `u128::zeroize()` if the `zeroize` feature
-/// is enabled.
+/// it will avoid a copy.
 pub struct StreamId([u8; 12]);
 
-impl_zeroize_from!([u8; 12], StreamId);
-
 impl From<u128> for StreamId {
-    #[cfg(feature = "zeroize")]
-    fn from(mut value: u128) -> Self {
-        let mut lower_12_bytes = [0u8; 12];
-        let bytes = value.zeroize_to_le_bytes();
-
-        lower_12_bytes.copy_from_slice(&bytes.0[0..12]);
-
-        Self(lower_12_bytes)
-    }
-    #[cfg(not(feature = "zeroize"))]
     fn from(value: u128) -> Self {
         let mut lower_12_bytes = [0u8; 12];
         let bytes = value.to_le_bytes();
