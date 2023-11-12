@@ -179,10 +179,8 @@ impl_zeroize_to_le_bytes!(u128, 16, Zeroizing16Bytes);
 /// * `[u8; 5]`
 ///
 /// There would be a minor performance benefit from using a `[u8; 5]`, as it
-/// avoids some copies, bit operations, and extra zeroizing.
+/// avoids some copies and bit operations.
 pub struct WordPosInput([u8; 5]);
-
-impl_zeroize_from!([u8; 5], WordPosInput);
 
 impl From<u64> for WordPosInput {
     #[cfg(feature = "zeroize")]
