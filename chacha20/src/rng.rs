@@ -143,6 +143,13 @@ impl Debug for Seed {
 
 impl_zeroize_on_drop!(Seed);
 
+/// An internally used trait to help with zeroizing unsigned ints that are primarily
+/// used for le bytes
+trait ZeroizeToLeBytes {
+    type Output;
+    fn zeroize_to_le_bytes(&mut self) -> Self::Output;
+}
+
 /// A zeroizable wrapper for set_word_pos() input that can be assembled from:
 /// * `u64`
 /// * `[u8; 5]`
@@ -150,6 +157,12 @@ impl_zeroize_on_drop!(Seed);
 /// There would be a minor performance benefit from using a `[u8; 5]`, as it
 /// avoids some copies and bit operations.
 pub struct WordPosInput([u8; 5]);
+
+impl From<[u8; 5]> for WordPosInput {
+    fn from(value: [u8; 5]) -> Self {
+        Self(value)
+    }
+}
 
 impl From<u64> for WordPosInput {
     fn from(value: u64) -> Self {
@@ -161,14 +174,16 @@ impl From<u64> for WordPosInput {
         Self(result)
     }
 }
-impl_zeroize_on_drop!(WordPosInput);
 
 /// A zeroizing wrapper for the `stream_id`. It can be used with a `[u8; 12]` or
 /// a `u128`.
 ///
 /// There is a minor performance benefit when using a `[u8; 12]` as the input, as
-/// it will avoid a copy.
+/// it will avoid a copy, as well as a `u128::zeroize()` if the `zeroize` feature
+/// is enabled.
 pub struct StreamId([u8; 12]);
+
+impl_zeroize_from!([u8; 12], StreamId);
 
 impl From<u128> for StreamId {
     fn from(value: u128) -> Self {
