@@ -50,14 +50,14 @@ fn bench(c: &mut Criterion) {
     group.finish();
 }
 
-use chacha20::rand_core::{SeedableRng, RngCore};
+use chacha20::rand_core::{RngCore, SeedableRng};
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 fn bench_chacha20rng(c: &mut Criterion<CyclesPerByte>) {
     // by using the same group twice, it should allow us to see a direct comparison
     // of both implementations
     // it seems like it needs to be manually switched using comments
-    let mut chacha_x86 = c.benchmark_group("chacha-SIMD-comparison");
+    let mut chacha_x86 = c.benchmark_group("chacha-SIMD-comparison-x86");
 
     // no SIMD first
     for size in &[KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB] {
@@ -66,9 +66,11 @@ fn bench_chacha20rng(c: &mut Criterion<CyclesPerByte>) {
         chacha_x86.throughput(Throughput::Bytes(*size as u64));
 
         chacha_x86.bench_function(BenchmarkId::new("fill_bytes", size), |b| {
-            let mut rng = chacha20::ChaCha20Rng::from_seed([0u8; 32].into());
-            //let mut rng = rand_chacha::ChaCha20Rng::from_seed([0u8; 32]);
+            //let mut rng = chacha20::ChaCha20Rng::from_seed([0u8; 32].into());
+            let mut rng = rand_chacha::ChaCha20Rng::from_seed([0u8; 32]);
             b.iter(|| rng.fill_bytes(&mut buf));
+            //let mut cipher = ChaCha20::new(&Default::default(), &Default::default());
+            //b.iter(|| cipher.apply_keystream(&mut buf));
         });
     }
 
@@ -80,7 +82,7 @@ fn bench_chacha20rng(c: &mut Criterion) {
     // by using the same group twice, it should allow us to see a direct comparison
     // of both implementations
     // it seems like it needs to be manually switched using comments
-    let mut chacha_aarch64 = c.benchmark_group("chacha-SIMD-comparison");
+    let mut chacha_aarch64 = c.benchmark_group("chacha-SIMD-comparison-aarch64");
 
     // no SIMD first
     for size in &[KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB] {
