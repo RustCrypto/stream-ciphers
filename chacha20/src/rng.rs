@@ -72,9 +72,6 @@ impl Zeroize for BlockRngResults {
     }
 }
 
-#[cfg(feature = "zeroize")]
-impl ZeroizeOnDrop for BlockRngResults {}
-
 // Define macro to automatically zeroize input of `From<x>` without any unused
 // muts when zeroize isn't enabled
 macro_rules! impl_zeroize_from {
