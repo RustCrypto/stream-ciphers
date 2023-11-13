@@ -1,8 +1,12 @@
 # Benching ChaCha20
+## ChaCha20 Cipher benching
+You can bench the ChaCha20 cipher using `cargo bench -- apply_keystream`
+
+## ChaCha20 RNG bench comparisons
 This is an example of a test procedure for comparing `rand_chacha` and `chacha20`, which are 2 fast implementations of ChaCha20:
 1) Ensure that line 70 of `benches/src/chacha20.rs` is active and line 69 is commented
 2) run `cargo bench -- fill_bytes`
-- alternatively, you can compare the ChaCha20 Cipher to measure the RNG's overhead by commenting lines 69-71 and uncommenting lines 72-73. Ideally, there wouldn't be any overhead, but it does define a "speed limit" for the RNG—not that it is slow, but the RNG cannot be faster than the cipher without a completely separate implementation of ChaCha20, or by trying to skew the results of the cipher by triggering CPU throttling while it is running.
+- alternatively, you can compare the ChaCha20 Cipher to measure the RNG's overhead by commenting lines 69-71 and uncommenting lines 72-73. Ideally, there wouldn't be any overhead, but the cipher defines a "speed limit" for the RNG—not that it is slow, but the RNG cannot be faster than the cipher without a completely separate implementation of ChaCha20, or by trying to skew the results of the cipher by triggering CPU throttling while it is running.
 3) comment out line 70 and uncomment line 69
 4) run `cargo bench -- fill_bytes`
 5) optionally, you can view the generated reports and charts in:
