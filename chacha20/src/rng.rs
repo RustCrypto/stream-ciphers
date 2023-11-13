@@ -324,7 +324,7 @@ macro_rules! impl_chacha_rng {
         pub struct $ChaChaXRng {
             results: BlockRngResults,
             index: usize,
-            rng: $ChaChaXCore,
+            core: $ChaChaXCore,
         }
 
         impl SeedableRng for $ChaChaXRng {
@@ -336,7 +336,7 @@ macro_rules! impl_chacha_rng {
                 Self {
                     results: BlockRngResults::default(),
                     index: BlockRngResults::default().0.len(),
-                    rng: core,
+                    core,
                 }
             }
         }
@@ -461,7 +461,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn generate_and_set(&mut self, index: usize) {
                 assert!(index < self.results.as_ref().len());
-                self.rng.generate(&mut self.results);
+                self.core.generate(&mut self.results);
                 self.index = index;
             }
             // The buffer is a 4-block window, i.e. it is always at a block-aligned position in the
@@ -476,7 +476,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_word_pos(&self) -> u64 {
                 let buf_start_block = {
-                    let buf_end_block = self.rng.block.get_block_pos();
+                    let buf_end_block = self.core.block.get_block_pos();
                     u32::wrapping_sub(buf_end_block, BUF_BLOCKS.into())
                 };
                 let (buf_offset_blocks, block_offset_words) = {
@@ -505,7 +505,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
                 let word_offset: WordPosInput = word_offset.into();
-                self.rng
+                self.core
                     .block
                     .set_block_pos(u32::from_le_bytes(word_offset.0[0..4].try_into().unwrap()));
                 self.generate_and_set((word_offset.0[4] & 0x0F) as usize);
@@ -524,7 +524,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                for (n, chunk) in self.rng.block.state[13..16]
+                for (n, chunk) in self.core.block.state[13..16]
                     .as_mut()
                     .iter_mut()
                     .zip(stream.0.chunks_exact(4))
@@ -541,7 +541,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> u128 {
                 let mut result = [0u8; 16];
-                for (i, &big) in self.rng.block.state[13..16].iter().enumerate() {
+                for (i, &big) in self.core.block.state[13..16].iter().enumerate() {
                     let index = i * 4;
                     result[index + 0] = big as u8;
                     result[index + 1] = (big >> 8) as u8;
@@ -555,7 +555,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_seed(&self) -> [u8; 32] {
                 let mut result = [0u8; 32];
-                for (i, &big) in self.rng.block.state[4..12].iter().enumerate() {
+                for (i, &big) in self.core.block.state[4..12].iter().enumerate() {
                     let index = i * 4;
                     result[index + 0] = big as u8;
                     result[index + 1] = (big >> 8) as u8;
@@ -569,7 +569,7 @@ macro_rules! impl_chacha_rng {
         #[cfg(feature = "zeroize")]
         impl Zeroize for $ChaChaXRng {
             fn zeroize(&mut self) {
-                self.rng.zeroize();
+                self.core.zeroize();
                 self.results.zeroize();
             }
         }
@@ -619,7 +619,7 @@ macro_rules! impl_chacha_rng {
                 $ChaChaXRng {
                     index: 0,
                     results: BlockRngResults::default(),
-                    rng: core,
+                    core,
                 }
             }
         }
