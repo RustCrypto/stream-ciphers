@@ -160,7 +160,7 @@ impl From<[u8; 5]> for WordPosInput {
 
 impl From<u64> for WordPosInput {
     fn from(value: u64) -> Self {
-        let shifted = (value >> 6).to_le_bytes();
+        let shifted = (value >> 4).to_le_bytes();
         let original = value.to_le_bytes();
         let mut result = [0u8; 5];
         result[4] = original[0];
@@ -444,7 +444,7 @@ macro_rules! impl_chacha_rng {
                     {
                         *n = u32::from_le_bytes(chunk.try_into().unwrap());
                     }
-                    offset += 16;
+                    offset += BLOCK_WORDS as usize;
                 }
 
                 self.counter = self.counter.wrapping_add(1);
@@ -503,11 +503,11 @@ macro_rules! impl_chacha_rng {
                 // when not using `set_word_pos`, the block_pos is always a multiple of 4.
                 // This change follows those conventions, as well as maintaining the 6-bit
                 // index
-                self.core.block.set_block_pos(
-                    u32::from_le_bytes(word_offset.0[0..4].try_into().unwrap()) << 2,
-                );
+                self.core
+                    .block
+                    .set_block_pos(u32::from_le_bytes(word_offset.0[0..4].try_into().unwrap()));
                 // generate will increase block_pos by 4
-                self.generate_and_set((word_offset.0[4] & 0x3F) as usize);
+                self.generate_and_set((word_offset.0[4] & 0x0F) as usize);
             }
 
             /// Set the stream number. The lower 96 bits are used and the rest are
@@ -762,20 +762,17 @@ mod tests {
         assert_eq!(rng.next_u32(), u32_array[0]);
 
         rng.set_word_pos(63);
+        assert_eq!(rng.core.block.get_block_pos(), 7);
         assert_eq!(rng.get_word_pos(), 63);
-        assert_eq!(rng.index, 63);
 
         assert_eq!(rng.next_u32(), u32_array[63]);
-        assert_eq!(rng.index, 64);
-        assert_eq!(rng.core.block.get_block_pos(), 4);
+        assert_eq!(rng.core.block.get_block_pos(), 7);
         assert_eq!(rng.get_word_pos(), 64);
 
         assert_eq!(rng.next_u32(), u32_array[64]);
-        assert_eq!(rng.index, 1);
         assert_eq!(rng.get_word_pos(), 65);
 
         assert_eq!(rng.next_u32(), u32_array[65]);
-        assert_eq!(rng.index, 2);
         assert_eq!(rng.get_word_pos(), 66);
 
         let test_word_pos = 1234567;
