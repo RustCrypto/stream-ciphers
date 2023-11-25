@@ -234,7 +234,7 @@ impl<R: Rounds> ChaChaCore<R> {
     fn generate(&mut self) {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
-                f.call(&mut backends::soft::Backend(self));
+                backends::soft::Backend(self).gen_ks_blocks();
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
                     if #[cfg(chacha20_force_avx2)] {
@@ -256,16 +256,16 @@ impl<R: Rounds> ChaChaCore<R> {
                                 backends::sse2::inner::<R>(self);
                             }
                         } else {
-                            backends::soft::Backend(self);
+                            backends::soft::Backend(self).gen_ks_blocks();
                         }
                     }
                 }
             } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
-                    backends::neon::inner::<R, _>(&mut self);
+                    backends::neon::inner::<R>(&mut self);
                 }
             } else {
-                backends::soft::Backend(self);
+                backends::soft::Backend(self).gen_ks_blocks();
             }
         }
     }

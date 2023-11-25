@@ -7,7 +7,7 @@ pub(crate) struct Backend<'a, R: Rounds>(pub(crate) &'a mut ChaChaCore<R>);
 
 impl<'a, R: Rounds> Backend<'a, R> {
     #[inline(always)]
-    fn gen_ks_blocks(&mut self) {
+    pub(crate) fn gen_ks_blocks(&mut self) {
         for i in 0..4 {
             let res = run_rounds::<R>(&self.0.state);
             self.0.state[12] = self.0.state[12].wrapping_add(1);
