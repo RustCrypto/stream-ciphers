@@ -225,6 +225,8 @@ pub struct ChaChaCore<R: Rounds> {
     /// Number of rounds to perform
     rounds: PhantomData<R>,
     /// the internal buffer
+    // TODO: change it to a [u32; 64]
+    // OR: make it platform-dependent either u32 or u64
     buffer: [u8; 256],
     /// the position within the current buffer
     buffer_pos: u16
