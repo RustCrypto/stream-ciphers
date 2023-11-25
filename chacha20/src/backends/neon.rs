@@ -3,31 +3,26 @@
 //! Adapted from the Crypto++ `chacha_simd` implementation by Jack Lloyd and
 //! Jeffrey Walton (public domain).
 
-use crate::{Block, StreamClosure, Unsigned, STATE_WORDS};
-use cipher::{
-    consts::{U4, U64},
-    BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamBackend,
-};
+use crate::{Block, StreamClosure, Rounds, STATE_WORDS};
 use core::{arch::aarch64::*, marker::PhantomData};
 
 #[inline]
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+pub(crate) unsafe fn inner<R>(core: &mut ChaChaCore<R>)
 where
-    R: Unsigned,
-    F: StreamClosure<BlockSize = U64>,
+    R: R,
 {
     let mut backend = Backend::<R> {
         state: [
-            vld1q_u32(state.as_ptr().offset(0)),
-            vld1q_u32(state.as_ptr().offset(4)),
-            vld1q_u32(state.as_ptr().offset(8)),
-            vld1q_u32(state.as_ptr().offset(12)),
+            vld1q_u32(core.state.as_ptr().offset(0)),
+            vld1q_u32(core.state.as_ptr().offset(4)),
+            vld1q_u32(core.state.as_ptr().offset(8)),
+            vld1q_u32(core.state.as_ptr().offset(12)),
         ],
         _pd: PhantomData,
     };
 
-    f.call(&mut backend);
+    backend.gen_par_ks_blocks(&mut core.buffer);
 
     vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
 }
@@ -35,14 +30,6 @@ where
 struct Backend<R: Unsigned> {
     state: [uint32x4_t; 4],
     _pd: PhantomData<R>,
-}
-
-impl<R: Unsigned> BlockSizeUser for Backend<R> {
-    type BlockSize = U64;
-}
-
-impl<R: Unsigned> ParBlocksSizeUser for Backend<R> {
-    type ParBlocksSize = U4;
 }
 
 macro_rules! add64 {
@@ -54,20 +41,9 @@ macro_rules! add64 {
     };
 }
 
-impl<R: Unsigned> StreamBackend for Backend<R> {
+impl<R: Rounds> Backend<R> {
     #[inline(always)]
-    fn gen_ks_block(&mut self, block: &mut Block) {
-        let state3 = self.state[3];
-        let mut par = ParBlocks::<Self>::default();
-        self.gen_par_ks_blocks(&mut par);
-        *block = par[0];
-        unsafe {
-            self.state[3] = add64!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
-        }
-    }
-
-    #[inline(always)]
-    fn gen_par_ks_blocks(&mut self, blocks: &mut ParBlocks<Self>) {
+    fn gen_par_ks_blocks(&mut self, blocks: &mut [u8; 256]) {
         macro_rules! rotate_left {
             ($v:ident, 8) => {{
                 let maskb = [3u8, 0, 1, 2, 7, 4, 5, 6, 11, 8, 9, 10, 15, 12, 13, 14];

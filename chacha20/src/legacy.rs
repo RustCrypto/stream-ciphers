@@ -1,15 +1,17 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
-use super::{ChaChaCore, Key, Nonce};
+use super::{ChaChaCore, Key, Nonce, R20};
 use cipher::{
-    consts::{U10, U32, U64, U8},
+    consts::{U32, U64, U8},
     generic_array::GenericArray,
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
     StreamCipherSeekCore, StreamClosure,
 };
 
+use crate::chacha::*;
+
 #[cfg(feature = "zeroize")]
-use cipher::zeroize::ZeroizeOnDrop;
+use zeroize::ZeroizeOnDrop;
 
 /// Nonce type used by [`ChaCha20Legacy`].
 pub type LegacyNonce = GenericArray<u8, U8>;
@@ -22,7 +24,7 @@ pub type LegacyNonce = GenericArray<u8, U8>;
 pub type ChaCha20Legacy = StreamCipherCoreWrapper<ChaCha20LegacyCore>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
-pub struct ChaCha20LegacyCore(ChaChaCore<U10>);
+pub struct ChaCha20LegacyCore(ChaChaCore<R20>);
 
 impl KeySizeUser for ChaCha20LegacyCore {
     type KeySize = U32;

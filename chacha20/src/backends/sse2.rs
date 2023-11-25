@@ -1,8 +1,4 @@
-use crate::{Block, StreamClosure, Unsigned, STATE_WORDS};
-use cipher::{
-    consts::{U1, U64},
-    BlockSizeUser, ParBlocksSizeUser, StreamBackend,
-};
+use crate::{ChaChaCore, Rounds, STATE_WORDS};
 use core::marker::PhantomData;
 
 #[cfg(target_arch = "x86")]
@@ -12,12 +8,11 @@ use core::arch::x86_64::*;
 
 #[inline]
 #[target_feature(enable = "sse2")]
-pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+pub(crate) unsafe fn inner<R>(core: &mut ChaChaCore<R>)
 where
-    R: Unsigned,
-    F: StreamClosure<BlockSize = U64>,
+    R: Rounds,
 {
-    let state_ptr = state.as_ptr() as *const __m128i;
+    let state_ptr = core.state.as_ptr() as *const __m128i;
     let mut backend = Backend::<R> {
         v: [
             _mm_loadu_si128(state_ptr.add(0)),
@@ -28,27 +23,21 @@ where
         _pd: PhantomData,
     };
 
-    f.call(&mut backend);
+    for i in 0..4 {
+        backend.gen_ks_block(&mut core.buffer[i << 6..(i+1) << 6]);
+    }
 
-    state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
+    core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
 }
 
-struct Backend<R: Unsigned> {
+struct Backend<R: Rounds> {
     v: [__m128i; 4],
     _pd: PhantomData<R>,
 }
 
-impl<R: Unsigned> BlockSizeUser for Backend<R> {
-    type BlockSize = U64;
-}
-
-impl<R: Unsigned> ParBlocksSizeUser for Backend<R> {
-    type ParBlocksSize = U1;
-}
-
-impl<R: Unsigned> StreamBackend for Backend<R> {
+impl<R: Rounds> Backend<R> {
     #[inline(always)]
-    fn gen_ks_block(&mut self, block: &mut Block) {
+    fn gen_ks_block(&mut self, block: &mut [u8]) {
         unsafe {
             let res = rounds::<R>(&self.v);
             self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, 1));
@@ -63,9 +52,9 @@ impl<R: Unsigned> StreamBackend for Backend<R> {
 
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn rounds<R: Unsigned>(v: &[__m128i; 4]) -> [__m128i; 4] {
+unsafe fn rounds<R: Rounds>(v: &[__m128i; 4]) -> [__m128i; 4] {
     let mut res = *v;
-    for _ in 0..R::USIZE {
+    for _ in 0..R::COUNT {
         double_quarter_round(&mut res);
     }
 

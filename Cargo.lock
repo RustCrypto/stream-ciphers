@@ -36,6 +36,7 @@ dependencies = [
  "rand_core",
  "serde",
  "serde_json",
+ "zeroize",
 ]
 
 [[package]]

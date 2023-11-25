@@ -1,39 +1,29 @@
 //! Portable implementation which does not rely on architecture-specific
 //! intrinsics.
 
-use crate::{Block, ChaChaCore, Unsigned, STATE_WORDS};
-use cipher::{
-    consts::{U1, U64},
-    BlockSizeUser, ParBlocksSizeUser, StreamBackend,
-};
+use crate::{ChaChaCore, Rounds, STATE_WORDS};
 
-pub(crate) struct Backend<'a, R: Unsigned>(pub(crate) &'a mut ChaChaCore<R>);
+pub(crate) struct Backend<'a, R: Rounds>(pub(crate) &'a mut ChaChaCore<R>);
 
-impl<'a, R: Unsigned> BlockSizeUser for Backend<'a, R> {
-    type BlockSize = U64;
-}
-
-impl<'a, R: Unsigned> ParBlocksSizeUser for Backend<'a, R> {
-    type ParBlocksSize = U1;
-}
-
-impl<'a, R: Unsigned> StreamBackend for Backend<'a, R> {
+impl<'a, R: Rounds> Backend<'a, R> {
     #[inline(always)]
-    fn gen_ks_block(&mut self, block: &mut Block) {
-        let res = run_rounds::<R>(&self.0.state);
-        self.0.state[12] = self.0.state[12].wrapping_add(1);
+    fn gen_ks_blocks(&mut self) {
+        for i in 0..4 {
+            let res = run_rounds::<R>(&self.0.state);
+            self.0.state[12] = self.0.state[12].wrapping_add(1);
 
-        for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
-            chunk.copy_from_slice(&val.to_le_bytes());
+            for (chunk, val) in self.0.buffer[i << 6..(i+1) << 6].chunks_exact_mut(4).zip(res.iter()) {
+                chunk.copy_from_slice(&val.to_le_bytes());
+            }
         }
     }
 }
 
 #[inline(always)]
-fn run_rounds<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS] {
+fn run_rounds<R: Rounds>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS] {
     let mut res = *state;
 
-    for _ in 0..R::USIZE {
+    for _ in 0..R::COUNT {
         // column rounds
         quarter_round(0, 4, 8, 12, &mut res);
         quarter_round(1, 5, 9, 13, &mut res);

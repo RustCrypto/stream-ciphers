@@ -10,24 +10,18 @@
 //! Block RNG based on rand_core::BlockRng
 use core::fmt::Debug;
 
-use cipher::{BlockSizeUser, StreamCipherCore, Unsigned};
 use rand_core::{impls::fill_via_u32_chunks, CryptoRng, Error, RngCore, SeedableRng};
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[cfg(feature = "zeroize")]
-use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use cfg_if::cfg_if;
 
 use crate::{
-    cipher::{generic_array::GenericArray, ParBlocks, ParBlocksSizeUser}, //KEY_SIZE,
-    ChaChaCore,
-    U10,
-    U4,
-    U6,
-    U64,
+    ChaChaCore, Rounds, R8, R12, R20,
 };
 use cipher::StreamCipherSeekCore;
 
@@ -55,13 +49,6 @@ impl AsRef<[u32]> for BlockRngResults {
 impl AsMut<[u32]> for BlockRngResults {
     fn as_mut(&mut self) -> &mut [u32] {
         &mut self.0
-    }
-}
-
-impl BlockSizeUser for BlockRngResults {
-    type BlockSize = U64;
-    fn block_size() -> usize {
-        256
     }
 }
 
@@ -189,7 +176,7 @@ impl From<u128> for StreamId {
 }
 impl_zeroize_on_drop!(StreamId);
 
-impl<R: Unsigned> ChaChaCore<R> {
+impl<R: Rounds> ChaChaCore<R> {
     /// Copied from ChaChaCore<R>::new() to avoid using KeyIvInit/Key/Nonce
     #[inline]
     fn from_seed(seed: Seed) -> Self {
@@ -221,27 +208,10 @@ impl<R: Unsigned> ChaChaCore<R> {
             state,
             tokens,
             rounds: core::marker::PhantomData,
+            buffer: [0u8; 256],
+            buffer_pos: 0
         }
     }
-}
-
-/// This is the internal block of ChaChaCore
-#[derive(Copy, Clone)]
-struct Block(GenericArray<u8, U64>);
-impl AsRef<[u8]> for Block {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl BlockSizeUser for Block {
-    type BlockSize = U64;
-    fn block_size() -> usize {
-        64
-    }
-}
-impl ParBlocksSizeUser for Block {
-    type ParBlocksSize = U4;
 }
 
 macro_rules! impl_chacha_rng {
@@ -413,7 +383,6 @@ macro_rules! impl_chacha_rng {
         #[derive(Clone)]
         pub struct $ChaChaXCore {
             block: ChaChaCore<$rounds>,
-            parallel_blocks: ParBlocks<Block>,
             counter: u32,
         }
 
@@ -426,7 +395,6 @@ macro_rules! impl_chacha_rng {
                 Self {
                     block,
                     counter: 0,
-                    parallel_blocks: GenericArray::from([GenericArray::from([0u8; 64]); 4]),
                 }
             }
         }
@@ -434,18 +402,7 @@ macro_rules! impl_chacha_rng {
         impl $ChaChaXCore {
             /// Generate a new block of results.
             fn generate(&mut self, results: &mut BlockRngResults) {
-                self.block.write_keystream_blocks(&mut self.parallel_blocks);
-                let mut offset = 0;
-                for block in self.parallel_blocks {
-                    for (n, chunk) in results.0[offset..]
-                        .as_mut()
-                        .iter_mut()
-                        .zip(block.chunks_exact(4))
-                    {
-                        *n = u32::from_le_bytes(chunk.try_into().unwrap());
-                    }
-                    offset += BLOCK_WORDS as usize;
-                }
+                self.block.generate();
 
                 self.counter = self.counter.wrapping_add(1);
             }
@@ -477,7 +434,7 @@ macro_rules! impl_chacha_rng {
                 let mut result = u64::from(
                     self.core
                         .block
-                        .get_block_pos()
+                        .state[12]
                         .wrapping_sub(BUF_BLOCKS.into()),
                 ) << 4;
                 result += self.index as u64;
@@ -505,7 +462,7 @@ macro_rules! impl_chacha_rng {
                 // index
                 self.core
                     .block
-                    .set_block_pos(u32::from_le_bytes(word_offset.0[0..4].try_into().unwrap()));
+                    .state[12] = (u32::from_le_bytes(word_offset.0[0..4].try_into().unwrap()));
                 // generate will increase block_pos by 4
                 self.generate_and_set((word_offset.0[4] & 0x0F) as usize);
             }
@@ -576,10 +533,7 @@ macro_rules! impl_chacha_rng {
         impl Zeroize for $ChaChaXCore {
             fn zeroize(&mut self) {
                 self.counter.zeroize();
-                self.parallel_blocks[0].zeroize();
-                self.parallel_blocks[1].zeroize();
-                self.parallel_blocks[2].zeroize();
-                self.parallel_blocks[3].zeroize();
+                self.block.buffer.zeroize();
             }
         }
 
@@ -663,11 +617,11 @@ macro_rules! impl_chacha_rng {
     };
 }
 
-impl_chacha_rng!(ChaCha8Rng, ChaCha8Core, U4, abst8);
+impl_chacha_rng!(ChaCha8Rng, ChaCha8Core, R8, abst8);
 
-impl_chacha_rng!(ChaCha12Rng, ChaCha12Core, U6, abst12);
+impl_chacha_rng!(ChaCha12Rng, ChaCha12Core, R12, abst12);
 
-impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, U10, abst20);
+impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
 
 #[cfg(test)]
 mod tests {
@@ -732,41 +686,41 @@ mod tests {
         assert_ne!([0u32; 128], u32_array);
 
         // testing how block_pos normally works
-        assert_eq!(rng.core.block.get_block_pos(), 0);
+        assert_eq!(rng.core.block.state[12], 0);
         expend_u32(&mut rng, 1);
-        assert_eq!(rng.core.block.get_block_pos(), 4);
+        assert_eq!(rng.core.block.state[12], 4);
         expend_u32(&mut rng, 17);
-        assert_eq!(rng.core.block.get_block_pos(), 4);
+        assert_eq!(rng.core.block.state[12], 4);
         expend_u32(&mut rng, 25);
-        assert_eq!(rng.core.block.get_block_pos(), 4);
+        assert_eq!(rng.core.block.state[12], 4);
 
         // advance to the next increase of block_pos
         rng = ChaChaRng::from_seed([0u8; 32]);
         expend_u32(&mut rng, 68);
-        assert_eq!(rng.core.block.get_block_pos(), 8);
+        assert_eq!(rng.core.block.state[12], 8);
 
         // advance to the next increase of block_pos
         expend_u32(&mut rng, 18);
-        assert_eq!(rng.core.block.get_block_pos(), 8);
+        assert_eq!(rng.core.block.state[12], 8);
         expend_u32(&mut rng, 18);
-        assert_eq!(rng.core.block.get_block_pos(), 8);
+        assert_eq!(rng.core.block.state[12], 8);
         expend_u32(&mut rng, 34);
-        assert_eq!(rng.core.block.get_block_pos(), 12);
+        assert_eq!(rng.core.block.state[12], 12);
 
         rng = ChaCha20Rng::from_seed([0u8; 32]);
         expend_u32(&mut rng, 513);
-        assert_eq!(rng.core.block.get_block_pos(), 36);
+        assert_eq!(rng.core.block.state[12], 36);
 
         // testing word_pos and output generation
         rng.set_word_pos(0);
         assert_eq!(rng.next_u32(), u32_array[0]);
 
         rng.set_word_pos(63);
-        assert_eq!(rng.core.block.get_block_pos(), 7);
+        assert_eq!(rng.core.block.state[12], 7);
         assert_eq!(rng.get_word_pos(), 63);
 
         assert_eq!(rng.next_u32(), u32_array[63]);
-        assert_eq!(rng.core.block.get_block_pos(), 7);
+        assert_eq!(rng.core.block.state[12], 7);
         assert_eq!(rng.get_word_pos(), 64);
 
         assert_eq!(rng.next_u32(), u32_array[64]);
@@ -1121,7 +1075,7 @@ mod tests {
     #[test]
     fn test_chacha_word_pos_zero() {
         let mut rng = ChaChaRng::from_seed(Default::default());
-        assert_eq!(rng.core.block.get_block_pos(), 0);
+        assert_eq!(rng.core.block.state[12], 0);
         assert_eq!(rng.index, 64);
         assert_eq!(rng.get_word_pos(), 0);
         rng.set_word_pos(0);
