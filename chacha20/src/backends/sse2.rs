@@ -8,7 +8,7 @@ use core::arch::x86_64::*;
 
 #[inline]
 #[target_feature(enable = "sse2")]
-pub(crate) unsafe fn inner<R>(core: &mut ChaChaCore<R>)
+pub(crate) unsafe fn inner<R>(core: &mut ChaChaCore<R>, buffer: &mut [u32; 64])
 where
     R: Rounds,
 {
@@ -24,7 +24,7 @@ where
     };
 
     for i in 0..4 {
-        backend.gen_ks_block(&mut core.buffer[i << 6..(i+1) << 6]);
+        backend.gen_ks_block(&mut buffer[i << 4..(i+1) << 4]);
     }
 
     core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
@@ -37,7 +37,7 @@ struct Backend<R: Rounds> {
 
 impl<R: Rounds> Backend<R> {
     #[inline(always)]
-    fn gen_ks_block(&mut self, block: &mut [u8]) {
+    fn gen_ks_block(&mut self, block: &mut [u32]) {
         unsafe {
             let res = rounds::<R>(&self.v);
             self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, 1));

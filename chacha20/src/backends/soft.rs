@@ -7,13 +7,13 @@ pub(crate) struct Backend<'a, R: Rounds>(pub(crate) &'a mut ChaChaCore<R>);
 
 impl<'a, R: Rounds> Backend<'a, R> {
     #[inline(always)]
-    pub(crate) fn gen_ks_blocks(&mut self) {
+    pub(crate) fn gen_ks_blocks(&mut self, buffer: &mut [u32; 64]) {
         for i in 0..4 {
             let res = run_rounds::<R>(&self.0.state);
             self.0.state[12] = self.0.state[12].wrapping_add(1);
 
-            for (chunk, val) in self.0.buffer[i << 6..(i+1) << 6].chunks_exact_mut(4).zip(res.iter()) {
-                chunk.copy_from_slice(&val.to_le_bytes());
+            for (word, val) in buffer[i << 6..(i+1) << 6].iter_mut().zip(res.iter()) {
+                *word = *val;
             }
         }
     }

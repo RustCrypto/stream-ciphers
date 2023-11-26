@@ -1,36 +1,30 @@
 
 use cfg_if::cfg_if;
-use cipher::{
+pub use cipher::{
     consts::{U10, U12, U32, U4, U6, U64},
     generic_array::GenericArray,
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
-    StreamCipherSeekCore,
+    StreamCipherSeekCore, StreamCipher, StreamCipherError, inout::InOutBuf,
 };
 
 use crate::{ChaChaCore, STATE_WORDS, CONSTANTS, avx2_cpuid, sse2_cpuid, PhantomData, Rounds, R20, R8, R12};
 
 /// Block type used by all ChaCha variants.
-#[cfg(feature = "cipher")]
 type Block = GenericArray<u8, U64>;
 
 /// Key type used by all ChaCha variants.
-#[cfg(feature = "cipher")]
 pub type Key = GenericArray<u8, U32>;
 
 /// Nonce type used by ChaCha variants.
-#[cfg(feature = "cipher")]
 pub type Nonce = GenericArray<u8, U12>;
 
 /// ChaCha8 stream cipher (reduced-round variant of [`ChaCha20`] with 8 rounds)
-#[cfg(feature = "cipher")]
 pub type ChaCha8 = ChaCha<R8>;
 
 /// ChaCha12 stream cipher (reduced-round variant of [`ChaCha20`] with 12 rounds)
-#[cfg(feature = "cipher")]
 pub type ChaCha12 = ChaCha<R12>;
 
 /// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
-#[cfg(feature = "cipher")]
 pub type ChaCha20 = ChaCha<R20>;
 
 pub struct ChaCha<R: Rounds> {
@@ -40,15 +34,15 @@ pub struct ChaCha<R: Rounds> {
 impl<R: Rounds> KeySizeUser for ChaCha<R> {
     type KeySize = U32;
 }
-#[cfg(feature = "cipher")]
+
 impl<R: Rounds> IvSizeUser for ChaCha<R> {
     type IvSize = U12;
 }
-#[cfg(feature = "cipher")]
+
 impl<R: Rounds> BlockSizeUser for ChaCha<R> {
     type BlockSize = U64;
 }
-#[cfg(feature = "cipher")]
+
 impl<R: Rounds> KeyIvInit for ChaCha<R> {
     #[inline]
     fn new(key: &Key, iv: &Nonce) -> Self {
@@ -86,10 +80,17 @@ impl<R: Rounds> KeyIvInit for ChaCha<R> {
                 state, 
                 tokens, 
                 rounds: PhantomData, 
-                buffer: [0u8; 256], 
-                buffer_pos: 0 
             }
         }
     }
 }
 
+impl<R: Rounds> StreamCipher for ChaCha<R> {
+    fn try_apply_keystream_inout(
+            &mut self,
+            buf: InOutBuf<'_, '_, u8>,
+        ) -> Result<(), StreamCipherError> {
+            
+            Ok(())
+    }
+}

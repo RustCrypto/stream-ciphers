@@ -112,11 +112,6 @@
 pub use cipher;
 
 use cfg_if::cfg_if;
-use cipher::{
-    consts::{U10, U12, U32, U4, U6},
-    generic_array::GenericArray, StreamCipherCoreWrapper,
-    StreamClosure,
-};
 use core::marker::PhantomData;
 
 #[cfg(feature = "zeroize")]
@@ -149,14 +144,6 @@ const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574]
 
 /// Number of 32-bit words in the ChaCha state
 const STATE_WORDS: usize = 16;
-
-/// Key type used by all ChaCha variants.
-pub type Key = GenericArray<u8, U32>;
-
-/// Nonce type used by ChaCha variants.
-pub type Nonce = GenericArray<u8, U12>;
-
-
 
 /// Marker type for a number of ChaCha rounds to perform.
 pub trait Rounds: Copy {
@@ -224,50 +211,46 @@ pub struct ChaChaCore<R: Rounds> {
     tokens: Tokens,
     /// Number of rounds to perform
     rounds: PhantomData<R>,
-    /// the internal buffer
-    // TODO: change it to a [u32; 64]
-    // OR: make it platform-dependent either u32 or u64
-    buffer: [u8; 256],
-    /// the position within the current buffer
-    buffer_pos: u16
 }
 
 impl<R: Rounds> ChaChaCore<R> {
-    fn generate(&mut self) {
+    // TO CONSIDER: passing in an &mut [u8] or &mut [u32] to directly copy 
+    // data into an array
+    fn generate(&mut self, buffer: &mut [u32; 64]) {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
-                backends::soft::Backend(self).gen_ks_blocks();
+                backends::soft::Backend(self).gen_ks_blocks(buffer);
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
                     if #[cfg(chacha20_force_avx2)] {
                         unsafe {
-                            backends::avx2::inner::<R>(&mut self);
+                            backends::avx2::inner::<R>(&mut self, buffer);
                         }
                     } else if #[cfg(chacha20_force_sse2)] {
                         unsafe {
-                            backends::sse2::inner::<R>(&mut self);
+                            backends::sse2::inner::<R>(&mut self, buffer);
                         }
                     } else {
                         let (avx2_token, sse2_token) = self.tokens;
                         if avx2_token.get() {
                             unsafe {
-                                backends::avx2::inner::<R>(self);
+                                backends::avx2::inner::<R>(self, buffer);
                             }
                         } else if sse2_token.get() {
                             unsafe {
-                                backends::sse2::inner::<R>(self);
+                                backends::sse2::inner::<R>(self, buffer);
                             }
                         } else {
-                            backends::soft::Backend(self).gen_ks_blocks();
+                            backends::soft::Backend(self).gen_ks_blocks(buffer);
                         }
                     }
                 }
             } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
-                    backends::neon::inner::<R>(&mut self);
+                    backends::neon::inner::<R>(&mut self, buffer);
                 }
             } else {
-                backends::soft::Backend(self).gen_ks_blocks();
+                backends::soft::Backend(self).gen_ks_blocks(buffer);
             }
         }
     }
