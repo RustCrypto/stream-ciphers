@@ -38,6 +38,7 @@ default = ["cipher"]
 legacy = ["cipher"]
 serde1 = ["serde"]
 std = ["cipher/std"]
+xchacha = ["cipher"]
 
 [package.metadata.docs.rs]
 all-features = true

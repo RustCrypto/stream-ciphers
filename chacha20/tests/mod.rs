@@ -1,12 +1,24 @@
 //! Tests for ChaCha20 (IETF and "djb" versions) as well as XChaCha20
-use chacha20::{ChaCha20, ChaCha20Legacy, XChaCha20};
+#[cfg(feature = "chacha20")]
+use chacha20::ChaCha20;
+
+#[cfg(feature = "legacy")]
+use chacha20::ChaCha20Legacy;
+
+#[cfg(feature = "xchacha")]
+use chacha20::XChaCha20;
 
 // IETF version of ChaCha20 (96-bit nonce)
+#[cfg(feature = "chacha")]
 cipher::stream_cipher_test!(chacha20_core, "chacha20", ChaCha20);
+#[cfg(feature = "chacha")]
 cipher::stream_cipher_seek_test!(chacha20_seek, ChaCha20);
+#[cfg(feature = "xchacha")]
 cipher::stream_cipher_seek_test!(xchacha20_seek, XChaCha20);
+#[cfg(feature = "legacy")]
 cipher::stream_cipher_seek_test!(chacha20legacy_seek, ChaCha20Legacy);
 
+#[cfg(feature = "chacha")]
 mod chacha20test {
     use chacha20::{ChaCha20, Key, Nonce};
     use cipher::{KeyIvInit, StreamCipher};
@@ -85,6 +97,7 @@ mod chacha20test {
 }
 
 #[rustfmt::skip]
+#[cfg(feature = "xchacha")]
 mod xchacha20 {
     use chacha20::{Key, XChaCha20, XNonce};
     use cipher::{KeyIvInit, StreamCipher};
@@ -175,8 +188,8 @@ mod xchacha20 {
 #[cfg(feature = "legacy")]
 #[rustfmt::skip]
 mod legacy {
-    use chacha20::{ChaCha20Legacy, Key, LegacyNonce};
-    use cipher::{NewCipher, StreamCipher, StreamCipherSeek};
+    use chacha20::{ChaCha20Legacy, LegacyNonce};
+    use cipher::{StreamCipher, StreamCipherSeek, KeyIvInit};
     use hex_literal::hex;
 
     cipher::stream_cipher_test!(chacha20_legacy_core, ChaCha20Legacy, "chacha20-legacy");
@@ -206,7 +219,7 @@ mod legacy {
             for middle in idx..256 {
                 for last in middle..256 {
                     let mut cipher =
-                        ChaCha20Legacy::new(&Key::from(KEY_LONG), &LegacyNonce::from(IV_LONG));
+                        ChaCha20Legacy::new(&KEY_LONG.into(), &LegacyNonce::from(IV_LONG));
                     let mut buf = [0; 256];
 
                     cipher.seek(idx as u64);

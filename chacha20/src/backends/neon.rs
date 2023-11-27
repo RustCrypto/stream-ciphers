@@ -3,14 +3,15 @@
 //! Adapted from the Crypto++ `chacha_simd` implementation by Jack Lloyd and
 //! Jeffrey Walton (public domain).
 
-use crate::{Block, StreamClosure, Rounds, STATE_WORDS};
+use crate::{Block, Rounds, STATE_WORDS, Variant};
 use core::{arch::aarch64::*, marker::PhantomData};
 
 #[inline]
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn inner<R>(core: &mut ChaChaCore<R>, buffer: &mut [u32; 64])
+pub(crate) unsafe fn inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: R,
+    V: Variant
 {
     let mut backend = Backend::<R> {
         state: [

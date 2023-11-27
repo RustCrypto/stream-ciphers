@@ -1,4 +1,4 @@
-use crate::{Rounds, ChaChaCore};
+use crate::{Rounds, ChaChaCore, Variant};
 use core::marker::PhantomData;
 
 #[cfg(target_arch = "x86")]
@@ -13,9 +13,10 @@ const N: usize = PAR_BLOCKS / 2;
 
 #[inline]
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn inner<R>(core: &mut ChaChaCore<R>, buffer: &mut [u32; 64])
+pub(crate) unsafe fn inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
+    V: Variant
 {
     let state_ptr = core.state.as_ptr() as *const __m128i;
     let v = [

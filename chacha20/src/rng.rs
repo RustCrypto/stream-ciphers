@@ -21,7 +21,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use cfg_if::cfg_if;
 
 use crate::{
-    ChaChaCore, Rounds, R8, R12, R20,
+    ChaChaCore, Rounds, R8, R12, R20, IETF, Variant
 };
 
 // NB. this must remain consistent with some currently hard-coded numbers in this module
@@ -179,46 +179,8 @@ impl From<u128> for StreamId {
 }
 impl_zeroize_on_drop!(StreamId);
 
-impl<R: Rounds> ChaChaCore<R> {
-    /// Copied from ChaChaCore<R>::new() to avoid using KeyIvInit/Key/Nonce
-    #[inline]
-    fn from_seed(seed: Seed) -> Self {
-        let mut state = [0u32; super::STATE_WORDS];
-        state[0..4].copy_from_slice(&super::CONSTANTS);
-        let key_chunks = seed.0.chunks_exact(4);
-        for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
-            *val = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-        cfg_if! {
-            if #[cfg(chacha20_force_soft)] {
-                let tokens = ();
-            } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                cfg_if! {
-                    if #[cfg(chacha20_force_avx2)] {
-                        let tokens = ();
-                    } else if #[cfg(chacha20_force_sse2)] {
-                        let tokens = ();
-                    } else {
-                        let tokens = (crate::avx2_cpuid::init(), crate::sse2_cpuid::init());
-                    }
-                }
-            } else {
-                let tokens = ();
-            }
-        }
-
-        Self {
-            state,
-            tokens,
-            rounds: core::marker::PhantomData,
-        }
-    }
-}
-
 macro_rules! impl_chacha_rng {
     ($ChaChaXRng:ident, $ChaChaXCore:ident, $rounds:ident, $abst: ident) => {
-        /// The ChaCha core random number generator
-        pub type $ChaChaXCore = ChaChaCore<$rounds>;
         /// A cryptographically secure random number generator that uses the ChaCha algorithm.
         ///
         /// ChaCha is a stream cipher designed by Daniel J. Bernstein[^1], that we use as an RNG. It is
@@ -297,13 +259,16 @@ macro_rules! impl_chacha_rng {
             index: usize
         }
 
+        /// The ChaCha core random number generator
+        pub type $ChaChaXCore = ChaChaCore<$rounds, IETF>;
+
         impl SeedableRng for $ChaChaXRng {
             type Seed = [u8; 32];
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 Self {
-                    core: ChaChaCore::<$rounds>::from_seed(seed.into()),
+                    core: ChaChaCore::<$rounds, IETF>::from_seed(seed.into()),
                     buffer: BlockRngResults::default(),
                     index: BlockRngResults::LEN
                 }
@@ -380,12 +345,12 @@ macro_rules! impl_chacha_rng {
             }
         }
 
-        impl SeedableRng for ChaChaCore<$rounds> {
+        impl SeedableRng for ChaChaCore<$rounds, IETF> {
             type Seed = Seed;
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                ChaChaCore::<$rounds>::from_seed(seed)
+                ChaChaCore::<$rounds, IETF>::new(seed.as_ref(), &[0u8; 12])
             }
         }
 
@@ -991,6 +956,30 @@ mod tests {
         ];
 
         assert_eq!(results, expected);
+    }
+
+    #[test]
+    fn test_chacha_reversed() {
+        use hex_literal::hex;
+        // Test vector 5 from
+        // https://www.rfc-editor.org/rfc/rfc8439#section-2.3.2
+        let seed = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+        let mut rng = ChaChaRng::from_seed(seed.into());
+
+        let stream_id = hex!("000000090000004a00000000");
+        rng.set_stream(stream_id);
+
+        // The test vectors omit the first 64-bytes of the keystream
+        let mut discard_first_64 = [0u8; 64];
+        rng.fill_bytes(&mut discard_first_64);
+
+        let mut results = [0u8; 256];
+        rng.fill_bytes(&mut results);
+        let expected = [
+            0xe4, 0xe7, 0xf1, 0x10
+        ];
+
+        assert_eq!(results[0..4], expected);
     }
 
     #[test]

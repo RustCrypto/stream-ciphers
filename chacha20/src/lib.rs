@@ -124,11 +124,11 @@ mod chacha;
 mod legacy;
 #[cfg(feature = "rand_core")]
 mod rng;
-#[cfg(feature = "cipher")]
+#[cfg(feature = "xchacha")]
 mod xchacha;
 
 #[cfg(feature = "cipher")]
-pub use chacha::{ChaCha8, ChaCha12, ChaCha20};
+pub use chacha::{ChaCha8, ChaCha12, ChaCha20, Key, Nonce};
 #[cfg(feature = "rand_core")]
 pub use rand_core;
 #[cfg(feature = "rand_core")]
@@ -136,7 +136,7 @@ pub use rng::{ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng, ChaCha8Core,
 
 #[cfg(feature = "legacy")]
 pub use legacy::{ChaCha20Legacy, ChaCha20LegacyCore, LegacyNonce};
-#[cfg(feature = "cipher")]
+#[cfg(feature = "xchacha")]
 pub use xchacha::{hchacha, XChaCha12, XChaCha20, XChaCha8, XChaChaCore, XNonce};
 
 /// State initialization constant ("expand 32-byte k")
@@ -201,9 +201,26 @@ cfg_if! {
     }
 }
 
+trait Variant: Clone {
+    /// the type used for the variant's nonce
+    type Nonce;
+    /// the size of the Nonce in u32s
+    const NONCE_SIZE: usize;
+    /// the counter's type
+    type Counter;
+}
+
+#[derive(Clone)]
+struct IETF();
+impl Variant for IETF {
+    type Counter = u32;
+    type Nonce = [u8; 12];
+    const NONCE_SIZE: usize = 3;
+}
+
 /// The ChaCha core function.
 #[cfg_attr(feature = "rand_core", derive(Clone))]
-pub struct ChaChaCore<R: Rounds> {
+pub struct ChaChaCore<R: Rounds, V:Variant> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
     /// CPU target feature tokens
@@ -211,11 +228,50 @@ pub struct ChaChaCore<R: Rounds> {
     tokens: Tokens,
     /// Number of rounds to perform
     rounds: PhantomData<R>,
+    /// the variant of the implementation
+    variant: PhantomData<V>
 }
 
-impl<R: Rounds> ChaChaCore<R> {
-    // TO CONSIDER: passing in an &mut [u8] or &mut [u32] to directly copy 
-    // data into an array
+impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
+    /// Constructs a ChaChaCore with the specified key, iv, and amount of rounds
+    fn new(key: &[u8; 32], iv: &V::Nonce) -> Self {
+        let mut state = [0u32; STATE_WORDS];
+        state[0..4].copy_from_slice(&CONSTANTS);
+        let key_chunks = key.chunks_exact(4);
+        for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
+            *val = u32::from_le_bytes(chunk.try_into().unwrap());
+        }
+        let iv_chunks = iv.chunks_exact(4);
+        for (val, chunk) in state[16-V::NONCE_SIZE..16].iter_mut().zip(iv_chunks) {
+            *val = u32::from_le_bytes(chunk.try_into().unwrap());
+        }
+
+        cfg_if! {
+            if #[cfg(chacha20_force_soft)] {
+                let tokens = ();
+            } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                cfg_if! {
+                    if #[cfg(chacha20_force_avx2)] {
+                        let tokens = ();
+                    } else if #[cfg(chacha20_force_sse2)] {
+                        let tokens = ();
+                    } else {
+                        let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
+                    }
+                }
+            } else {
+                let tokens = ();
+            }
+        }
+        Self { 
+            state, 
+            tokens, 
+            rounds: PhantomData 
+        }
+    }
+
+    /// Generates 4 blocks in parallel with avx2 & neon, but merely fills 
+    /// 4 blocks with sse2 & soft
     fn generate(&mut self, buffer: &mut [u32; 64]) {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
@@ -258,7 +314,7 @@ impl<R: Rounds> ChaChaCore<R> {
 
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
-impl<R: Rounds> Drop for ChaChaCore<R> {
+impl<R: Rounds, V: Variant> Drop for ChaChaCore<R, V> {
     fn drop(&mut self) {
         self.state.zeroize();
     }
@@ -266,4 +322,4 @@ impl<R: Rounds> Drop for ChaChaCore<R> {
 
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
-impl<R: Rounds> ZeroizeOnDrop for ChaChaCore<R> {}
+impl<R: Rounds, V: Variant> ZeroizeOnDrop for ChaChaCore<R, V> {}

@@ -1,4 +1,4 @@
-use crate::{ChaChaCore, Rounds, STATE_WORDS};
+use crate::{ChaChaCore, Rounds, Variant};
 use core::marker::PhantomData;
 
 #[cfg(target_arch = "x86")]
@@ -8,9 +8,10 @@ use core::arch::x86_64::*;
 
 #[inline]
 #[target_feature(enable = "sse2")]
-pub(crate) unsafe fn inner<R>(core: &mut ChaChaCore<R>, buffer: &mut [u32; 64])
+pub(crate) unsafe fn inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
+    V: Variant
 {
     let state_ptr = core.state.as_ptr() as *const __m128i;
     let mut backend = Backend::<R> {
