@@ -22,8 +22,8 @@ pub type LegacyNonce = GenericArray<u8, U8>;
 struct Legacy();
 impl Variant for Legacy {
     type Counter = u64;
-    type Nonce = [u8; 8];
-    const NONCE_SIZE: usize = 2;
+    type Nonce = LegacyNonce;
+    const NONCE_INDEX: usize = 14;
 }
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).

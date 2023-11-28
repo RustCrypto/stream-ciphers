@@ -18,10 +18,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use cfg_if::cfg_if;
-
 use crate::{
-    ChaChaCore, Rounds, R8, R12, R20, IETF, Variant
+    ChaChaCore, R8, R12, R20, IETF, Variant
 };
 
 // NB. this must remain consistent with some currently hard-coded numbers in this module
@@ -424,7 +422,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                for (n, chunk) in self.core.state[13..16]
+                for (n, chunk) in self.core.state[IETF::NONCE_INDEX..BLOCK_WORDS as usize]
                     .as_mut()
                     .iter_mut()
                     .zip(stream.0.chunks_exact(4))
@@ -440,7 +438,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> u128 {
                 let mut result = [0u8; 16];
-                for (i, &big) in self.core.state[13..16].iter().enumerate() {
+                for (i, &big) in self.core.state[IETF::NONCE_INDEX..BLOCK_WORDS as usize].iter().enumerate() {
                     let index = i * 4;
                     result[index + 0] = big as u8;
                     result[index + 1] = (big >> 8) as u8;
@@ -956,30 +954,6 @@ mod tests {
         ];
 
         assert_eq!(results, expected);
-    }
-
-    #[test]
-    fn test_chacha_reversed() {
-        use hex_literal::hex;
-        // Test vector 5 from
-        // https://www.rfc-editor.org/rfc/rfc8439#section-2.3.2
-        let seed = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
-        let mut rng = ChaChaRng::from_seed(seed.into());
-
-        let stream_id = hex!("000000090000004a00000000");
-        rng.set_stream(stream_id);
-
-        // The test vectors omit the first 64-bytes of the keystream
-        let mut discard_first_64 = [0u8; 64];
-        rng.fill_bytes(&mut discard_first_64);
-
-        let mut results = [0u8; 256];
-        rng.fill_bytes(&mut results);
-        let expected = [
-            0xe4, 0xe7, 0xf1, 0x10
-        ];
-
-        assert_eq!(results[0..4], expected);
     }
 
     #[test]

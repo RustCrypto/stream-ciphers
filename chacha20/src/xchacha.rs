@@ -7,7 +7,7 @@ use cipher::{
     inout::InOutBuf, StreamCipherError, StreamCipherSeek, SeekNum, OverflowError,
 };
 
-use crate::{ChaChaCore, IETF, cfg_if, STATE_WORDS, CONSTANTS, avx2_cpuid, sse2_cpuid, PhantomData, Rounds, R20, R12, R8};
+use crate::{ChaChaCore, Variant, STATE_WORDS, CONSTANTS, Rounds, R20, R12, R8};
 
 /// Key type used by all ChaCha variants.
 pub type Key = GenericArray<u8, U32>;
@@ -39,9 +39,18 @@ pub type XChaCha12 = XChaChaCore<R12>;
 /// XChaCha8 stream cipher (reduced-round variant of [`XChaCha20`] with 8 rounds)
 pub type XChaCha8 = XChaChaCore<R8>;
 
+#[derive(Clone)]
+pub struct XChaChaVariant {}
+
+impl Variant for XChaChaVariant {
+    type Counter = u32;
+    type Nonce = [u8; 12];
+    const NONCE_INDEX: usize = 13;
+}
+
 /// The XChaCha core function.
 pub struct XChaChaCore<R: Rounds> {
-    block: ChaChaCore<R, IETF>
+    block: ChaChaCore<R, XChaChaVariant>
 }
 
 impl<R: Rounds> KeySizeUser for XChaChaCore<R> {
@@ -62,43 +71,7 @@ impl<R: Rounds> KeyIvInit for XChaChaCore<R> {
 
         let iv = &iv[16..];
         Self {
-            block: ChaChaCore::new(&subkey, iv)
-        }
-
-        let mut state = [0u32; STATE_WORDS];
-        state[0..4].copy_from_slice(&CONSTANTS);
-        let key_chunks = subkey.chunks_exact(4);
-        for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
-            *val = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-        let iv_chunks = iv[16..].chunks_exact(4);
-        for (val, chunk) in state[14..16].iter_mut().zip(iv_chunks) {
-            *val = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-
-        cfg_if! {
-            if #[cfg(chacha20_force_soft)] {
-                let tokens = ();
-            } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                cfg_if! {
-                    if #[cfg(chacha20_force_avx2)] {
-                        let tokens = ();
-                    } else if #[cfg(chacha20_force_sse2)] {
-                        let tokens = ();
-                    } else if #[cfg(not(all(chacha20_force_avx2, chacha20_force_sse2)))] {
-                        let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
-                    }
-                }
-            } else {
-                let tokens = ();
-            }
-        }
-        Self {
-            block: ChaChaCore {
-                state,
-                tokens,
-                rounds: PhantomData
-            }
+            block: ChaChaCore::new(subkey.as_ref(), &iv)
         }
     }
 }

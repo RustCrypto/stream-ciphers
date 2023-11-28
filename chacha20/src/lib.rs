@@ -156,7 +156,7 @@ pub trait Rounds: Copy {
 pub struct R8;
 
 impl Rounds for R8 {
-    const COUNT: usize = 8;
+    const COUNT: usize = 4;
 }
 
 /// 12-rounds
@@ -164,7 +164,7 @@ impl Rounds for R8 {
 pub struct R12;
 
 impl Rounds for R12 {
-    const COUNT: usize = 12;
+    const COUNT: usize = 6;
 }
 
 /// 20-rounds
@@ -172,7 +172,7 @@ impl Rounds for R12 {
 pub struct R20;
 
 impl Rounds for R20 {
-    const COUNT: usize = 20;
+    const COUNT: usize = 10;
 }
 
 cfg_if! {
@@ -201,21 +201,23 @@ cfg_if! {
     }
 }
 
-trait Variant: Clone {
+/// A trait that distinguishes some ChaCha variants
+pub trait Variant: Clone {
     /// the type used for the variant's nonce
-    type Nonce;
+    type Nonce: AsRef<[u8]>;
     /// the size of the Nonce in u32s
-    const NONCE_SIZE: usize;
+    const NONCE_INDEX: usize;
     /// the counter's type
     type Counter;
 }
 
 #[derive(Clone)]
-struct IETF();
+/// The details pertaining to the IETF variant
+pub struct IETF();
 impl Variant for IETF {
     type Counter = u32;
     type Nonce = [u8; 12];
-    const NONCE_SIZE: usize = 3;
+    const NONCE_INDEX: usize = 13;
 }
 
 /// The ChaCha core function.
@@ -233,16 +235,18 @@ pub struct ChaChaCore<R: Rounds, V:Variant> {
 }
 
 impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
-    /// Constructs a ChaChaCore with the specified key, iv, and amount of rounds
-    fn new(key: &[u8; 32], iv: &V::Nonce) -> Self {
+    /// Constructs a ChaChaCore with the specified key, iv, and amount of rounds.
+    /// You must ensure that the iv is of the correct size when using this method 
+    /// directly.
+    fn new(key: &[u8; 32], iv: &[u8]) -> Self {
         let mut state = [0u32; STATE_WORDS];
         state[0..4].copy_from_slice(&CONSTANTS);
         let key_chunks = key.chunks_exact(4);
         for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
             *val = u32::from_le_bytes(chunk.try_into().unwrap());
         }
-        let iv_chunks = iv.chunks_exact(4);
-        for (val, chunk) in state[16-V::NONCE_SIZE..16].iter_mut().zip(iv_chunks) {
+        let iv_chunks = iv.as_ref().chunks_exact(4);
+        for (val, chunk) in state[V::NONCE_INDEX..16].iter_mut().zip(iv_chunks) {
             *val = u32::from_le_bytes(chunk.try_into().unwrap());
         }
 
@@ -266,7 +270,8 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
         Self { 
             state, 
             tokens, 
-            rounds: PhantomData 
+            rounds: PhantomData,
+            variant: PhantomData
         }
     }
 
@@ -280,21 +285,21 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                 cfg_if! {
                     if #[cfg(chacha20_force_avx2)] {
                         unsafe {
-                            backends::avx2::inner::<R>(&mut self, buffer);
+                            backends::avx2::inner::<R, V>(self, buffer);
                         }
                     } else if #[cfg(chacha20_force_sse2)] {
                         unsafe {
-                            backends::sse2::inner::<R>(&mut self, buffer);
+                            backends::sse2::inner::<R, V>(self, buffer);
                         }
                     } else {
                         let (avx2_token, sse2_token) = self.tokens;
                         if avx2_token.get() {
                             unsafe {
-                                backends::avx2::inner::<R>(self, buffer);
+                                backends::avx2::inner::<R, V>(self, buffer);
                             }
                         } else if sse2_token.get() {
                             unsafe {
-                                backends::sse2::inner::<R>(self, buffer);
+                                backends::sse2::inner::<R, V>(self, buffer);
                             }
                         } else {
                             backends::soft::Backend(self).gen_ks_blocks(buffer);
@@ -303,7 +308,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                 }
             } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
-                    backends::neon::inner::<R>(&mut self, buffer);
+                    backends::neon::inner::<R, V>(&mut self, buffer);
                 }
             } else {
                 backends::soft::Backend(self).gen_ks_blocks(buffer);
