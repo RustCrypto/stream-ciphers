@@ -41,7 +41,8 @@
 //! - ⊕ xor
 //!
 //! # Example
-//! ```
+#![cfg_attr(feature = "cipher", doc = " ```")]
+#![cfg_attr(not(feature = "cipher"), doc = " ```ignore")]
 //! use chacha20::ChaCha20;
 //! // Import relevant traits
 //! use chacha20::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};

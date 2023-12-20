@@ -165,29 +165,29 @@ macro_rules! impl_chacha_rng {
         /// // use rand_core traits
         /// use rand_core::{SeedableRng, RngCore};
         ///
-        /// // the following inputs are examples and are neither 
+        /// // the following inputs are examples and are neither
         /// // recommended nor suggested values
         ///
         /// let seed = [42u8; 32];
         /// let mut rng = ChaCha20Rng::from_seed(seed);
         /// rng.set_stream(100);
         ///
-        /// // you can also use a [u8; 12] in `.set_stream()`, which has a 
+        /// // you can also use a [u8; 12] in `.set_stream()`, which has a
         /// // *minor* performance benefit over a u128
         /// rng.set_stream([3u8; 12]);
         ///
         ///
         /// rng.set_word_pos(5);
         ///
-        /// // you can also use a [u8; 5] in `.set_word_pos()`, which has a 
+        /// // you can also use a [u8; 5] in `.set_word_pos()`, which has a
         /// // *minor* performance benefit over a u64
         /// rng.set_word_pos([2u8; 5]);
         ///
         /// let x = rng.next_u32();
         /// let mut array = [0u8; 32];
         /// rng.fill_bytes(&mut array);
-        /// 
-        /// // in case you need to zeroize the RNG's buffer, ensure that 
+        ///
+        /// // in case you need to zeroize the RNG's buffer, ensure that
         /// // the "zeroize" feature is enabled in Cargo.toml and run
         /// # #[cfg(feature = "zeroize")]
         /// rng.zeroize();
