@@ -143,7 +143,7 @@ macro_rules! impl_chacha_rng {
         /// rounds is the minimum potentially secure configuration, and 20 rounds is widely used as a
         /// conservative choice.
         ///
-        /// We use a 32-bit counter and 32-bit stream identifier as in the IETF implementation[^3]
+        /// We use a 32-bit counter and 96-bit stream identifier as in the IETF implementation[^3]
         /// except that we use a stream identifier in place of a nonce. A 32-bit counter over 64-byte
         /// (16 word) blocks allows 256 GiB of output before cycling, and the stream identifier allows
         /// 2<sup>96</sup> unique streams of output per seed. Both counter and stream are initialized
@@ -157,8 +157,7 @@ macro_rules! impl_chacha_rng {
         /// seed      seed      seed      seed
         /// counter   stream_id stream_id stream_id
         /// ```
-        /// This implementation uses an output buffer of sixteen `u32` words, and uses
-        /// [`BlockRng`] to implement the [`RngCore`] methods.
+        /// This implementation uses an output buffer of 64 `u32` words.
         /// # Example for `ChaCha20Rng`
         ///
         /// ```rust
@@ -166,26 +165,32 @@ macro_rules! impl_chacha_rng {
         /// // use rand_core traits
         /// use rand_core::{SeedableRng, RngCore};
         ///
-        /// // the following inputs are examples and are neither recommended nor suggested values
+        /// // the following inputs are examples and are neither 
+        /// // recommended nor suggested values
         ///
         /// let seed = [42u8; 32];
         /// let mut rng = ChaCha20Rng::from_seed(seed);
         /// rng.set_stream(100);
         ///
-        /// // you can also use a [u8; 12] in `.set_stream()`, which has a *minor*
-        /// // performance benefit over a u128
+        /// // you can also use a [u8; 12] in `.set_stream()`, which has a 
+        /// // *minor* performance benefit over a u128
         /// rng.set_stream([3u8; 12]);
         ///
         ///
         /// rng.set_word_pos(5);
         ///
-        /// // you can also use a [u8; 5] in `.set_word_pos()`, which has a *minor*
-        /// // performance benefit over a u64
+        /// // you can also use a [u8; 5] in `.set_word_pos()`, which has a 
+        /// // *minor* performance benefit over a u64
         /// rng.set_word_pos([2u8; 5]);
         ///
         /// let x = rng.next_u32();
         /// let mut array = [0u8; 32];
         /// rng.fill_bytes(&mut array);
+        /// 
+        /// // in case you need to zeroize the RNG's buffer, ensure that 
+        /// // the "zeroize" feature is enabled in Cargo.toml and run
+        /// # #[cfg(feature = "zeroize")]
+        /// rng.zeroize();
         /// ```
         ///
         /// The other Rngs from this crate are initialized similarly.

@@ -1,5 +1,8 @@
-use crate::{Rounds, ChaChaCore, Variant};
+use crate::Rounds;
 use core::marker::PhantomData;
+
+#[cfg(feature = "rand_core")]
+use crate::{ChaChaCore, Variant};
 
 #[cfg(feature = "cipher")]
 use crate::{
@@ -61,6 +64,7 @@ where
 
 #[inline]
 #[target_feature(enable = "avx2")]
+#[cfg(feature = "rand_core")]
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
@@ -85,7 +89,7 @@ where
         _pd: PhantomData,
     };
 
-    backend.gen_par_ks_blocks(buffer);
+    backend.rng_gen_par_ks_blocks(buffer);
 
     core.state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
 }
@@ -151,7 +155,7 @@ impl<R: Rounds> StreamBackend for Backend<R> {
 #[cfg(feature = "rand_core")]
 impl<R: Rounds> Backend<R> {
     #[inline(always)]
-    fn gen_par_ks_blocks(&mut self, blocks: &mut [u32; 64]) {
+    fn rng_gen_par_ks_blocks(&mut self, blocks: &mut [u32; 64]) {
         unsafe {
             let vs = rounds::<R>(&self.v, &self.ctr);
 

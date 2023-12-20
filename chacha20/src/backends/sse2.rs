@@ -1,4 +1,7 @@
-use crate::{ChaChaCore, Rounds, Variant};
+use crate::Rounds;
+
+#[cfg(feature = "rand_core")]
+use crate::{ChaChaCore, Variant};
 
 #[cfg(feature = "cipher")]
 use crate::{STATE_WORDS, chacha::Block};
