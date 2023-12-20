@@ -3,8 +3,42 @@
 
 use crate::{ChaChaCore, Rounds, STATE_WORDS, Variant};
 
+#[cfg(feature = "cipher")]
+use cipher::{
+    BlockSizeUser,
+    ParBlocksSizeUser,
+    consts::{U64, U1},
+    StreamBackend
+};
+#[cfg(feature = "cipher")]
+use crate::chacha::Block;
+
 pub(crate) struct Backend<'a, R: Rounds, V: Variant>(pub(crate) &'a mut ChaChaCore<R, V>);
 
+#[cfg(feature = "cipher")]
+impl<'a, R: Rounds, V: Variant> BlockSizeUser for Backend<'a, R, V> {
+    type BlockSize = U64;
+}
+
+#[cfg(feature = "cipher")]
+impl<'a, R: Rounds, V: Variant> ParBlocksSizeUser for Backend<'a, R, V> {
+    type ParBlocksSize = U1;
+}
+
+#[cfg(feature = "cipher")]
+impl<'a, R: Rounds, V: Variant> StreamBackend for Backend<'a, R, V> {
+    #[inline(always)]
+    fn gen_ks_block(&mut self, block: &mut Block) {
+        let res = run_rounds::<R>(&self.0.state);
+        self.0.state[12] = self.0.state[12].wrapping_add(1);
+
+        for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
+            chunk.copy_from_slice(&val.to_le_bytes());
+        }
+    }
+}
+
+#[cfg(feature = "rand_core")]
 impl<'a, R: Rounds, V: Variant> Backend<'a, R, V> {
     #[inline(always)]
     pub(crate) fn gen_ks_blocks(&mut self, buffer: &mut [u32; 64]) {
@@ -13,7 +47,7 @@ impl<'a, R: Rounds, V: Variant> Backend<'a, R, V> {
             self.0.state[12] = self.0.state[12].wrapping_add(1);
 
             for (word, val) in buffer[i << 4..(i+1) << 4].iter_mut().zip(res.iter()) {
-                *word = *val;
+                *word = val.to_le();
             }
         }
     }

@@ -1,6 +1,22 @@
 use crate::{Rounds, ChaChaCore, Variant};
 use core::marker::PhantomData;
 
+#[cfg(feature = "cipher")]
+use crate::{
+    STATE_WORDS,
+    chacha::Block
+};
+
+#[cfg(feature = "cipher")]
+use cipher::{
+    StreamClosure,
+    consts::{U64, U4},
+    BlockSizeUser,
+    ParBlocksSizeUser,
+    ParBlocks,
+    StreamBackend
+};
+
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
@@ -13,7 +29,39 @@ const N: usize = PAR_BLOCKS / 2;
 
 #[inline]
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
+#[cfg(feature = "cipher")]
+pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+where
+    R: Rounds,
+    F: StreamClosure<BlockSize = U64>,
+{
+    let state_ptr = state.as_ptr() as *const __m128i;
+    let v = [
+        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(0))),
+        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(1))),
+        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(2))),
+    ];
+    let mut c = _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(3)));
+    c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 0));
+    let mut ctr = [c; N];
+    for i in 0..N {
+        ctr[i] = c;
+        c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 2, 0, 0, 0, 2));
+    }
+    let mut backend = Backend::<R> {
+        v,
+        ctr,
+        _pd: PhantomData,
+    };
+
+    f.call(&mut backend);
+
+    state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
+}
+
+#[inline]
+#[target_feature(enable = "avx2")]
+pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
     V: Variant
@@ -48,6 +96,59 @@ struct Backend<R: Rounds> {
     _pd: PhantomData<R>,
 }
 
+#[cfg(feature = "cipher")]
+impl<R: Rounds> BlockSizeUser for Backend<R> {
+    type BlockSize = U64;
+}
+
+#[cfg(feature = "cipher")]
+impl<R: Rounds> ParBlocksSizeUser for Backend<R> {
+    type ParBlocksSize = U4;
+}
+
+#[cfg(feature = "cipher")]
+impl<R: Rounds> StreamBackend for Backend<R> {
+    #[inline(always)]
+    fn gen_ks_block(&mut self, block: &mut Block) {
+        unsafe {
+            let res = rounds::<R>(&self.v, &self.ctr);
+            for c in self.ctr.iter_mut() {
+                *c = _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 1));
+            }
+
+            let res0: [__m128i; 8] = core::mem::transmute(res[0]);
+
+            let block_ptr = block.as_mut_ptr() as *mut __m128i;
+            for i in 0..4 {
+                _mm_storeu_si128(block_ptr.add(i), res0[2 * i]);
+            }
+        }
+    }
+
+    #[inline(always)]
+    fn gen_par_ks_blocks(&mut self, blocks: &mut ParBlocks<Self>) {
+        unsafe {
+            let vs = rounds::<R>(&self.v, &self.ctr);
+
+            let pb = PAR_BLOCKS as i32;
+            for c in self.ctr.iter_mut() {
+                *c = _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, pb, 0, 0, 0, pb));
+            }
+
+            let mut block_ptr = blocks.as_mut_ptr() as *mut __m128i;
+            for v in vs {
+                let t: [__m128i; 8] = core::mem::transmute(v);
+                for i in 0..4 {
+                    _mm_storeu_si128(block_ptr.add(i), t[2 * i]);
+                    _mm_storeu_si128(block_ptr.add(4 + i), t[2 * i + 1]);
+                }
+                block_ptr = block_ptr.add(8);
+            }
+        }
+    }
+}
+
+#[cfg(feature = "rand_core")]
 impl<R: Rounds> Backend<R> {
     #[inline(always)]
     fn gen_par_ks_blocks(&mut self, blocks: &mut [u32; 64]) {

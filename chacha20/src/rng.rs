@@ -6,8 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![cfg_attr(not(test), forbid(unsafe_code))]
-//! Block RNG based on rand_core::BlockRng
 use core::fmt::Debug;
 
 use rand_core::{impls::fill_via_u32_chunks, CryptoRng, Error, RngCore, SeedableRng};
@@ -19,79 +17,12 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
-    ChaChaCore, R8, R12, R20, IETF, Variant
+    variants::{Ietf, Variant},
+    ChaChaCore, R12, R20, R8,
 };
 
-// NB. this must remain consistent with some currently hard-coded numbers in this module
-const BUF_BLOCKS: u8 = 4;
 // number of 32-bit words per ChaCha block (fixed by algorithm definition)
 const BLOCK_WORDS: u8 = 16;
-
-/// Array wrapper used for `BlockRngCore::Results` associated types.
-#[derive(Clone)]
-pub struct BlockRngResults([u32; 64]);
-
-impl BlockRngResults {
-    const LEN: usize = 64;
-}
-
-impl Default for BlockRngResults {
-    fn default() -> Self {
-        Self([0u32; 64])
-    }
-}
-
-impl AsRef<[u32]> for BlockRngResults {
-    fn as_ref(&self) -> &[u32] {
-        &self.0
-    }
-}
-
-impl AsMut<[u32]> for BlockRngResults {
-    fn as_mut(&mut self) -> &mut [u32] {
-        &mut self.0
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for BlockRngResults {
-    fn zeroize(&mut self) {
-        self.as_mut().zeroize();
-    }
-}
-
-// Define macro to automatically zeroize input of `From<x>` without any unused
-// muts when zeroize isn't enabled
-macro_rules! impl_zeroize_from {
-    ($from:ty, $struct:ident) => {
-        impl From<$from> for $struct {
-            #[cfg(feature = "zeroize")]
-            fn from(mut value: $from) -> Self {
-                let input = Self(value);
-                value.zeroize();
-                input
-            }
-            #[cfg(not(feature = "zeroize"))]
-            fn from(value: $from) -> Self {
-                Self(value)
-            }
-        }
-    };
-}
-
-// macro for ZeroizeOnDrop impl for wrappers
-macro_rules! impl_zeroize_on_drop {
-    ($struct:ident) => {
-        #[cfg(feature = "zeroize")]
-        impl Drop for $struct {
-            fn drop(&mut self) {
-                self.0.zeroize();
-            }
-        }
-        #[cfg(feature = "zeroize")]
-        impl ZeroizeOnDrop for $struct {}
-    };
-}
 
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
@@ -115,7 +46,27 @@ impl AsMut<[u8]> for Seed {
     }
 }
 
-impl_zeroize_from!([u8; 32], Seed);
+impl From<[u8; 32]> for Seed {
+    #[cfg(feature = "zeroize")]
+    fn from(mut value: [u8; 32]) -> Self {
+        let input = Self(value);
+        value.zeroize();
+        input
+    }
+    #[cfg(not(feature = "zeroize"))]
+    fn from(value: [u8; 32]) -> Self {
+        Self(value)
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl Drop for Seed {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+#[cfg(feature = "zeroize")]
+impl ZeroizeOnDrop for Seed {}
 
 impl Debug for Seed {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -123,16 +74,7 @@ impl Debug for Seed {
     }
 }
 
-impl_zeroize_on_drop!(Seed);
-
-/// An internally used trait to help with zeroizing unsigned ints that are primarily
-/// used for le bytes
-trait ZeroizeToLeBytes {
-    type Output;
-    fn zeroize_to_le_bytes(&mut self) -> Self::Output;
-}
-
-/// A zeroizable wrapper for set_word_pos() input that can be assembled from:
+/// A wrapper for set_word_pos() input that can be assembled from:
 /// * `u64`
 /// * `[u8; 5]`
 ///
@@ -148,34 +90,41 @@ impl From<[u8; 5]> for WordPosInput {
 
 impl From<u64> for WordPosInput {
     fn from(value: u64) -> Self {
-        let shifted = (value >> 4).to_le_bytes();
-        let original = value.to_le_bytes();
         let mut result = [0u8; 5];
-        result[4] = original[0];
-        result[0..4].copy_from_slice(&shifted[0..4]);
+        let block_pos = (value >> 4).to_le_bytes();
+        let index_byte = value.to_le_bytes()[0];
+        result[0..4].copy_from_slice(&block_pos[0..4]);
+        result[4] = index_byte;
         Self(result)
     }
 }
 
-/// A zeroizing wrapper for the `stream_id`. It can be used with a `[u8; 12]` or
+/// A wrapper for the `stream_id`. It can be used with a `[u8; 12]` or
 /// a `u128`.
 ///
 /// There is a minor performance benefit when using a `[u8; 12]` as the input, as
-/// it will avoid a copy, as well as a `u128::zeroize()` if the `zeroize` feature
-/// is enabled.
+/// it will avoid a copy.
 pub struct StreamId([u8; 12]);
 
-impl_zeroize_from!([u8; 12], StreamId);
+impl From<[u8; 12]> for StreamId {
+    fn from(value: [u8; 12]) -> Self {
+        StreamId(value)
+    }
+}
 
 impl From<u128> for StreamId {
     fn from(value: u128) -> Self {
-        let mut lower_12_bytes = [0u8; 12];
+        let mut lower_12_bytes: [u8; 12] = [0u8; 12];
         let bytes = value.to_le_bytes();
         lower_12_bytes.copy_from_slice(&bytes[0..12]);
         Self(lower_12_bytes)
     }
 }
-impl_zeroize_on_drop!(StreamId);
+
+const BUFFER_SIZE: usize = 64;
+
+// NB. this must remain consistent with some currently hard-coded numbers in this module
+const BUF_BLOCKS: u8 = BUFFER_SIZE as u8 >> 4;
 
 macro_rules! impl_chacha_rng {
     ($ChaChaXRng:ident, $ChaChaXCore:ident, $rounds:ident, $abst: ident) => {
@@ -253,12 +202,12 @@ macro_rules! impl_chacha_rng {
         #[derive(Clone)]
         pub struct $ChaChaXRng {
             core: $ChaChaXCore,
-            buffer: BlockRngResults,
+            buffer: [u32; BUFFER_SIZE],
             index: usize
         }
 
         /// The ChaCha core random number generator
-        pub type $ChaChaXCore = ChaChaCore<$rounds, IETF>;
+        pub type $ChaChaXCore = ChaChaCore<$rounds, Ietf>;
 
         impl SeedableRng for $ChaChaXRng {
             type Seed = [u8; 32];
@@ -266,9 +215,9 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 Self {
-                    core: ChaChaCore::<$rounds, IETF>::from_seed(seed.into()),
-                    buffer: BlockRngResults::default(),
-                    index: BlockRngResults::LEN
+                    core: ChaChaCore::<$rounds, Ietf>::from_seed(seed.into()),
+                    buffer: [0u32; BUFFER_SIZE],
+                    index: BUFFER_SIZE
                 }
             }
         }
@@ -343,12 +292,12 @@ macro_rules! impl_chacha_rng {
             }
         }
 
-        impl SeedableRng for ChaChaCore<$rounds, IETF> {
+        impl SeedableRng for ChaChaCore<$rounds, Ietf> {
             type Seed = Seed;
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                ChaChaCore::<$rounds, IETF>::new(seed.as_ref(), &[0u8; 12])
+                ChaChaCore::<$rounds, Ietf>::new(seed.as_ref(), &[0u8; 12])
             }
         }
 
@@ -359,7 +308,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn generate_and_set(&mut self, index: usize) {
                 assert!(index < self.buffer.as_ref().len());
-                self.core.generate(&mut self.buffer.0);
+                self.core.generate(&mut self.buffer);
                 self.index = index;
             }
             // The buffer is a 4-block window, i.e. it is always at a block-aligned position in the
@@ -422,7 +371,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                for (n, chunk) in self.core.state[IETF::NONCE_INDEX..BLOCK_WORDS as usize]
+                for (n, chunk) in self.core.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize]
                     .as_mut()
                     .iter_mut()
                     .zip(stream.0.chunks_exact(4))
@@ -438,7 +387,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> u128 {
                 let mut result = [0u8; 16];
-                for (i, &big) in self.core.state[IETF::NONCE_INDEX..BLOCK_WORDS as usize].iter().enumerate() {
+                for (i, &big) in self.core.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize].iter().enumerate() {
                     let index = i * 4;
                     result[index + 0] = big as u8;
                     result[index + 1] = (big >> 8) as u8;
@@ -503,8 +452,8 @@ macro_rules! impl_chacha_rng {
             fn from(core: $ChaChaXCore) -> Self {
                 $ChaChaXRng {
                     core,
-                    buffer: BlockRngResults::default(),
-                    index: BlockRngResults::LEN
+                    buffer: [0u32; BUFFER_SIZE],
+                    index: BUFFER_SIZE
                 }
             }
         }
