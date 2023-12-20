@@ -1,13 +1,12 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
 use crate::chacha::Key;
+use crate::{ChaChaCore, R20};
 use cipher::{
     consts::{U32, U8},
     generic_array::GenericArray,
-    IvSizeUser, KeySizeUser,
-    KeyIvInit, StreamCipherCoreWrapper
+    IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper,
 };
-use crate::{ChaChaCore, R20};
 
 /// Nonce type used by [`ChaCha20Legacy`].
 pub type LegacyNonce = GenericArray<u8, U8>;

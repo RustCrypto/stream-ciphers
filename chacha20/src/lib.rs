@@ -209,7 +209,7 @@ cfg_if! {
 
 /// The ChaCha core function.
 #[cfg_attr(feature = "rand_core", derive(Clone))]
-pub struct ChaChaCore<R: Rounds, V:Variant> {
+pub struct ChaChaCore<R: Rounds, V: Variant> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
     /// CPU target feature tokens
@@ -218,12 +218,12 @@ pub struct ChaChaCore<R: Rounds, V:Variant> {
     /// Number of rounds to perform
     rounds: PhantomData<R>,
     /// the variant of the implementation
-    variant: PhantomData<V>
+    variant: PhantomData<V>,
 }
 
 impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// Constructs a ChaChaCore with the specified key, iv, and amount of rounds.
-    /// You must ensure that the iv is of the correct size when using this method 
+    /// You must ensure that the iv is of the correct size when using this method
     /// directly.
     fn new(key: &[u8; 32], iv: &[u8]) -> Self {
         let mut state = [0u32; STATE_WORDS];
@@ -254,15 +254,15 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                 let tokens = ();
             }
         }
-        Self { 
-            state, 
-            tokens, 
+        Self {
+            state,
+            tokens,
             rounds: PhantomData,
-            variant: PhantomData
+            variant: PhantomData,
         }
     }
 
-    /// Generates 4 blocks in parallel with avx2 & neon, but merely fills 
+    /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
     /// 4 blocks with sse2 & soft
     #[cfg(feature = "rand_core")]
     fn generate(&mut self, buffer: &mut [u32; 64]) {

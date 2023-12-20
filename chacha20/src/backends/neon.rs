@@ -7,19 +7,15 @@ use crate::{Rounds, STATE_WORDS};
 use core::{arch::aarch64::*, marker::PhantomData};
 
 #[cfg(feature = "rand_core")]
-use crate::{ChaChaCore, variants::Variant};
+use crate::{variants::Variant, ChaChaCore};
 
 #[cfg(feature = "cipher")]
 use crate::chacha::Block;
 
 #[cfg(feature = "cipher")]
 use cipher::{
-    StreamClosure,
     consts::{U4, U64},
-    BlockSizeUser,
-    ParBlocks,
-    ParBlocksSizeUser,
-    StreamBackend
+    BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamBackend, StreamClosure,
 };
 
 #[inline]
@@ -49,7 +45,7 @@ where
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
-    V: Variant
+    V: Variant,
 {
     let mut backend = Backend::<R> {
         state: [
@@ -621,60 +617,24 @@ impl<R: Rounds> Backend<R> {
             r3_3 = add64!(r3_3, ctrs[2]);
 
             vst1q_u8(blocks.offset(0), vreinterpretq_u8_u32(r0_0));
-            vst1q_u8(
-                blocks.offset(16),
-                vreinterpretq_u8_u32(r0_1),
-            );
-            vst1q_u8(
-                blocks.offset(2 * 16),
-                vreinterpretq_u8_u32(r0_2),
-            );
-            vst1q_u8(
-                blocks.offset(3 * 16),
-                vreinterpretq_u8_u32(r0_3),
-            );
+            vst1q_u8(blocks.offset(16), vreinterpretq_u8_u32(r0_1));
+            vst1q_u8(blocks.offset(2 * 16), vreinterpretq_u8_u32(r0_2));
+            vst1q_u8(blocks.offset(3 * 16), vreinterpretq_u8_u32(r0_3));
 
             vst1q_u8(blocks.offset(64), vreinterpretq_u8_u32(r1_0));
-            vst1q_u8(
-                blocks.offset(16+64),
-                vreinterpretq_u8_u32(r1_1),
-            );
-            vst1q_u8(
-                blocks.offset(2 * 16 + 64),
-                vreinterpretq_u8_u32(r1_2),
-            );
-            vst1q_u8(
-                blocks.offset(3 * 16 + 64),
-                vreinterpretq_u8_u32(r1_3),
-            );
+            vst1q_u8(blocks.offset(16 + 64), vreinterpretq_u8_u32(r1_1));
+            vst1q_u8(blocks.offset(2 * 16 + 64), vreinterpretq_u8_u32(r1_2));
+            vst1q_u8(blocks.offset(3 * 16 + 64), vreinterpretq_u8_u32(r1_3));
 
             vst1q_u8(blocks.offset(128), vreinterpretq_u8_u32(r2_0));
-            vst1q_u8(
-                blocks.offset(16 + 128),
-                vreinterpretq_u8_u32(r2_1),
-            );
-            vst1q_u8(
-                blocks.offset(2 * 16 + 128),
-                vreinterpretq_u8_u32(r2_2),
-            );
-            vst1q_u8(
-                blocks.offset(3 * 16 + 128),
-                vreinterpretq_u8_u32(r2_3),
-            );
+            vst1q_u8(blocks.offset(16 + 128), vreinterpretq_u8_u32(r2_1));
+            vst1q_u8(blocks.offset(2 * 16 + 128), vreinterpretq_u8_u32(r2_2));
+            vst1q_u8(blocks.offset(3 * 16 + 128), vreinterpretq_u8_u32(r2_3));
 
             vst1q_u8(blocks.offset(192), vreinterpretq_u8_u32(r3_0));
-            vst1q_u8(
-                blocks.offset(16 + 192),
-                vreinterpretq_u8_u32(r3_1),
-            );
-            vst1q_u8(
-                blocks.offset(2 * 16 + 192),
-                vreinterpretq_u8_u32(r3_2),
-            );
-            vst1q_u8(
-                blocks.offset(3 * 16 + 192),
-                vreinterpretq_u8_u32(r3_3),
-            );
+            vst1q_u8(blocks.offset(16 + 192), vreinterpretq_u8_u32(r3_1));
+            vst1q_u8(blocks.offset(2 * 16 + 192), vreinterpretq_u8_u32(r3_2));
+            vst1q_u8(blocks.offset(3 * 16 + 192), vreinterpretq_u8_u32(r3_3));
 
             self.state[3] = add64!(self.state[3], ctrs[3]);
         }

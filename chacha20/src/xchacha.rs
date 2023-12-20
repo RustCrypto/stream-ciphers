@@ -3,13 +3,12 @@
 use cipher::{
     consts::{U16, U24, U32, U64},
     generic_array::GenericArray,
-    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, 
-    StreamCipherCoreWrapper, StreamClosure
+    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper, StreamClosure,
 };
 
 use crate::{
-    ChaChaCore, variants::Ietf, STATE_WORDS, CONSTANTS, 
-    Rounds, R20, R12, R8, StreamCipherCore, StreamCipherSeekCore,
+    variants::Ietf, ChaChaCore, Rounds, StreamCipherCore, StreamCipherSeekCore, CONSTANTS, R12,
+    R20, R8, STATE_WORDS,
 };
 
 #[cfg(feature = "zeroize")]
