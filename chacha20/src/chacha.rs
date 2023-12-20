@@ -1,8 +1,7 @@
 pub use cipher::{
-    consts::{U10, U12, U32, U4, U6, U64},
-    generic_array::GenericArray,
-    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
-    StreamCipherSeekCore, StreamCipher, StreamCipherError, inout::InOutBuf,
+    consts::{U12, U32, U64},
+    generic_array::GenericArray, IvSizeUser, 
+    KeyIvInit, KeySizeUser, StreamCipherCoreWrapper,
 };
 
 use crate::{ChaChaCore, Rounds, R20, R8, R12, variants::Ietf};
