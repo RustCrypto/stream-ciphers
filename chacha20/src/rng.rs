@@ -190,6 +190,8 @@ macro_rules! impl_chacha_rng {
         /// // in case you need to zeroize the RNG's buffer, ensure that
         /// // the "zeroize" feature is enabled in Cargo.toml and run
         /// # #[cfg(feature = "zeroize")]
+        /// use zeroize::Zeroize;
+        /// # #[cfg(feature = "zeroize")]
         /// rng.zeroize();
         /// ```
         ///
