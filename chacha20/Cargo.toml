@@ -36,6 +36,7 @@ serde_json = "1.0" # Only to test serde1
 [features]
 default = ["cipher"]
 legacy = ["cipher"]
+rng = ["rand_core"]
 serde1 = ["serde"]
 std = ["cipher/std"]
 xchacha = ["cipher"]

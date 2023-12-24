@@ -107,7 +107,7 @@ mod xchacha20 {
 
     //
     // XChaCha20 test vectors from:
-    // <https://tools.ietf.org/id/draft-arciszewski-xchacha-03.html#rfc.appendix.A.3.2>
+    // <https://datatracker.ietf.org/doc/html/draft-arciszewski-xchacha-03#appendix-A.2>
     //
 
     const KEY: [u8; 32] = hex!("

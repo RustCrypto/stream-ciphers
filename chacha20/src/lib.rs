@@ -126,7 +126,7 @@ mod backends;
 mod chacha;
 #[cfg(feature = "legacy")]
 mod legacy;
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 mod rng;
 #[cfg(feature = "xchacha")]
 mod xchacha;
@@ -136,9 +136,9 @@ use variants::Variant;
 
 #[cfg(feature = "cipher")]
 pub use chacha::{ChaCha12, ChaCha20, ChaCha8, Key, KeyIvInit};
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 pub use rand_core;
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 pub use rng::{ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng, ChaCha8Core, ChaCha8Rng};
 
 #[cfg(feature = "legacy")]
@@ -209,7 +209,7 @@ cfg_if! {
 }
 
 /// The ChaCha core function.
-#[cfg_attr(feature = "rand_core", derive(Clone))]
+#[cfg_attr(feature = "rng", derive(Clone))]
 pub struct ChaChaCore<R: Rounds, V: Variant> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
@@ -260,48 +260,6 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
             tokens,
             rounds: PhantomData,
             variant: PhantomData,
-        }
-    }
-
-    /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
-    /// 4 blocks with sse2 & soft
-    #[cfg(feature = "rand_core")]
-    fn generate(&mut self, buffer: &mut [u32; 64]) {
-        cfg_if! {
-            if #[cfg(chacha20_force_soft)] {
-                backends::soft::Backend(self).gen_ks_blocks(buffer);
-            } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                cfg_if! {
-                    if #[cfg(chacha20_force_avx2)] {
-                        unsafe {
-                            backends::avx2::rng_inner::<R, V>(self, buffer);
-                        }
-                    } else if #[cfg(chacha20_force_sse2)] {
-                        unsafe {
-                            backends::sse2::rng_inner::<R, V>(self, buffer);
-                        }
-                    } else {
-                        let (avx2_token, sse2_token) = self.tokens;
-                        if avx2_token.get() {
-                            unsafe {
-                                backends::avx2::rng_inner::<R, V>(self, buffer);
-                            }
-                        } else if sse2_token.get() {
-                            unsafe {
-                                backends::sse2::rng_inner::<R, V>(self, buffer);
-                            }
-                        } else {
-                            backends::soft::Backend(self).gen_ks_blocks(buffer);
-                        }
-                    }
-                }
-            } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
-                unsafe {
-                    backends::neon::rng_inner::<R, V>(self, buffer);
-                }
-            } else {
-                backends::soft::Backend(self).gen_ks_blocks(buffer);
-            }
         }
     }
 }

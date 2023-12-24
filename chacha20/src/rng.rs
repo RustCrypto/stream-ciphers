@@ -17,9 +17,12 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
+    backends,
     variants::{Ietf, Variant},
-    ChaChaCore, R12, R20, R8,
+    ChaChaCore, Rounds, R12, R20, R8,
 };
+
+use cfg_if::cfg_if;
 
 // number of 32-bit words per ChaCha block (fixed by algorithm definition)
 const BLOCK_WORDS: u8 = 16;
@@ -125,6 +128,50 @@ const BUFFER_SIZE: usize = 64;
 
 // NB. this must remain consistent with some currently hard-coded numbers in this module
 const BUF_BLOCKS: u8 = BUFFER_SIZE as u8 >> 4;
+
+impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
+    /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
+    /// 4 blocks with sse2 & soft
+    #[cfg(feature = "rand_core")]
+    fn generate(&mut self, buffer: &mut [u32; 64]) {
+        cfg_if! {
+            if #[cfg(chacha20_force_soft)] {
+                backends::soft::Backend(self).gen_ks_blocks(buffer);
+            } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                cfg_if! {
+                    if #[cfg(chacha20_force_avx2)] {
+                        unsafe {
+                            backends::avx2::rng_inner::<R, V>(self, buffer);
+                        }
+                    } else if #[cfg(chacha20_force_sse2)] {
+                        unsafe {
+                            backends::sse2::rng_inner::<R, V>(self, buffer);
+                        }
+                    } else {
+                        let (avx2_token, sse2_token) = self.tokens;
+                        if avx2_token.get() {
+                            unsafe {
+                                backends::avx2::rng_inner::<R, V>(self, buffer);
+                            }
+                        } else if sse2_token.get() {
+                            unsafe {
+                                backends::sse2::rng_inner::<R, V>(self, buffer);
+                            }
+                        } else {
+                            backends::soft::Backend(self).gen_ks_blocks(buffer);
+                        }
+                    }
+                }
+            } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
+                unsafe {
+                    backends::neon::rng_inner::<R, V>(self, buffer);
+                }
+            } else {
+                backends::soft::Backend(self).gen_ks_blocks(buffer);
+            }
+        }
+    }
+}
 
 macro_rules! impl_chacha_rng {
     ($ChaChaXRng:ident, $ChaChaXCore:ident, $rounds:ident, $abst: ident) => {
@@ -512,10 +559,9 @@ impl_chacha_rng!(ChaCha12Rng, ChaCha12Core, R12, abst12);
 impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
 
     use super::*;
-    use rand_chacha::ChaCha20Rng as OGChacha;
     use rand_core::{RngCore, SeedableRng};
 
     #[cfg(feature = "serde1")]
@@ -555,90 +601,6 @@ mod tests {
         );
     }
 
-    fn expend_u32(rng: &mut ChaCha20Rng, amount: usize) {
-        for _i in 0..amount {
-            rng.next_u32();
-        }
-    }
-
-    #[test]
-    /// an additional test for the new set_word_pos()
-    /// twas mainly for debugging it
-    fn test_set_word_pos() {
-        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
-        let mut cloned = rng.clone();
-        let mut u32_array = [0u32; 128];
-        for val in u32_array.iter_mut() {
-            *val = cloned.next_u32();
-        }
-        assert_ne!([0u32; 128], u32_array);
-
-        // testing how block_pos normally works
-        assert_eq!(rng.core.state[12], 0);
-        expend_u32(&mut rng, 1);
-        assert_eq!(rng.core.state[12], 4);
-        expend_u32(&mut rng, 17);
-        assert_eq!(rng.core.state[12], 4);
-        expend_u32(&mut rng, 25);
-        assert_eq!(rng.core.state[12], 4);
-
-        // advance to the next increase of block_pos
-        rng = ChaChaRng::from_seed([0u8; 32]);
-        expend_u32(&mut rng, 68);
-        assert_eq!(rng.core.state[12], 8);
-
-        // advance to the next increase of block_pos
-        expend_u32(&mut rng, 18);
-        assert_eq!(rng.core.state[12], 8);
-        expend_u32(&mut rng, 18);
-        assert_eq!(rng.core.state[12], 8);
-        expend_u32(&mut rng, 34);
-        assert_eq!(rng.core.state[12], 12);
-
-        rng = ChaCha20Rng::from_seed([0u8; 32]);
-        expend_u32(&mut rng, 513);
-        assert_eq!(rng.core.state[12], 36);
-
-        // testing word_pos and output generation
-        rng.set_word_pos(0);
-        assert_eq!(rng.next_u32(), u32_array[0]);
-
-        rng.set_word_pos(63);
-        assert_eq!(rng.core.state[12], 7);
-        assert_eq!(rng.get_word_pos(), 63);
-
-        assert_eq!(rng.next_u32(), u32_array[63]);
-        assert_eq!(rng.core.state[12], 7);
-        assert_eq!(rng.get_word_pos(), 64);
-
-        assert_eq!(rng.next_u32(), u32_array[64]);
-        assert_eq!(rng.get_word_pos(), 65);
-
-        assert_eq!(rng.next_u32(), u32_array[65]);
-        assert_eq!(rng.get_word_pos(), 66);
-
-        let test_word_pos = 1234;
-        rng.set_word_pos(test_word_pos);
-        // assert_eq!(
-        //     rng.core.block.get_block_pos(),
-        //     (test_word_pos as f32 / 64.0f32).ceil() as u32 * 4
-        // );
-        assert_eq!(rng.get_word_pos(), test_word_pos);
-
-        let max_word_pos: u64 = (2 as u64).pow(36) - 1;
-        rng.set_word_pos(max_word_pos);
-        assert_eq!(rng.get_word_pos(), max_word_pos);
-        rng.next_u32();
-        rng.next_u32();
-        assert_eq!(rng.get_word_pos(), 1);
-
-        // final round for this test
-        for _i in 0..1024 {
-            let word_pos = rng.next_u64() & ((1 << 36 as u64) - 1);
-            rng.set_word_pos(word_pos);
-            assert_eq!(word_pos, rng.get_word_pos());
-        }
-    }
     #[test]
     fn test_wrapping_add() {
         let mut rng = ChaCha20Rng::from_entropy();
@@ -655,21 +617,15 @@ mod tests {
 
     #[test]
     fn test_set_and_get_equivalence() {
-        use rand_chacha::rand_core::SeedableRng;
         let seed = [44u8; 32];
         let mut rng = ChaCha20Rng::from_seed(seed.into());
-        let mut original_rng = OGChacha::from_seed(seed.into());
         let stream = 1337 as u128;
         rng.set_stream(stream);
-        original_rng.set_stream(stream as u64);
         let word_pos = 35534 as u64;
         rng.set_word_pos(word_pos);
 
-        original_rng.set_word_pos(word_pos as u128);
-
         assert_eq!(rng.get_seed(), seed);
         assert_eq!(rng.get_stream(), stream);
-        assert_eq!(rng.get_word_pos(), original_rng.get_word_pos() as u64);
         assert_eq!(rng.get_word_pos(), word_pos);
     }
 
@@ -970,6 +926,107 @@ mod tests {
         assert_eq!(rng.get_word_pos(), 0);
     }
 
+    #[test]
+    /// Testing the edge cases of `fill_bytes()` by brute-forcing it with dest sizes
+    /// that start at 1, and increase by 1 up to `N`, then they decrease from `N`
+    /// to 1, and this can repeat multiple times if desired.
+    ///
+    /// This test uses `rand_chacha v0.3.1` because this version's API is directly
+    /// based on `rand_chacha v0.3.1`, and previous versions of `chacha20` could be
+    /// affected by rust flags for changing the backend. Also, it doesn't seem to work
+    /// with `chacha20 v0.8`
+    ///
+    /// Because this test uses `rand_chacha v0.3.1` which uses a 64-bit counter, these
+    /// test results should be accurate up to `block_pos = 2^32 - 1`.
+    fn test_fill_bytes_v2() {
+        use rand_chacha::ChaCha20Rng as TesterRng;
+
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
+        let mut tester_rng = TesterRng::from_seed([0u8; 32]);
+
+        let num_iterations = 32;
+
+        // If N is too large, it could cause stack overflow.
+        // With N = 1445, the arrays are 1044735 bytes each, or 0.9963 MiB
+        const N: usize = 1000;
+        // compute the sum from 1 to N, with increments of 1
+        const LEN: usize = (N * (N + 1)) / 2;
+
+        let mut test_array: [u8; LEN];
+        let mut tester_array: [u8; LEN];
+
+        for _iteration in 0..num_iterations {
+            test_array = [0u8; LEN];
+            tester_array = [0u8; LEN];
+
+            let mut dest_pos = 0;
+            // test fill_bytes with lengths starting at 1 byte, increasing by 1,
+            // up to N bytes
+            for test_len in 1..=N {
+                let debug_start_word_pos = rng.get_word_pos();
+                let end_pos = dest_pos + test_len;
+
+                // ensure that the current dest_pos index isn't overwritten already
+                assert_eq!(test_array[dest_pos], 0);
+                rng.fill_bytes(&mut test_array[dest_pos..end_pos]);
+                tester_rng.fill_bytes(&mut tester_array[dest_pos..end_pos]);
+
+                if test_array[dest_pos..end_pos] != tester_array[dest_pos..end_pos] {
+                    for (t, (index, expected)) in test_array[dest_pos..end_pos]
+                        .iter()
+                        .zip(tester_array[dest_pos..end_pos].iter().enumerate())
+                    {
+                        if t != expected {
+                            panic!(
+                                "Failed test at start_word_pos = {},\nfailed index: {:?}\nFailing word_pos = {}",
+                                debug_start_word_pos,
+                                index,
+                                debug_start_word_pos + (index / 4) as u64
+                            );
+                        }
+                    }
+                }
+                assert_eq!(rng.next_u32(), tester_rng.next_u32());
+
+                dest_pos = end_pos;
+            }
+            test_array = [0u8; LEN];
+            tester_array = [0u8; LEN];
+            dest_pos = 0;
+
+            // test fill_bytes with lengths starting at N bytes, decreasing by 1,
+            // down to 1 byte
+            for test_len in 1..=N {
+                let debug_start_word_pos = rng.get_word_pos();
+                let end_pos = dest_pos + N - test_len;
+
+                // ensure that the current dest_pos index isn't overwritten already
+                assert_eq!(test_array[dest_pos], 0);
+                rng.fill_bytes(&mut test_array[dest_pos..end_pos]);
+                tester_rng.fill_bytes(&mut tester_array[dest_pos..end_pos]);
+
+                if test_array[dest_pos..end_pos] != tester_array[dest_pos..end_pos] {
+                    for (t, (index, expected)) in test_array[dest_pos..end_pos]
+                        .iter()
+                        .zip(tester_array[dest_pos..end_pos].iter().enumerate())
+                    {
+                        if t != expected {
+                            panic!(
+                                "Failed test at start_word_pos = {},\nfailed index: {:?}\nFailing word_pos = {}",
+                                debug_start_word_pos,
+                                index,
+                                debug_start_word_pos + (index / 4) as u64
+                            );
+                        }
+                    }
+                }
+                assert_eq!(rng.next_u32(), tester_rng.next_u32());
+                dest_pos = end_pos;
+            }
+        }
+    }
+
+    // this test was for the next version of rand_core
     // #[test]
     // fn test_trait_objects() {
     //     use rand_core::CryptoRng;
