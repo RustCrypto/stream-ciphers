@@ -6,7 +6,7 @@
 use crate::{Rounds, STATE_WORDS};
 use core::{arch::aarch64::*, marker::PhantomData};
 
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 use crate::{variants::Variant, ChaChaCore};
 
 #[cfg(feature = "cipher")]
@@ -41,7 +41,7 @@ where
     vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
 }
 
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
@@ -385,7 +385,7 @@ impl<R: Rounds> StreamBackend for Backend<R> {
     }
 }
 
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 impl<R: Rounds> Backend<R> {
     #[inline(always)]
     fn rng_gen_par_ks_blocks(&mut self, blocks: &mut [u32; 64]) {

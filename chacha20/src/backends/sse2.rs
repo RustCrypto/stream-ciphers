@@ -1,6 +1,6 @@
 use crate::Rounds;
 
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 use crate::{ChaChaCore, Variant};
 
 #[cfg(feature = "cipher")]
@@ -77,7 +77,7 @@ impl<R: Rounds> StreamBackend for Backend<R> {
 
 #[inline]
 #[target_feature(enable = "sse2")]
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
@@ -101,7 +101,7 @@ where
     core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
 }
 
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 impl<R: Rounds> Backend<R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut [u32]) {

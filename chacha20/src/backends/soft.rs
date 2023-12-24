@@ -36,7 +36,7 @@ impl<'a, R: Rounds, V: Variant> StreamBackend for Backend<'a, R, V> {
     }
 }
 
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 impl<'a, R: Rounds, V: Variant> Backend<'a, R, V> {
     #[inline(always)]
     pub(crate) fn gen_ks_blocks(&mut self, buffer: &mut [u32; 64]) {
