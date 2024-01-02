@@ -11,7 +11,7 @@ publish = false
 
 [dev-dependencies]
 criterion = "0.3"
-chacha20 = { path = "../chacha20/", features = ["rand_core"] }
+chacha20 = { path = "../chacha20/", features = ["rng"] }
 rand_chacha = {version = "0.3.1"}
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x86"))'.dev-dependencies]

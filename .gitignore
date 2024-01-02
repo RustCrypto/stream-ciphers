@@ -1,5 +1,3 @@
 target/
 **/Cargo.lock
 */.cargo/config
-.vscode/
-.DS_Store
