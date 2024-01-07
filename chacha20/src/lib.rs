@@ -52,7 +52,7 @@
 //! let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
 //! let ciphertext = hex!("e405626e 4f1236b3 670ee428 332ea20e");
 //!
-//! // Key and IV must be references to the `GenericArray` type.
+//! // Key and IV must be references to the `Array` type.
 //! // Here we use the `Into` trait to convert arrays into it.
 //! let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
 //!
@@ -113,8 +113,8 @@ pub use cipher;
 
 use cfg_if::cfg_if;
 use cipher::{
+    array::{typenum::Unsigned, Array},
     consts::{U10, U12, U32, U4, U6, U64},
-    generic_array::{typenum::Unsigned, GenericArray},
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
     StreamCipherSeekCore, StreamClosure,
 };
@@ -137,13 +137,13 @@ const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574]
 const STATE_WORDS: usize = 16;
 
 /// Block type used by all ChaCha variants.
-type Block = GenericArray<u8, U64>;
+type Block = Array<u8, U64>;
 
 /// Key type used by all ChaCha variants.
-pub type Key = GenericArray<u8, U32>;
+pub type Key = Array<u8, U32>;
 
 /// Nonce type used by ChaCha variants.
-pub type Nonce = GenericArray<u8, U12>;
+pub type Nonce = Array<u8, U12>;
 
 /// ChaCha8 stream cipher (reduced-round variant of [`ChaCha20`] with 8 rounds)
 pub type ChaCha8 = StreamCipherCoreWrapper<ChaChaCore<U4>>;
@@ -205,6 +205,7 @@ impl<R: Unsigned> BlockSizeUser for ChaChaCore<R> {
 
 impl<R: Unsigned> KeyIvInit for ChaChaCore<R> {
     #[inline]
+    #[allow(clippy::let_unit_value)]
     fn new(key: &Key, iv: &Nonce) -> Self {
         let mut state = [0u32; STATE_WORDS];
         state[0..4].copy_from_slice(&CONSTANTS);

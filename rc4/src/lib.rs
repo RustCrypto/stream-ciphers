@@ -25,7 +25,7 @@
 //! rc4.apply_keystream(&mut data);
 //! assert_eq!(data, [0x10, 0x21, 0xBF, 0x04, 0x20]);
 //!
-//! let key = Key::<U6>::from_slice(b"Secret");
+//! let key = Key::<U6>::ref_from_slice(b"Secret");
 //! let mut rc4 = Rc4::<_>::new(key);
 //! let mut data = b"Attack at dawn".to_vec();
 //! rc4.apply_keystream(&mut data);
@@ -38,7 +38,7 @@
 pub use cipher::{self, consts, KeyInit, StreamCipher};
 
 use cipher::{
-    generic_array::{ArrayLength, GenericArray},
+    array::{Array, ArraySize},
     Block, BlockSizeUser, KeySizeUser, ParBlocksSizeUser, StreamBackend, StreamCipherCore,
     StreamCipherCoreWrapper, StreamClosure,
 };
@@ -50,8 +50,8 @@ use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// RC4 key type (8–2048 bits/ 1-256 bytes)
 ///
-/// Implemented as an alias for [`GenericArray`].
-pub type Key<KeySize> = GenericArray<u8, KeySize>;
+/// Implemented as an alias for [`Array`].
+pub type Key<KeySize> = Array<u8, KeySize>;
 
 type BlockSize = consts::U1;
 
@@ -67,14 +67,14 @@ pub struct Rc4Core<KeySize> {
 
 impl<KeySize> KeySizeUser for Rc4Core<KeySize>
 where
-    KeySize: ArrayLength<u8>,
+    KeySize: ArraySize,
 {
     type KeySize = KeySize;
 }
 
 impl<KeySize> KeyInit for Rc4Core<KeySize>
 where
-    KeySize: ArrayLength<u8>,
+    KeySize: ArraySize,
 {
     fn new(key: &Key<KeySize>) -> Self {
         Self {
@@ -101,7 +101,7 @@ impl<KeySize> StreamCipherCore for Rc4Core<KeySize> {
 
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
-impl<KeySize> ZeroizeOnDrop for Rc4Core<KeySize> where KeySize: ArrayLength<u8> {}
+impl<KeySize> ZeroizeOnDrop for Rc4Core<KeySize> where KeySize: ArraySize {}
 
 struct Backend<'a>(&'a mut Rc4State);
 

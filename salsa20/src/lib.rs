@@ -34,7 +34,7 @@
 //! let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
 //! let ciphertext = hex!("85843cc5 d58cce7b 5dd3dd04 fa005ded");
 //!
-//! // Key and IV must be references to the `GenericArray` type.
+//! // Key and IV must be references to the `Array` type.
 //! // Here we use the `Into` trait to convert arrays into it.
 //! let mut cipher = Salsa20::new(&key.into(), &nonce.into());
 //!
@@ -91,8 +91,8 @@ use cfg_if::cfg_if;
 pub use cipher;
 
 use cipher::{
+    array::{typenum::Unsigned, Array},
     consts::{U10, U24, U32, U4, U6, U64, U8},
-    generic_array::{typenum::Unsigned, GenericArray},
     Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore,
     StreamCipherCoreWrapper, StreamCipherSeekCore, StreamClosure,
 };
@@ -119,13 +119,13 @@ pub type Salsa12 = StreamCipherCoreWrapper<SalsaCore<U6>>;
 pub type Salsa20 = StreamCipherCoreWrapper<SalsaCore<U10>>;
 
 /// Key type used by all Salsa variants and [`XSalsa20`].
-pub type Key = GenericArray<u8, U32>;
+pub type Key = Array<u8, U32>;
 
 /// Nonce type used by all Salsa variants.
-pub type Nonce = GenericArray<u8, U8>;
+pub type Nonce = Array<u8, U8>;
 
 /// Nonce type used by [`XSalsa20`].
-pub type XNonce = GenericArray<u8, U24>;
+pub type XNonce = Array<u8, U24>;
 
 /// Number of 32-bit words in the Salsa20 state
 const STATE_WORDS: usize = 16;

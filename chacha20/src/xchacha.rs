@@ -2,8 +2,8 @@
 
 use super::{ChaChaCore, Key, Nonce, CONSTANTS, STATE_WORDS};
 use cipher::{
+    array::{typenum::Unsigned, Array},
     consts::{U10, U16, U24, U32, U4, U6, U64},
-    generic_array::{typenum::Unsigned, GenericArray},
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
     StreamCipherSeekCore, StreamClosure,
 };
@@ -12,7 +12,7 @@ use cipher::{
 use cipher::zeroize::ZeroizeOnDrop;
 
 /// Nonce type used by XChaCha variants.
-pub type XNonce = GenericArray<u8, U24>;
+pub type XNonce = Array<u8, U24>;
 
 /// XChaCha is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
 ///
@@ -52,7 +52,7 @@ impl<R: Unsigned> BlockSizeUser for XChaChaCore<R> {
 
 impl<R: Unsigned> KeyIvInit for XChaChaCore<R> {
     fn new(key: &Key, iv: &XNonce) -> Self {
-        let subkey = hchacha::<R>(key, iv[..16].as_ref().into());
+        let subkey = hchacha::<R>(key, iv[..16].try_into().unwrap());
         let mut padded_iv = Nonce::default();
         padded_iv[4..].copy_from_slice(&iv[16..]);
         XChaChaCore(ChaChaCore::new(&subkey, &padded_iv))
@@ -103,7 +103,7 @@ impl<R: Unsigned> ZeroizeOnDrop for XChaChaCore<R> {}
 /// For more information on HSalsa on which HChaCha is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
-pub fn hchacha<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+pub fn hchacha<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
     let mut state = [0u32; STATE_WORDS];
     state[..4].copy_from_slice(&CONSTANTS);
 
@@ -131,7 +131,7 @@ pub fn hchacha<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> Generic
         quarter_round(3, 4, 9, 14, &mut state);
     }
 
-    let mut output = GenericArray::default();
+    let mut output = Array::default();
 
     for (chunk, val) in output[..16].chunks_exact_mut(4).zip(&state[..4]) {
         chunk.copy_from_slice(&val.to_le_bytes());
@@ -185,10 +185,7 @@ mod hchacha20_tests {
             "a0f9e4d58a74a853c12ec41326d3ecdc"
         );
 
-        let actual = hchacha::<U10>(
-            GenericArray::from_slice(&KEY),
-            GenericArray::from_slice(&INPUT),
-        );
+        let actual = hchacha::<U10>(Array::ref_from_slice(&KEY), Array::ref_from_slice(&INPUT));
         assert_eq!(actual.as_slice(), &OUTPUT);
     }
 }

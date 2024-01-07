@@ -1,11 +1,11 @@
 [package]
 name = "rc4"
-version = "0.1.0"
+version = "0.2.0-pre"
 description = "Pure Rust implementation of the RC4 stream cipher"
 authors = ["The Rust-Crypto Project Developers"]
 license = "MIT OR Apache-2.0"
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.65"
 readme = "README.md"
 documentation = "https://docs.rs/rc4"
 repository = "https://github.com/RustCrypto/stream-ciphers"
@@ -13,10 +13,10 @@ keywords = ["arc4", "arcfour", "crypto", "stream-cipher", "trait"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
-cipher = "0.4.4"
+cipher = "=0.5.0-pre.1"
 
 [dev-dependencies]
-hex-literal = "0.3"
+hex-literal = "0.4"
 
 [features]
 std = ["cipher/std"]
