@@ -1,9 +1,9 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use super::{quarter_round, Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS};
+use super::{Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS, STATE_WORDS};
 use cipher::{
+    array::Array,
     consts::{U10, U16, U24, U32, U4, U6, U64},
-    generic_array::GenericArray,
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
     StreamCipherSeekCore, StreamClosure,
 };
@@ -40,7 +40,7 @@ impl<R: Unsigned> BlockSizeUser for XSalsaCore<R> {
 impl<R: Unsigned> KeyIvInit for XSalsaCore<R> {
     #[inline]
     fn new(key: &Key, iv: &XNonce) -> Self {
-        let subkey = hsalsa::<R>(key, iv[..16].as_ref().into());
+        let subkey = hsalsa::<R>(key, iv[..16].try_into().unwrap());
         let mut padded_iv = Nonce::default();
         padded_iv.copy_from_slice(&iv[16..]);
         XSalsaCore(SalsaCore::new(&subkey, &padded_iv))
@@ -88,7 +88,7 @@ impl<R: Unsigned> ZeroizeOnDrop for XSalsaCore<R> {}
 /// - Nonce (`u32` x 4)
 ///
 /// It produces 256-bits of output suitable for use as a Salsa20 key
-pub fn hsalsa<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+pub fn hsalsa<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
     #[inline(always)]
     fn to_u32(chunk: &[u8]) -> u32 {
         u32::from_le_bytes(chunk.try_into().unwrap())
@@ -127,7 +127,7 @@ pub fn hsalsa<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> GenericA
         quarter_round(15, 12, 13, 14, &mut state);
     }
 
-    let mut output = GenericArray::default();
+    let mut output = Array::default();
     let key_idx: [usize; 8] = [0, 5, 10, 15, 6, 7, 8, 9];
 
     for (i, chunk) in output.chunks_exact_mut(4).enumerate() {
@@ -135,4 +135,19 @@ pub fn hsalsa<R: Unsigned>(key: &Key, input: &GenericArray<u8, U16>) -> GenericA
     }
 
     output
+}
+
+/// The Salsa20 quarter round function
+// for simplicity this function is copied from the software backend
+pub(crate) fn quarter_round(
+    a: usize,
+    b: usize,
+    c: usize,
+    d: usize,
+    state: &mut [u32; STATE_WORDS],
+) {
+    state[b] ^= state[a].wrapping_add(state[d]).rotate_left(7);
+    state[c] ^= state[b].wrapping_add(state[a]).rotate_left(9);
+    state[d] ^= state[c].wrapping_add(state[b]).rotate_left(13);
+    state[a] ^= state[d].wrapping_add(state[c]).rotate_left(18);
 }

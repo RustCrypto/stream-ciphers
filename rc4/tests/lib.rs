@@ -32,7 +32,7 @@ fn test_rfc6229_length_40_bits_key1() {
         "
     );
 
-    let key = Key::<U5>::from_slice(&KEY);
+    let key = Key::<U5>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -74,7 +74,7 @@ fn test_rfc6229_length_56_bits_key1() {
         "
     );
 
-    let key = Key::<U7>::from_slice(&KEY);
+    let key = Key::<U7>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -116,7 +116,7 @@ fn test_rfc6229_length_64_bits_key1() {
         "
     );
 
-    let key = Key::<U8>::from_slice(&KEY);
+    let key = Key::<U8>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -158,7 +158,7 @@ fn test_rfc6229_length_80_bits_key1() {
         "
     );
 
-    let key = Key::<U10>::from_slice(&KEY);
+    let key = Key::<U10>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -201,7 +201,7 @@ fn test_rfc6229_length_128_bits_key1() {
         "
     );
 
-    let key = Key::<U16>::from_slice(&KEY);
+    let key = Key::<U16>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -243,7 +243,7 @@ fn test_rfc6229_length_192_bits_key1() {
         "
     );
 
-    let key = Key::<U24>::from_slice(&KEY);
+    let key = Key::<U24>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -286,7 +286,7 @@ fn test_rfc6229_length_256_bits_key1() {
         "
     );
 
-    let key = Key::<U32>::from_slice(&KEY);
+    let key = Key::<U32>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -328,7 +328,7 @@ fn test_rfc6229_length_40_bits_key2() {
         "
     );
 
-    let key = Key::<U5>::from_slice(&KEY);
+    let key = Key::<U5>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -370,7 +370,7 @@ fn test_rfc6229_length_56_bits_key2() {
         "
     );
 
-    let key = Key::<U7>::from_slice(&KEY);
+    let key = Key::<U7>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -412,7 +412,7 @@ fn test_rfc6229_length_64_bits_key2() {
         "
     );
 
-    let key = Key::<U8>::from_slice(&KEY);
+    let key = Key::<U8>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -454,7 +454,7 @@ fn test_rfc6229_length_80_bits_key2() {
         "
     );
 
-    let key = Key::<U10>::from_slice(&KEY);
+    let key = Key::<U10>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -497,7 +497,7 @@ fn test_rfc6229_length_128_bits_key2() {
         "
     );
 
-    let key = Key::<U16>::from_slice(&KEY);
+    let key = Key::<U16>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -539,7 +539,7 @@ fn test_rfc6229_length_192_bits_key2() {
         "
     );
 
-    let key = Key::<U24>::from_slice(&KEY);
+    let key = Key::<U24>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];
@@ -582,7 +582,7 @@ fn test_rfc6229_length_256_bits_key2() {
         "
     );
 
-    let key = Key::<U32>::from_slice(&KEY);
+    let key = Key::<U32>::ref_from_slice(&KEY);
     let mut cipher = Rc4::<_>::new(key);
 
     let mut data = [0u8; 0x1010];

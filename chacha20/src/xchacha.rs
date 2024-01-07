@@ -1,8 +1,8 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
 use cipher::{
+    array::Array,
     consts::{U16, U24, U32, U64},
-    generic_array::GenericArray,
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper, StreamClosure,
 };
 
@@ -15,10 +15,10 @@ use crate::{
 use zeroize::ZeroizeOnDrop;
 
 /// Key type used by all ChaCha variants.
-pub type Key = GenericArray<u8, U32>;
+pub type Key = Array<u8, U32>;
 
 /// Nonce type used by XChaCha variants.
-pub type XNonce = GenericArray<u8, U24>;
+pub type XNonce = Array<u8, U24>;
 
 /// XChaCha is a ChaCha20 variant with an extended 192-bit (24-byte) nonce.
 ///
@@ -58,7 +58,7 @@ impl<R: Rounds> BlockSizeUser for XChaChaCore<R> {
 
 impl<R: Rounds> KeyIvInit for XChaChaCore<R> {
     fn new(key: &Key, iv: &XNonce) -> Self {
-        let subkey = hchacha::<R>(key, iv[..16].as_ref().into());
+        let subkey = hchacha::<R>(key, iv[..16].as_ref().try_into().unwrap());
 
         let mut nonce = [0u8; 12];
         // first 4 bytes are 0, last 8 bytes are last 8 from the iv
@@ -112,7 +112,7 @@ impl<R: Rounds> ZeroizeOnDrop for XChaChaCore<R> {}
 /// For more information on HSalsa on which HChaCha is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
-pub fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericArray<u8, U32> {
+pub fn hchacha<R: Rounds>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
     let mut state = [0u32; STATE_WORDS];
     state[..4].copy_from_slice(&CONSTANTS);
 
@@ -140,7 +140,7 @@ pub fn hchacha<R: Rounds>(key: &Key, input: &GenericArray<u8, U16>) -> GenericAr
         quarter_round(3, 4, 9, 14, &mut state);
     }
 
-    let mut output = GenericArray::default();
+    let mut output = Array::default();
 
     for (chunk, val) in output[..16].chunks_exact_mut(4).zip(&state[..4]) {
         chunk.copy_from_slice(&val.to_le_bytes());
@@ -197,8 +197,8 @@ mod hchacha20_tests {
         );
 
         let actual = hchacha::<R20>(
-            GenericArray::from_slice(&KEY),
-            GenericArray::from_slice(&INPUT),
+            Array::ref_from_slice(&KEY),
+            Array::ref_from_slice(&INPUT),
         );
         assert_eq!(actual.as_slice(), &OUTPUT);
     }

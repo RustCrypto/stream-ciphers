@@ -21,7 +21,7 @@
 //! let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
 //! let ciphertext = hex!("10298496 ceda18ee 0e257cbb 1ab43bcc");
 //!
-//! // Key and IV must be references to the `GenericArray` type.
+//! // Key and IV must be references to the `Array` type.
 //! // Here we use the `Into` trait to convert arrays into it.
 //! let mut cipher = Rabbit::new(&key.into(), &nonce.into());
 //!
@@ -52,8 +52,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_root_url = "https://docs.rs/rabbit/0.4.1"
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
