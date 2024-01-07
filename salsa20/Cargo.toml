@@ -13,6 +13,7 @@ keywords = ["crypto", "stream-cipher", "trait", "xsalsa20"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
+cfg-if = "1"
 cipher = "0.4.4"
 
 [dev-dependencies]
