@@ -28,7 +28,7 @@ relied on for security/confidentiality.
 
 ## Minimum Supported Rust Version
 
-Rust **1.56** or higher.
+Rust **1.65** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be
 done with a minor version bump.
@@ -60,7 +60,7 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/rc4/badge.svg
 [docs-link]: https://docs.rs/rc4/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.65+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
 [build-image]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/rc4.yml/badge.svg

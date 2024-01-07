@@ -2,8 +2,8 @@
 
 use super::{ChaChaCore, Key, Nonce};
 use cipher::{
+    array::Array,
     consts::{U10, U32, U64, U8},
-    generic_array::GenericArray,
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
     StreamCipherSeekCore, StreamClosure,
 };
@@ -12,7 +12,7 @@ use cipher::{
 use cipher::zeroize::ZeroizeOnDrop;
 
 /// Nonce type used by [`ChaCha20Legacy`].
-pub type LegacyNonce = GenericArray<u8, U8>;
+pub type LegacyNonce = Array<u8, U8>;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 ///
