@@ -287,9 +287,9 @@ macro_rules! impl_chacha_rng {
         pub type $ChaChaXCore = ChaChaCore<$rounds, Ietf>;
 
         impl $ChaChaXCore {
-            /// Sets the block pos. This does not affect the RNG's index, so if it has 
+            /// Sets the block pos. This does not affect the RNG's index, so if it has
             /// already changed, it will not reset it.
-            /// 
+            ///
             /// This can be used with either:
             /// * u32
             /// * [u8; 4]
@@ -360,10 +360,8 @@ macro_rules! impl_chacha_rng {
                     if self.index >= BUFFER_SIZE {
                         self.generate_and_set(0);
                     }
-                    let (consumed_u32, filled_u8) = fill_via_u32_chunks(
-                        &self.buffer[self.index..],
-                        &mut dest[read_len..],
-                    );
+                    let (consumed_u32, filled_u8) =
+                        fill_via_u32_chunks(&self.buffer[self.index..], &mut dest[read_len..]);
 
                     self.index += consumed_u32;
                     read_len += filled_u8;
