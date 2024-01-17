@@ -10,7 +10,6 @@ use cipher::{
 
 /// Nonce type used by [`ChaCha20Legacy`].
 pub type LegacyNonce = Array<u8, U8>;
-
 use crate::variants::Legacy;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).

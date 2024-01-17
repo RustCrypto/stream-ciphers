@@ -6,11 +6,6 @@ use cipher::{
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper, StreamClosure,
 };
 
-use crate::{
-    variants::Ietf, ChaChaCore, Rounds, StreamCipherCore, StreamCipherSeekCore, CONSTANTS, R12,
-    R20, R8, STATE_WORDS,
-};
-
 #[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
@@ -195,7 +190,7 @@ mod hchacha20_tests {
             "82413b4227b27bfed30e42508a877d73"
             "a0f9e4d58a74a853c12ec41326d3ecdc"
         );
-
+      
         let actual = hchacha::<R20>(
             Array::from_slice(&KEY),
             Array::from_slice(&INPUT),
