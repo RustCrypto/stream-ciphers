@@ -197,8 +197,8 @@ mod hchacha20_tests {
         );
 
         let actual = hchacha::<R20>(
-            Array::ref_from_slice(&KEY),
-            Array::ref_from_slice(&INPUT),
+            Array::from_slice(&KEY),
+            Array::from_slice(&INPUT),
         );
         assert_eq!(actual.as_slice(), &OUTPUT);
     }

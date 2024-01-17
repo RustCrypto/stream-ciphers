@@ -80,9 +80,6 @@ impl Debug for Seed {
 /// A wrapper for set_word_pos() input that can be assembled from:
 /// * `u64`
 /// * `[u8; 5]`
-///
-/// There would be a minor performance benefit from using a `[u8; 5]`, as it
-/// avoids some copies and bit operations.
 pub struct WordPosInput([u8; 5]);
 
 impl From<[u8; 5]> for WordPosInput {
@@ -102,16 +99,25 @@ impl From<u64> for WordPosInput {
     }
 }
 
-/// A wrapper for the `stream_id`. It can be used with a `[u8; 12]` or
-/// a `u128`.
-///
-/// There is a minor performance benefit when using a `[u8; 12]` as the input, as
-/// it will avoid a copy.
-pub struct StreamId([u8; 12]);
+/// A wrapper for the `stream_id`. It can be used with a:
+/// * `[u32; 3]`
+/// * `[u8; 12]` or
+/// * a `u128`
+pub struct StreamId([u32; 3]);
+
+impl From<[u32; 3]> for StreamId {
+    fn from(value: [u32; 3]) -> Self {
+        Self(value)
+    }
+}
 
 impl From<[u8; 12]> for StreamId {
     fn from(value: [u8; 12]) -> Self {
-        StreamId(value)
+        let mut result = Self([0u32; 3]);
+        for (n, chunk) in result.0.iter_mut().zip(value.chunks_exact(4)) {
+            *n = u32::from_le_bytes(chunk.try_into().unwrap())
+        }
+        result
     }
 }
 
@@ -120,7 +126,24 @@ impl From<u128> for StreamId {
         let mut lower_12_bytes: [u8; 12] = [0u8; 12];
         let bytes = value.to_le_bytes();
         lower_12_bytes.copy_from_slice(&bytes[0..12]);
-        Self(lower_12_bytes)
+        lower_12_bytes.into()
+    }
+}
+
+/// A wrapper for `block_pos`. It can be used with:
+/// * u32
+/// * [u8; 4]
+pub struct BlockPos(u32);
+
+impl From<u32> for BlockPos {
+    fn from(value: u32) -> Self {
+        Self(value.to_le())
+    }
+}
+
+impl From<[u8; 4]> for BlockPos {
+    fn from(value: [u8; 4]) -> Self {
+        Self(u32::from_le_bytes(value))
     }
 }
 
@@ -219,15 +242,15 @@ macro_rules! impl_chacha_rng {
         /// let mut rng = ChaCha20Rng::from_seed(seed);
         /// rng.set_stream(100);
         ///
-        /// // you can also use a [u8; 12] in `.set_stream()`, which has a
-        /// // *minor* performance benefit over a u128
+        /// // you can also use a [u8; 12] in `.set_stream()`
         /// rng.set_stream([3u8; 12]);
+        /// // or a [u32; 3]
+        /// rng.set_stream([4u32; 3]);
         ///
         ///
         /// rng.set_word_pos(5);
         ///
-        /// // you can also use a [u8; 5] in `.set_word_pos()`, which has a
-        /// // *minor* performance benefit over a u64
+        /// // you can also use a [u8; 5] in `.set_word_pos()`
         /// rng.set_word_pos([2u8; 5]);
         ///
         /// let x = rng.next_u32();
@@ -263,6 +286,23 @@ macro_rules! impl_chacha_rng {
         /// The ChaCha core random number generator
         pub type $ChaChaXCore = ChaChaCore<$rounds, Ietf>;
 
+        impl $ChaChaXCore {
+            /// Sets the block pos. This does not affect the RNG's index, so if it has 
+            /// already changed, it will not reset it.
+            /// 
+            /// This can be used with either:
+            /// * u32
+            /// * [u8; 4]
+            pub fn set_block_pos<B: Into<BlockPos>>(&mut self, pos: B) {
+                self.state[12] = pos.into().0
+            }
+
+            /// Gets the block pos.
+            pub fn get_block_pos(&self) -> u32 {
+                self.state[12]
+            }
+        }
+
         impl SeedableRng for $ChaChaXRng {
             type Seed = [u8; 32];
 
@@ -279,11 +319,11 @@ macro_rules! impl_chacha_rng {
         impl RngCore for $ChaChaXRng {
             #[inline]
             fn next_u32(&mut self) -> u32 {
-                if self.index >= self.buffer.as_ref().len() {
+                if self.index >= BUFFER_SIZE {
                     self.generate_and_set(0);
                 }
 
-                let value = self.buffer.as_ref()[self.index];
+                let value = self.buffer[self.index];
                 self.index += 1;
                 value
             }
@@ -295,7 +335,7 @@ macro_rules! impl_chacha_rng {
                     u64::from(data[1]) << 32 | u64::from(data[0])
                 };
 
-                let len = self.buffer.as_ref().len();
+                let len = BUFFER_SIZE;
 
                 let index = self.index;
                 if index < len - 1 {
@@ -306,9 +346,9 @@ macro_rules! impl_chacha_rng {
                     self.generate_and_set(2);
                     read_u64(self.buffer.as_ref(), 0)
                 } else {
-                    let x = u64::from(self.buffer.as_ref()[len - 1]);
+                    let x = u64::from(self.buffer[len - 1]);
                     self.generate_and_set(1);
-                    let y = u64::from(self.buffer.as_ref()[0]);
+                    let y = u64::from(self.buffer[0]);
                     (y << 32) | x
                 }
             }
@@ -317,11 +357,11 @@ macro_rules! impl_chacha_rng {
             fn fill_bytes(&mut self, dest: &mut [u8]) {
                 let mut read_len = 0;
                 while read_len < dest.len() {
-                    if self.index >= self.buffer.as_ref().len() {
+                    if self.index >= BUFFER_SIZE {
                         self.generate_and_set(0);
                     }
                     let (consumed_u32, filled_u8) = fill_via_u32_chunks(
-                        &self.buffer.as_ref()[self.index..],
+                        &self.buffer[self.index..],
                         &mut dest[read_len..],
                     );
 
@@ -361,7 +401,7 @@ macro_rules! impl_chacha_rng {
             // Copied from rand_core
             #[inline]
             pub fn generate_and_set(&mut self, index: usize) {
-                assert!(index < self.buffer.as_ref().len());
+                assert!(index < BUFFER_SIZE);
                 self.core.generate(&mut self.buffer);
                 self.index = index;
             }
@@ -376,12 +416,10 @@ macro_rules! impl_chacha_rng {
             /// byte-offset.
             #[inline]
             pub fn get_word_pos(&self) -> u64 {
-                // block_pos is a multiple of 4, and offset by 4; therefore, it already has the
-                // last 2 bits set to 0, allowing us to shift it left 4 and add the index
                 let mut result =
                     u64::from(self.core.state[12].wrapping_sub(BUF_BLOCKS.into())) << 4;
                 result += self.index as u64;
-                // eliminate the 36th bit
+                // eliminate bits above the 36th bit
                 result & 0xfffffffff
             }
 
@@ -390,9 +428,6 @@ macro_rules! impl_chacha_rng {
             /// * u64
             /// * [u8; 5]
             ///
-            /// There would be a *minor* performance benefit from using a `[u8; 5]` instead
-            /// of a `u64`, as it avoids some copies and extra zeroizing.
-            ///
             /// As with `get_word_pos`, we use a 36-bit number. Since the generator
             /// simply cycles at the end of its period (256 GiB), we ignore the upper 28
             /// bits of a `u64`. When given a `[u8; 5]`, we ignore the first 4 bits of the
@@ -400,9 +435,6 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
                 let word_offset: WordPosInput = word_offset.into();
-                // when not using `set_word_pos`, the block_pos is always a multiple of 4.
-                // This change follows those conventions, as well as maintaining the 6-bit
-                // index
                 self.core.state[12] = (u32::from_le_bytes(word_offset.0[0..4].try_into().unwrap()));
                 // generate will increase block_pos by 4
                 self.generate_and_set((word_offset.0[4] & 0x0F) as usize);
@@ -413,22 +445,19 @@ macro_rules! impl_chacha_rng {
             /// * [u8; 12]
             /// * u128
             ///
-            /// There is a *minor* performance benefit when using a `[u8; 12]` as the
-            /// input, although it may be negligible.
-            ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                for (n, chunk) in self.core.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize]
+                for (n, val) in self.core.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize]
                     .as_mut()
                     .iter_mut()
-                    .zip(stream.0.chunks_exact(4))
+                    .zip(stream.0.iter())
                 {
-                    *n = u32::from_le_bytes(chunk.try_into().unwrap());
+                    *n = *val;
                 }
-                if self.index != 64 {
+                if self.index != BUFFER_SIZE {
                     self.generate_and_set(self.index);
                 }
             }
@@ -627,6 +656,9 @@ pub(crate) mod tests {
         assert_eq!(rng.get_seed(), seed);
         assert_eq!(rng.get_stream(), stream);
         assert_eq!(rng.get_word_pos(), word_pos);
+
+        rng.core.set_block_pos(58392);
+        assert_eq!(rng.core.get_block_pos(), 58392);
     }
 
     #[cfg(feature = "serde1")]
@@ -778,13 +810,33 @@ pub(crate) mod tests {
         assert_eq!(rng1.get_word_pos(), expected_end);
 
         // Test block 2 by using `set_word_pos`
-        let mut rng2 = ChaChaRng::from_seed(seed.into());
+        let mut rng2 = ChaChaRng::from_seed(seed);
         rng2.set_word_pos(2 * 16);
         for i in results.iter_mut() {
             *i = rng2.next_u32();
         }
         assert_eq!(results, expected);
         assert_eq!(rng2.get_word_pos(), expected_end);
+
+        // Test block 2 by using `set_block_pos` and u32
+        let mut rng3 = ChaChaRng::from_seed(seed);
+        rng3.core.set_block_pos(2);
+        results = [0u32; 16];
+        for i in results.iter_mut() {
+            *i = rng3.next_u32();
+        }
+        assert_eq!(results, expected);
+        assert_eq!(rng3.get_word_pos(), expected_end);
+
+        // Test block 2 by using `set_block_pos` and [u8; 4]
+        let mut rng4 = ChaChaRng::from_seed(seed);
+        rng4.core.set_block_pos([2, 0, 0, 0]);
+        results = [0u32; 16];
+        for i in results.iter_mut() {
+            *i = rng4.next_u32();
+        }
+        assert_eq!(results, expected);
+        assert_eq!(rng4.get_word_pos(), expected_end);
 
         // Test skipping behaviour with other types
         let mut buf = [0u8; 32];

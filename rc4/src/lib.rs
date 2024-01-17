@@ -25,7 +25,7 @@
 //! rc4.apply_keystream(&mut data);
 //! assert_eq!(data, [0x10, 0x21, 0xBF, 0x04, 0x20]);
 //!
-//! let key = Key::<U6>::ref_from_slice(b"Secret");
+//! let key = Key::<U6>::from_slice(b"Secret");
 //! let mut rc4 = Rc4::<_>::new(key);
 //! let mut data = b"Attack at dawn".to_vec();
 //! rc4.apply_keystream(&mut data);
