@@ -284,13 +284,15 @@ macro_rules! impl_chacha_rng {
         #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         #[derive(Clone)]
         pub struct $ChaChaXRng {
-            core: $ChaChaXCore,
+            /// The ChaChaCore struct
+            pub core: $ChaChaXCore,
             buffer: [u32; BUFFER_SIZE],
             index: usize,
         }
 
         /// The ChaCha core random number generator
-        pub type $ChaChaXCore = ChaChaCore<$rounds, Ietf>;
+        #[derive(Clone)]
+        pub struct $ChaChaXCore(ChaChaCore<$rounds, Ietf>);
 
         impl $ChaChaXCore {
             /// Sets the block pos. This does not affect the RNG's index, so if it has
@@ -300,12 +302,12 @@ macro_rules! impl_chacha_rng {
             /// * u32
             /// * [u8; 4]
             pub fn set_block_pos<B: Into<BlockPos>>(&mut self, pos: B) {
-                self.state[12] = pos.into().0
+                self.0.state[12] = pos.into().0
             }
 
             /// Gets the block pos.
             pub fn get_block_pos(&self) -> u32 {
-                self.state[12]
+                self.0.state[12]
             }
         }
 
@@ -315,7 +317,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 Self {
-                    core: ChaChaCore::<$rounds, Ietf>::from_seed(seed.into()),
+                    core: $ChaChaXCore(ChaChaCore::<$rounds, Ietf>::from_seed(seed.into())),
                     buffer: [0u32; BUFFER_SIZE],
                     index: BUFFER_SIZE,
                 }
@@ -406,7 +408,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn generate_and_set(&mut self, index: usize) {
                 assert!(index < BUFFER_SIZE);
-                self.core.generate(&mut self.buffer);
+                self.core.0.generate(&mut self.buffer);
                 self.index = index;
             }
             // The buffer is a 4-block window, i.e. it is always at a block-aligned position in the
@@ -421,7 +423,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_word_pos(&self) -> u64 {
                 let mut result =
-                    u64::from(self.core.state[12].wrapping_sub(BUF_BLOCKS.into())) << 4;
+                    u64::from(self.core.0.state[12].wrapping_sub(BUF_BLOCKS.into())) << 4;
                 result += self.index as u64;
                 // eliminate bits above the 36th bit
                 result & 0xfffffffff
@@ -441,7 +443,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
                 let word_pos: WordPosInput = word_offset.into();
-                self.core.state[12] = word_pos.block_pos;
+                self.core.0.state[12] = word_pos.block_pos;
                 // generate will increase block_pos by 4
                 self.generate_and_set(word_pos.index);
             }
@@ -457,7 +459,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                for (n, val) in self.core.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize]
+                for (n, val) in self.core.0.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize]
                     .as_mut()
                     .iter_mut()
                     .zip(stream.0.iter())
@@ -473,7 +475,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> u128 {
                 let mut result = [0u8; 16];
-                for (i, &big) in self.core.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize]
+                for (i, &big) in self.core.0.state[Ietf::NONCE_INDEX..BLOCK_WORDS as usize]
                     .iter()
                     .enumerate()
                 {
@@ -490,7 +492,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_seed(&self) -> [u8; 32] {
                 let mut result = [0u8; 32];
-                for (i, &big) in self.core.state[4..12].iter().enumerate() {
+                for (i, &big) in self.core.0.state[4..12].iter().enumerate() {
                     let index = i * 4;
                     result[index + 0] = big as u8;
                     result[index + 1] = (big >> 8) as u8;
@@ -994,7 +996,7 @@ pub(crate) mod tests {
     #[test]
     fn test_chacha_word_pos_zero() {
         let mut rng = ChaChaRng::from_seed(Default::default());
-        assert_eq!(rng.core.state[12], 0);
+        assert_eq!(rng.core.0.state[12], 0);
         assert_eq!(rng.index, 64);
         assert_eq!(rng.get_word_pos(), 0);
         rng.set_word_pos(0);
