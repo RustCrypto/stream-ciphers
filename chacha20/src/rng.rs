@@ -82,7 +82,7 @@ impl Debug for Seed {
 /// * `[u8; 5]`
 pub struct WordPosInput {
     block_pos: u32,
-    index: usize
+    index: usize,
 }
 
 impl From<[u8; 5]> for WordPosInput {
@@ -98,7 +98,7 @@ impl From<u64> for WordPosInput {
     fn from(value: u64) -> Self {
         Self {
             block_pos: u32::from_le_bytes((value >> 4).to_le_bytes()[0..4].try_into().unwrap()),
-            index: (value.to_le_bytes()[0] & 0b1111) as usize
+            index: (value.to_le_bytes()[0] & 0b1111) as usize,
         }
     }
 }
@@ -432,11 +432,11 @@ macro_rules! impl_chacha_rng {
             /// * u64
             /// * [u8; 5]
             ///
-            /// As with `get_word_pos`, we use a 36-bit number. When given a `u64`, we use 
-            /// the least significant 4 bits as the RNG's index, and the 32 bits before it 
+            /// As with `get_word_pos`, we use a 36-bit number. When given a `u64`, we use
+            /// the least significant 4 bits as the RNG's index, and the 32 bits before it
             /// as the block position.
-            /// 
-            /// When given a `[u8; 5]`, the word_pos is set similarly, but it is more 
+            ///
+            /// When given a `[u8; 5]`, the word_pos is set similarly, but it is more
             /// arbitrary.
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
@@ -679,7 +679,7 @@ pub(crate) mod tests {
         // test set_word_pos with u64
         rng.set_word_pos(8888);
         assert_eq!(rng.get_word_pos(), 8888);
-        
+
         // test set_word_pos with [u8; 5]
         rng.set_word_pos([55, 0, 0, 0, 0])
     }
