@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::Criterion;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "x86", all(target_arch = "aarch64", target_os = "linux")))]
 pub type Benchmarker = Criterion<criterion_cycles_per_byte::CyclesPerByte>;
