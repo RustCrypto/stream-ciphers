@@ -36,9 +36,9 @@ dependencies = [
 
 [[package]]
 name = "cipher"
-version = "0.5.0-pre.3"
+version = "0.5.0-pre.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4edc902a09138d9a0d02800f2c214f15295555e4d126bf4b312ea6f3bce7ae46"
+checksum = "84fba98785cecd0e308818a87c817576a40f99d8bab6405bf422bacd3efb6c1f"
 dependencies = [
  "blobby",
  "crypto-common",
