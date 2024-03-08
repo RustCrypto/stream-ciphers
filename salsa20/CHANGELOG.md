@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- SSE2 backend ([#328])
+
+### Changed
+- bump cipher from 0.4.3 to 0.4.4 ([#313])
+- Bump `cipher` to v0.5.0-pre.1; MSRV 1.65 ([#338])
+- Bump `cipher` to v0.5.0-pre.2 ([#339])
+- Bump cipher to v0.5.0-pre.3 ([#343])
+- bump cipher from 0.5.0-pre.3 to 0.5.0-pre.4 ([#345])
+
+### Removed
+- revert sse2 ([#346])
+
+[#313]: https://github.com/RustCrypto/stream-ciphers/pull/313
+[#328]: https://github.com/RustCrypto/stream-ciphers/pull/328
+[#338]: https://github.com/RustCrypto/stream-ciphers/pull/338
+[#339]: https://github.com/RustCrypto/stream-ciphers/pull/339
+[#343]: https://github.com/RustCrypto/stream-ciphers/pull/343
+[#345]: https://github.com/RustCrypto/stream-ciphers/pull/345
+[#346]: https://github.com/RustCrypto/stream-ciphers/pull/346
+
 ## 0.10.2 (2022-02-17)
 ### Added
 - `SalsaCore::from_raw_state` inherent method ([#291])

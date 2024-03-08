@@ -143,7 +143,7 @@ dependencies = [
 
 [[package]]
 name = "salsa20"
-version = "0.11.0-pre"
+version = "0.11.0-pre.0"
 dependencies = [
  "cipher",
  "hex-literal",
