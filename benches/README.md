@@ -12,7 +12,7 @@ You can bench the ChaCha20 cipher using `cargo bench -- apply_keystream`
 You can bench ChaCha20Rng using `cargo bench -- fill_bytes`
 
 ## Measuring CPB for aarch64
-`criterion-cycles-per-byte` can work on `aarch64` with Linux, but it might produce an error. This error occurred on an up-to-date Raspberry Pi 4 (as of 12/14/2023):
+`criterion-cycles-per-byte` can work on `aarch64` with Linux, but it might produce an error. This error occurred on an up-to-date Raspberry Pi 4b (as of 12/14/2023):
 ```
      Running src/chacha20.rs (target/release/deps/chacha20-02f555ae0af3670b)
 Gnuplot not found, using plotters backend
@@ -22,9 +22,9 @@ Caused by:
   process didn't exit successfully: `..../benches/target/release/deps/chacha20-02f555ae0af3670b --bench` (signal: 4, SIGILL: illegal instruction)
 ```
 
-The following code can fix this.
+The following adjustment can fix this.
 
-### Installing the cycle counter Linux Kernal Module on a Raspberry Pi 4b
+### Installing the cycle counter Linux Kernel Module on a Raspberry Pi 4b
 ```
 $ sudo apt-get update
 $ sudo apt-get upgrade

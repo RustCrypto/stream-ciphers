@@ -623,7 +623,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_rng_output() {
-        let mut rng = ChaCha20Rng::from_seed(KEY.into());
+        let mut rng = ChaCha20Rng::from_seed(KEY);
         let mut bytes = [0u8; 13];
 
         rng.fill_bytes(&mut bytes);
@@ -641,7 +641,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_wrapping_add() {
-        let mut rng = ChaCha20Rng::from_entropy();
+        let mut rng = ChaCha20Rng::from_seed(KEY);
         rng.set_stream(1337 as u128);
         // test counter wrapping-add
         rng.set_word_pos((2 as u64).pow(36) - 1);
