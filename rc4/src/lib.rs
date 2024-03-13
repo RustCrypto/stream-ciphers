@@ -15,12 +15,12 @@
 //! use rc4::{consts::*, KeyInit, StreamCipher};
 //! use rc4::{Key, Rc4};
 //!
-//! let mut rc4 = Rc4::new(b"Key".into());
+//! let mut rc4 = Rc4::<U3>::new(b"Key".into());
 //! let mut data = b"Plaintext".to_vec();
 //! rc4.apply_keystream(&mut data);
 //! assert_eq!(data, [0xBB, 0xF3, 0x16, 0xE8, 0xD9, 0x40, 0xAF, 0x0A, 0xD3]);
 //!
-//! let mut rc4 = Rc4::new(b"Wiki".into());
+//! let mut rc4 = Rc4::<U4>::new(b"Wiki".into());
 //! let mut data = b"pedia".to_vec();
 //! rc4.apply_keystream(&mut data);
 //! assert_eq!(data, [0x10, 0x21, 0xBF, 0x04, 0x20]);

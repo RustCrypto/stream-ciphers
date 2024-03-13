@@ -175,3 +175,23 @@ fn xsalsa20_encrypt_hello_world() {
 
     assert_eq!(buf, EXPECTED_XSALSA20_HELLO_WORLD);
 }
+
+#[test]
+fn salsa20_regression_2024_03() {
+    use salsa20::{
+        cipher::{typenum::U4, StreamCipherCore},
+        SalsaCore,
+    };
+
+    type Salsa20_8 = SalsaCore<U4>;
+
+    let mut x : [u8; 64] = hex!("8dcf83fa131d44aaa4241dc58a86d0851d5cb1815e05cc0b8da1f4a39b2ef6a5db2f2bec267136a57a78930da84da1e1984baeb30aca20642c4da8a4cb42fb4f");
+    let t2: [u32; 16] = [
+        2123785505, 879699904, 959334342, 2115744216, 477309436, 1153321713, 2181596049, 488300870,
+        1113186107, 4152514392, 2202170644, 2028366353, 2177718219, 2842602797, 3038675742,
+        1716559436,
+    ];
+    Salsa20_8::from_raw_state(t2).write_keystream_block((&mut x).into());
+
+    assert_eq!(x, hex!("66a3d4a32f86eb8eaefe5aa25cb5ff1aac91177dd03f114979d042f15658a505035b90d1559f1dd0c2ceaf3014129729fdd697cf94d16116588b271cd03d9b42"));
+}
