@@ -1,4 +1,6 @@
-use crate::{Block, StreamClosure, Unsigned, STATE_WORDS};
+use crate::{
+    backends::soft::Backend as SoftBackend,
+    Block, SalsaCore, StreamClosure, Unsigned, STATE_WORDS};
 use cipher::{
     consts::{U1, U64},
     BlockSizeUser, ParBlocksSizeUser, StreamBackend,
@@ -28,9 +30,17 @@ where
         _pd: PhantomData,
     };
 
-    f.call(&mut backend);
-
-    state[8] = _mm_cvtsi128_si32(backend.v[2]) as u32;
+    // The SSE2 backend only works for Salsa20/20. Any other variant will fallback the soft backend.
+    if R::USIZE == 10 {
+        f.call(&mut backend);
+        state[8] = _mm_cvtsi128_si32(backend.v[2]) as u32;
+    }
+    else {
+        f.call(&mut SoftBackend(&mut SalsaCore::<R> {
+            state: *state,
+            rounds: PhantomData,
+        }));
+    }
 }
 
 struct Backend<R: Unsigned> {
