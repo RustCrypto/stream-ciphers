@@ -1,6 +1,6 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use super::{quarter_round, Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS};
+use super::{Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS, STATE_WORDS};
 use cipher::{
     array::Array,
     consts::{U10, U16, U24, U32, U4, U6, U64},
@@ -135,4 +135,19 @@ pub fn hsalsa<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> 
     }
 
     output
+}
+
+/// The Salsa20 quarter round function
+// for simplicity this function is copied from the software backend
+pub(crate) fn quarter_round(
+    a: usize,
+    b: usize,
+    c: usize,
+    d: usize,
+    state: &mut [u32; STATE_WORDS],
+) {
+    state[b] ^= state[a].wrapping_add(state[d]).rotate_left(7);
+    state[c] ^= state[b].wrapping_add(state[a]).rotate_left(9);
+    state[d] ^= state[c].wrapping_add(state[b]).rotate_left(13);
+    state[a] ^= state[d].wrapping_add(state[c]).rotate_left(18);
 }
