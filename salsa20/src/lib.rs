@@ -76,6 +76,9 @@
 //!
 //! You SHOULD NOT enable several `force` flags simultaneously.
 //!
+//! Note: The SSE2 backend will run be used for the Salsa20/20 variant. Other variants
+//! will fallback to the software backend.
+//!
 //! [Salsa]: https://en.wikipedia.org/wiki/Salsa20
 
 #![no_std]
