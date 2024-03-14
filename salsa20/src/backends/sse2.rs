@@ -30,7 +30,7 @@ where
         _pd: PhantomData,
     };
 
-    // The SSE2 backend only works for Salsa20/20. Any other variant will fallback the soft backend.
+    // The SSE2 backend only works for Salsa20/20. Any other variant will fallback to the soft backend.
     if R::USIZE == 10 {
         f.call(&mut backend);
         state[8] = _mm_cvtsi128_si32(backend.v[2]) as u32;
