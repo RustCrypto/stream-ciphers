@@ -61,23 +61,8 @@
 //! assert_eq!(buffer, ciphertext);
 //! ```
 //!
-//! # Configuration Flags
-//!
-//! You can modify crate using the following configuration flags:
-//!
-//! - `salsa20_force_soft`: force software backend.
-//! - `salsa20_force_sse2`: force SSE2 backend on x86/x86_64 targets.
-//! Requires enabled SSE2 target feature. Ignored on non-x86(-64) targets.
-//!
-//! Salsa20 will run the SSE2 backend in x86(-64) targets unless `salsa20_force_soft` is set.
-//!
-//! The flags can be enabled using `RUSTFLAGS` environmental variable
-//! (e.g. `RUSTFLAGS="--cfg salsa20_force_sse2"`) or by modifying `.cargo/config`.
-//!
-//! You SHOULD NOT enable several `force` flags simultaneously.
-//!
-//! Note: The SSE2 backend is only used for the Salsa20/20 variant. Other variants
-//! will fallback to the software backend.
+//! Salsa20 will run the SSE2 backend in x86(-64) targets for Salsa20/20 variant.
+//! Other variants will fallback to the software backend.
 //!
 //! [Salsa]: https://en.wikipedia.org/wiki/Salsa20
 
@@ -222,17 +207,9 @@ impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
     }
     fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
         cfg_if! {
-            if #[cfg(salsa20_force_soft)] {
-                f.call(&mut backends::soft::Backend(self));
-            } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                cfg_if! {
-                    if #[cfg(not(salsa20_force_soft))] {
-                        unsafe {
-                            backends::sse2::inner::<R, _>(&mut self.state, f);
-                        }
-                    } else {
-                        f.call(&mut backends::soft::Backend(self));
-                    }
+            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                unsafe {
+                    backends::sse2::inner::<R, _>(&mut self.state, f);
                 }
             } else {
                 f.call(&mut backends::soft::Backend(self));
