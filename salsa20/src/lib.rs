@@ -221,12 +221,28 @@ impl<R: Unsigned> StreamCipherSeekCore for SalsaCore<R> {
 
     #[inline(always)]
     fn get_block_pos(&self) -> u64 {
-        self.state[8] as u64
+        cfg_if! {
+            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                (self.state[8] as u64) + ((self.state[5] as u64) << 32)
+            }
+            else {
+                (self.state[8] as u64) + ((self.state[9] as u64) << 32)
+            }
+        }
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: u64) {
-        self.state[8] = pos as u32;
+        cfg_if! {
+            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                self.state[8] = (pos & 0xffff_ffff) as u32;
+                self.state[5] = ((pos >> 32) & 0xffff_ffff) as u32;
+            }
+            else {
+                self.state[8] = (pos & 0xffff_ffff) as u32;
+                self.state[9] = ((pos >> 32) & 0xffff_ffff) as u32;
+            }
+        }
     }
 }
 
