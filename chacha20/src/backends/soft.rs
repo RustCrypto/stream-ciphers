@@ -1,7 +1,7 @@
 //! Portable implementation which does not rely on architecture-specific
 //! intrinsics.
 
-use crate::{Block, ChaChaCore, Unsigned, STATE_WORDS};
+use crate::{quarter_round, Block, ChaChaCore, Unsigned, STATE_WORDS};
 use cipher::{
     consts::{U1, U64},
     BlockSizeUser, ParBlocksSizeUser, StreamBackend,
@@ -51,23 +51,4 @@ fn run_rounds<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS] {
         *s1 = s1.wrapping_add(*s0);
     }
     res
-}
-
-/// The ChaCha20 quarter round function
-fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; STATE_WORDS]) {
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(16);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(12);
-
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(8);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(7);
 }

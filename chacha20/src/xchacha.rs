@@ -1,6 +1,6 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
-use super::{ChaChaCore, Key, Nonce, CONSTANTS, STATE_WORDS};
+use super::{quarter_round, ChaChaCore, Key, Nonce, CONSTANTS, STATE_WORDS};
 use cipher::{
     array::{typenum::Unsigned, Array},
     consts::{U10, U16, U24, U32, U4, U6, U64},
@@ -142,26 +142,6 @@ pub fn hchacha<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32>
     }
 
     output
-}
-
-/// The ChaCha20 quarter round function
-// for simplicity this function is copied from the software backend
-fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; STATE_WORDS]) {
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(16);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(12);
-
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(8);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(7);
 }
 
 #[cfg(test)]
