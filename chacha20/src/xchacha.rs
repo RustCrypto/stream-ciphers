@@ -1,14 +1,12 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
-use super::{ChaChaCore, Key, Nonce, CONSTANTS, STATE_WORDS};
+use super::{quarter_round, ChaChaCore, Key, Nonce, CONSTANTS, STATE_WORDS};
 use cipher::{
     consts::{U10, U16, U24, U32, U4, U6, U64},
     generic_array::{typenum::Unsigned, GenericArray},
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
     StreamCipherSeekCore, StreamClosure,
 };
-
-use crate::backends::soft::quarter_round;
 
 #[cfg(feature = "zeroize")]
 use cipher::zeroize::ZeroizeOnDrop;
