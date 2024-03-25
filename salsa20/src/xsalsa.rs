@@ -1,12 +1,14 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use super::{quarter_round, Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS};
+use super::{Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS};
 use cipher::{
     array::Array,
     consts::{U10, U16, U24, U32, U4, U6, U64},
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
     StreamCipherSeekCore, StreamClosure,
 };
+
+use crate::backends::soft::quarter_round;
 
 #[cfg(feature = "zeroize")]
 use cipher::zeroize::ZeroizeOnDrop;
