@@ -173,8 +173,6 @@ fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; STATE
 
 #[cfg(test)]
 mod hchacha20_tests {
-    use crate::R20;
-
     use super::*;
     use hex_literal::hex;
 
