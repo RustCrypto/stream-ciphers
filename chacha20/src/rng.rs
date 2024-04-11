@@ -9,7 +9,7 @@
 use core::fmt::Debug;
 
 use rand_core::{
-    block::{BlockRng, BlockRngCore},
+    block::{BlockRng, BlockRngCore, CryptoBlockRng},
     CryptoRng, Error, RngCore, SeedableRng,
 };
 
@@ -346,7 +346,16 @@ macro_rules! impl_chacha_rng {
             }
         }
 
+        impl CryptoBlockRng for $ChaChaXCore {}
         impl CryptoRng for $ChaChaXRng {}
+
+        #[cfg(feature = "zeroize")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
+        impl ZeroizeOnDrop for $ChaChaXCore {}
+
+        #[cfg(feature = "zeroize")]
+        #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
+        impl ZeroizeOnDrop for $ChaChaXRng {}
 
         // Custom Debug implementation that does not expose the internal state
         impl Debug for $ChaChaXRng {
