@@ -1,0 +1,38 @@
+// Tested for N=32; could be bugs in the loop bounds for other N
+// returns bytes written, like fwrite: N means no error, 0 means error in all fwrites
+size_t LongNumPrint( uint8_t *num, size_t N)
+{
+    // caller can print a name if it wants
+
+    const int revbufsize = 8192;      // 8kiB on the stack should be fine
+    alignas(32) char revbuf[revbufsize];
+
+    if (N<32) {
+        // TODO: maybe use a smaller revbuf for this case to avoid touching new stack pages
+        ASCIIrev32B(revbuf, num);   // the data we want is at the *end* of a 32-byte reverse
+        return fwrite(revbuf+32-N, 1, N, stdout);
+    }
+
+    size_t bytes_written = 0;
+    const uint8_t *inp = num+N;  // start with last 32 bytes of num[]
+    do {
+        size_t chunksize = (inp - num >= revbufsize) ? revbufsize : inp - num;
+
+        const uint8_t *inp_stop = inp - chunksize + 32;   // leave one full vector for the end
+        uint8_t *outp = revbuf;
+        while (inp > inp_stop) {        // may run 0 times
+            inp -= 32;
+            ASCIIrev32B(outp, inp);
+            outp += 32;
+        }
+        // reverse first (lowest address) 32 bytes of this chunk of num
+        // into last 32 bytes of this chunk of revbuf
+        // if chunksize%32 != 0 this will overlap, which is fine.
+        ASCIIrev32B(revbuf + chunksize - 32, inp_stop - 32);
+        bytes_written += fwrite(revbuf, 1, chunksize, stdout);
+        inp = inp_stop - 32;
+    } while ( inp > num );
+
+    return bytes_written;
+    // caller can putchar('\n') if it wants
+}

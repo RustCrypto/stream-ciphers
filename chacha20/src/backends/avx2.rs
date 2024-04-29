@@ -1,9 +1,24 @@
-use crate::{Block, StreamClosure, Unsigned, STATE_WORDS};
-use cipher::{
-    consts::{U4, U64},
-    BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamBackend,
-};
+use crate::Rounds;
 use core::marker::PhantomData;
+
+#[cfg(feature = "rng")]
+use crate::{ChaChaCore, Variant};
+
+#[cfg(feature = "cipher")]
+use crate::{
+    STATE_WORDS,
+    chacha::Block
+};
+
+#[cfg(feature = "cipher")]
+use cipher::{
+    StreamClosure,
+    consts::{U64, U4},
+    BlockSizeUser,
+    ParBlocksSizeUser,
+    ParBlocks,
+    StreamBackend
+};
 
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
@@ -17,9 +32,10 @@ const N: usize = PAR_BLOCKS / 2;
 
 #[inline]
 #[target_feature(enable = "avx2")]
+#[cfg(feature = "cipher")]
 pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
 where
-    R: Unsigned,
+    R: Rounds,
     F: StreamClosure<BlockSize = U64>,
 {
     let state_ptr = state.as_ptr() as *const __m128i;
@@ -46,21 +62,56 @@ where
     state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
 }
 
-struct Backend<R: Unsigned> {
+#[inline]
+#[target_feature(enable = "avx2")]
+#[cfg(feature = "rng")]
+pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
+where
+    R: Rounds,
+    V: Variant
+{
+    let state_ptr = core.state.as_ptr() as *const __m128i;
+    let v = [
+        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(0))),
+        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(1))),
+        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(2))),
+    ];
+    let mut c = _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(3)));
+    c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 0));
+    let mut ctr = [c; N];
+    for i in 0..N {
+        ctr[i] = c;
+        c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 2, 0, 0, 0, 2));
+    }
+    let mut backend = Backend::<R> {
+        v,
+        ctr,
+        _pd: PhantomData,
+    };
+
+    backend.rng_gen_par_ks_blocks(buffer);
+
+    core.state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
+}
+
+struct Backend<R: Rounds> {
     v: [__m256i; 3],
     ctr: [__m256i; N],
     _pd: PhantomData<R>,
 }
 
-impl<R: Unsigned> BlockSizeUser for Backend<R> {
+#[cfg(feature = "cipher")]
+impl<R: Rounds> BlockSizeUser for Backend<R> {
     type BlockSize = U64;
 }
 
-impl<R: Unsigned> ParBlocksSizeUser for Backend<R> {
+#[cfg(feature = "cipher")]
+impl<R: Rounds> ParBlocksSizeUser for Backend<R> {
     type ParBlocksSize = U4;
 }
 
-impl<R: Unsigned> StreamBackend for Backend<R> {
+#[cfg(feature = "cipher")]
+impl<R: Rounds> StreamBackend for Backend<R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         unsafe {
@@ -101,14 +152,39 @@ impl<R: Unsigned> StreamBackend for Backend<R> {
     }
 }
 
+#[cfg(feature = "rng")]
+impl<R: Rounds> Backend<R> {
+    #[inline(always)]
+    fn rng_gen_par_ks_blocks(&mut self, blocks: &mut [u32; 64]) {
+        unsafe {
+            let vs = rounds::<R>(&self.v, &self.ctr);
+
+            let pb = PAR_BLOCKS as i32;
+            for c in self.ctr.iter_mut() {
+                *c = _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, pb, 0, 0, 0, pb));
+            }
+
+            let mut block_ptr = blocks.as_mut_ptr() as *mut __m128i;
+            for v in vs {
+                let t: [__m128i; 8] = core::mem::transmute(v);
+                for i in 0..4 {
+                    _mm_storeu_si128(block_ptr.add(i), t[2 * i]);
+                    _mm_storeu_si128(block_ptr.add(4 + i), t[2 * i + 1]);
+                }
+                block_ptr = block_ptr.add(8);
+            }
+        }
+    }
+}
+
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn rounds<R: Unsigned>(v: &[__m256i; 3], c: &[__m256i; N]) -> [[__m256i; 4]; N] {
+unsafe fn rounds<R: Rounds>(v: &[__m256i; 3], c: &[__m256i; N]) -> [[__m256i; 4]; N] {
     let mut vs: [[__m256i; 4]; N] = [[_mm256_setzero_si256(); 4]; N];
     for i in 0..N {
         vs[i] = [v[0], v[1], v[2], c[i]];
     }
-    for _ in 0..R::USIZE {
+    for _ in 0..R::COUNT {
         double_quarter_round(&mut vs);
     }
 

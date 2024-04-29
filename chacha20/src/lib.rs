@@ -41,7 +41,8 @@
 //! - ⊕ xor
 //!
 //! # Example
-//! ```
+#![cfg_attr(feature = "cipher", doc = " ```")]
+#![cfg_attr(not(feature = "cipher"), doc = " ```ignore")]
 //! use chacha20::ChaCha20;
 //! // Import relevant traits
 //! use chacha20::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
@@ -109,26 +110,41 @@
 #![allow(clippy::needless_range_loop)]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
+#[cfg(feature = "cipher")]
 pub use cipher;
+#[cfg(feature = "cipher")]
+use cipher::{consts::U64, BlockSizeUser, StreamCipherCore, StreamCipherSeekCore};
 
 use cfg_if::cfg_if;
-use cipher::{
-    array::{typenum::Unsigned, Array},
-    consts::{U10, U12, U32, U4, U6, U64},
-    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
-    StreamCipherSeekCore, StreamClosure,
-};
 use core::marker::PhantomData;
 
 #[cfg(feature = "zeroize")]
-use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 mod backends;
+#[cfg(feature = "cipher")]
+mod chacha;
+#[cfg(feature = "legacy")]
 mod legacy;
+#[cfg(feature = "rng")]
+mod rng;
+#[cfg(feature = "xchacha")]
 mod xchacha;
 
-pub use legacy::{ChaCha20Legacy, ChaCha20LegacyCore, LegacyNonce};
-pub use xchacha::{hchacha, XChaCha12, XChaCha20, XChaCha8, XChaChaCore, XNonce};
+mod variants;
+use variants::Variant;
+
+#[cfg(feature = "cipher")]
+pub use chacha::{ChaCha12, ChaCha20, ChaCha8, Key, KeyIvInit};
+#[cfg(feature = "rng")]
+pub use rand_core;
+#[cfg(feature = "rng")]
+pub use rng::{ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng, ChaCha8Core, ChaCha8Rng};
+
+#[cfg(feature = "legacy")]
+pub use legacy::{ChaCha20Legacy, LegacyNonce};
+#[cfg(feature = "xchacha")]
+pub use xchacha::{hchacha, XChaCha12, XChaCha20, XChaCha8, XNonce};
 
 /// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
@@ -136,23 +152,35 @@ const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574]
 /// Number of 32-bit words in the ChaCha state
 const STATE_WORDS: usize = 16;
 
-/// Block type used by all ChaCha variants.
-type Block = Array<u8, U64>;
+/// Marker type for a number of ChaCha rounds to perform.
+pub trait Rounds: Copy {
+    /// The amount of rounds to perform
+    const COUNT: usize;
+}
 
-/// Key type used by all ChaCha variants.
-pub type Key = Array<u8, U32>;
+/// 8-rounds
+#[derive(Copy, Clone)]
+pub struct R8;
 
-/// Nonce type used by ChaCha variants.
-pub type Nonce = Array<u8, U12>;
+impl Rounds for R8 {
+    const COUNT: usize = 4;
+}
 
-/// ChaCha8 stream cipher (reduced-round variant of [`ChaCha20`] with 8 rounds)
-pub type ChaCha8 = StreamCipherCoreWrapper<ChaChaCore<U4>>;
+/// 12-rounds
+#[derive(Copy, Clone)]
+pub struct R12;
 
-/// ChaCha12 stream cipher (reduced-round variant of [`ChaCha20`] with 12 rounds)
-pub type ChaCha12 = StreamCipherCoreWrapper<ChaChaCore<U6>>;
+impl Rounds for R12 {
+    const COUNT: usize = 6;
+}
 
-/// ChaCha20 stream cipher (RFC 8439 version with 96-bit nonce)
-pub type ChaCha20 = StreamCipherCoreWrapper<ChaChaCore<U10>>;
+/// 20-rounds
+#[derive(Copy, Clone)]
+pub struct R20;
+
+impl Rounds for R20 {
+    const COUNT: usize = 10;
+}
 
 cfg_if! {
     if #[cfg(chacha20_force_soft)] {
@@ -181,7 +209,8 @@ cfg_if! {
 }
 
 /// The ChaCha core function.
-pub struct ChaChaCore<R: Unsigned> {
+#[cfg_attr(feature = "rng", derive(Clone))]
+pub struct ChaChaCore<R: Rounds, V: Variant> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
     /// CPU target feature tokens
@@ -189,32 +218,23 @@ pub struct ChaChaCore<R: Unsigned> {
     tokens: Tokens,
     /// Number of rounds to perform
     rounds: PhantomData<R>,
+    /// the variant of the implementation
+    variant: PhantomData<V>,
 }
 
-impl<R: Unsigned> KeySizeUser for ChaChaCore<R> {
-    type KeySize = U32;
-}
-
-impl<R: Unsigned> IvSizeUser for ChaChaCore<R> {
-    type IvSize = U12;
-}
-
-impl<R: Unsigned> BlockSizeUser for ChaChaCore<R> {
-    type BlockSize = U64;
-}
-
-impl<R: Unsigned> KeyIvInit for ChaChaCore<R> {
-    #[inline]
-    #[allow(clippy::let_unit_value)]
-    fn new(key: &Key, iv: &Nonce) -> Self {
+impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
+    /// Constructs a ChaChaCore with the specified key, iv, and amount of rounds.
+    /// You must ensure that the iv is of the correct size when using this method
+    /// directly.
+    fn new(key: &[u8; 32], iv: &[u8]) -> Self {
         let mut state = [0u32; STATE_WORDS];
         state[0..4].copy_from_slice(&CONSTANTS);
         let key_chunks = key.chunks_exact(4);
         for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
             *val = u32::from_le_bytes(chunk.try_into().unwrap());
         }
-        let iv_chunks = iv.chunks_exact(4);
-        for (val, chunk) in state[13..16].iter_mut().zip(iv_chunks) {
+        let iv_chunks = iv.as_ref().chunks_exact(4);
+        for (val, chunk) in state[V::NONCE_INDEX..16].iter_mut().zip(iv_chunks) {
             *val = u32::from_le_bytes(chunk.try_into().unwrap());
         }
 
@@ -235,23 +255,39 @@ impl<R: Unsigned> KeyIvInit for ChaChaCore<R> {
                 let tokens = ();
             }
         }
-
         Self {
             state,
             tokens,
             rounds: PhantomData,
+            variant: PhantomData,
         }
     }
 }
 
-impl<R: Unsigned> StreamCipherCore for ChaChaCore<R> {
+#[cfg(feature = "cipher")]
+impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
+    type Counter = u32;
+
+    #[inline(always)]
+    fn get_block_pos(&self) -> Self::Counter {
+        self.state[12]
+    }
+
+    #[inline(always)]
+    fn set_block_pos(&mut self, pos: Self::Counter) {
+        self.state[12] = pos
+    }
+}
+
+#[cfg(feature = "cipher")]
+impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
     #[inline(always)]
     fn remaining_blocks(&self) -> Option<usize> {
         let rem = u32::MAX - self.get_block_pos();
         rem.try_into().ok()
     }
 
-    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(&mut self, f: impl cipher::StreamClosure<BlockSize = Self::BlockSize>) {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
                 f.call(&mut backends::soft::Backend(self));
@@ -291,23 +327,14 @@ impl<R: Unsigned> StreamCipherCore for ChaChaCore<R> {
     }
 }
 
-impl<R: Unsigned> StreamCipherSeekCore for ChaChaCore<R> {
-    type Counter = u32;
-
-    #[inline(always)]
-    fn get_block_pos(&self) -> u32 {
-        self.state[12]
-    }
-
-    #[inline(always)]
-    fn set_block_pos(&mut self, pos: u32) {
-        self.state[12] = pos;
-    }
+#[cfg(feature = "cipher")]
+impl<R: Rounds, V: Variant> BlockSizeUser for ChaChaCore<R, V> {
+    type BlockSize = U64;
 }
 
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
-impl<R: Unsigned> Drop for ChaChaCore<R> {
+impl<R: Rounds, V: Variant> Drop for ChaChaCore<R, V> {
     fn drop(&mut self) {
         self.state.zeroize();
     }
@@ -315,4 +342,4 @@ impl<R: Unsigned> Drop for ChaChaCore<R> {
 
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
-impl<R: Unsigned> ZeroizeOnDrop for ChaChaCore<R> {}
+impl<R: Rounds, V: Variant> ZeroizeOnDrop for ChaChaCore<R, V> {}
