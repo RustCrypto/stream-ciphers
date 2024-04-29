@@ -204,6 +204,7 @@ checksum = "e86697c916019a8588c99b5fac3cead74ec0b4b819707a682fd4d23fa0ce1ba1"
 name = "salsa20"
 version = "0.11.0-pre"
 dependencies = [
+ "cfg-if",
  "cipher",
  "hex-literal",
 ]
