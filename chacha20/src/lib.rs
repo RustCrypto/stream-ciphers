@@ -343,3 +343,31 @@ impl<R: Rounds, V: Variant> Drop for ChaChaCore<R, V> {
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<R: Rounds, V: Variant> ZeroizeOnDrop for ChaChaCore<R, V> {}
+
+/// The ChaCha20 quarter round function
+///
+/// We located this function in the root of the crate as we want it to be available
+/// for the soft backend and for xchacha.
+pub(crate) fn quarter_round(
+    a: usize,
+    b: usize,
+    c: usize,
+    d: usize,
+    state: &mut [u32; STATE_WORDS],
+) {
+    state[a] = state[a].wrapping_add(state[b]);
+    state[d] ^= state[a];
+    state[d] = state[d].rotate_left(16);
+
+    state[c] = state[c].wrapping_add(state[d]);
+    state[b] ^= state[c];
+    state[b] = state[b].rotate_left(12);
+
+    state[a] = state[a].wrapping_add(state[b]);
+    state[d] ^= state[a];
+    state[d] = state[d].rotate_left(8);
+
+    state[c] = state[c].wrapping_add(state[d]);
+    state[b] ^= state[c];
+    state[b] = state[b].rotate_left(7);
+}
