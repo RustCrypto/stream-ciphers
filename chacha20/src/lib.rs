@@ -348,6 +348,7 @@ impl<R: Rounds, V: Variant> ZeroizeOnDrop for ChaChaCore<R, V> {}
 ///
 /// We located this function in the root of the crate as we want it to be available
 /// for the soft backend and for xchacha.
+#[allow(dead_code)]
 pub(crate) fn quarter_round(
     a: usize,
     b: usize,
