@@ -7,7 +7,9 @@ use cipher::{
     StreamCipherSeekCore, StreamClosure,
 };
 
-use crate::{variants::Ietf, ChaChaCore, Rounds, CONSTANTS, R12, R20, R8, STATE_WORDS};
+use crate::{
+    quarter_round, variants::Ietf, ChaChaCore, Rounds, CONSTANTS, R12, R20, R8, STATE_WORDS,
+};
 
 #[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
@@ -149,26 +151,6 @@ pub fn hchacha<R: Rounds>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
     }
 
     output
-}
-
-/// The ChaCha20 quarter round function
-// for simplicity this function is copied from the software backend
-fn quarter_round(a: usize, b: usize, c: usize, d: usize, state: &mut [u32; STATE_WORDS]) {
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(16);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(12);
-
-    state[a] = state[a].wrapping_add(state[b]);
-    state[d] ^= state[a];
-    state[d] = state[d].rotate_left(8);
-
-    state[c] = state[c].wrapping_add(state[d]);
-    state[b] ^= state[c];
-    state[b] = state[b].rotate_left(7);
 }
 
 #[cfg(test)]
