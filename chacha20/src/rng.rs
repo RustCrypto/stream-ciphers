@@ -32,20 +32,16 @@ const BLOCK_WORDS: u8 = 16;
 
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Seed([u8; 32]);
 
-impl Default for Seed {
-    fn default() -> Self {
-        Self([0u8; 32])
-    }
-}
 impl AsRef<[u8; 32]> for Seed {
     fn as_ref(&self) -> &[u8; 32] {
         &self.0
     }
 }
+
 impl AsMut<[u8]> for Seed {
     fn as_mut(&mut self) -> &mut [u8] {
         self.0.as_mut()
@@ -158,7 +154,7 @@ impl From<[u8; 4]> for BlockPos {
 
 /// The results buffer that zeroizes on drop when the `zeroize` feature is enabled.
 #[derive(Clone)]
-pub struct BlockRngResults([u32; BUFFER_SIZE as usize]);
+pub struct BlockRngResults([u32; BUFFER_SIZE]);
 
 impl AsRef<[u32]> for BlockRngResults {
     fn as_ref(&self) -> &[u32] {
@@ -174,7 +170,7 @@ impl AsMut<[u32]> for BlockRngResults {
 
 impl Default for BlockRngResults {
     fn default() -> Self {
-        Self([0u32; BUFFER_SIZE as usize])
+        Self([0u32; BUFFER_SIZE])
     }
 }
 
@@ -593,9 +589,6 @@ pub(crate) mod tests {
 
     use super::*;
 
-    #[cfg(feature = "serde1")]
-    use serde_json;
-
     const KEY: [u8; 32] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
         26, 27, 28, 29, 30, 31, 32,
@@ -605,7 +598,7 @@ pub(crate) mod tests {
     #[cfg(feature = "zeroize")]
     fn test_zeroize_inputs_internal() {
         let ptr = {
-            let initial_seed: Seed = KEY.clone().into();
+            let initial_seed: Seed = KEY.into();
             initial_seed.0.as_ptr()
         };
         let memory_inspection = unsafe { core::slice::from_raw_parts(ptr, 32) };
@@ -633,9 +626,9 @@ pub(crate) mod tests {
     #[test]
     fn test_wrapping_add() {
         let mut rng = ChaCha20Rng::from_seed(KEY);
-        rng.set_stream(1337 as u128);
+        rng.set_stream(1337);
         // test counter wrapping-add
-        rng.set_word_pos((2 as u64).pow(36) - 1);
+        rng.set_word_pos((2u64).pow(36) - 1);
         let mut output = [3u8; 128];
         rng.fill_bytes(&mut output);
 
@@ -726,7 +719,7 @@ pub(crate) mod tests {
     #[test]
     fn test_chacha_serde_format_stability() {
         let j = r#"{"seed":[4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8],"stream":27182818284,"word_pos":3141592653}"#;
-        let r: ChaChaRng = serde_json::from_str(&j).unwrap();
+        let r: ChaChaRng = serde_json::from_str(j).unwrap();
         let j1 = serde_json::to_string(&r).unwrap();
         assert_eq!(j, j1);
     }
@@ -971,7 +964,7 @@ pub(crate) mod tests {
         use super::{BLOCK_WORDS, BUF_BLOCKS};
         let mut rng = ChaChaRng::from_seed(Default::default());
         // refilling the buffer in set_word_pos will wrap the block counter to 0
-        let last_block = (2 as u64).pow(36) - u64::from(BUF_BLOCKS * BLOCK_WORDS);
+        let last_block = (2u64).pow(36) - u64::from(BUF_BLOCKS * BLOCK_WORDS);
         rng.set_word_pos(last_block);
         assert_eq!(rng.get_word_pos(), last_block);
     }
