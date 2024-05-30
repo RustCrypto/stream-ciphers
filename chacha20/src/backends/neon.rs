@@ -18,13 +18,14 @@ use cipher::{
     BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamBackend, StreamClosure,
 };
 
-struct Backend<R: Rounds> {
+struct Backend<R: Rounds, V: Variant> {
     state: [uint32x4_t; 4],
     ctrs: [uint32x4_t; 4],
     _pd: PhantomData<R>,
+    _variant: PhantomData<V>
 }
 
-impl<R: Rounds> Backend<R> {
+impl<R: Rounds, V: Variant> Backend<R, V> {
     #[inline]
     unsafe fn new(state: &mut [u32; STATE_WORDS]) -> Self {
         let state = [
@@ -39,10 +40,11 @@ impl<R: Rounds> Backend<R> {
             vld1q_u32([3, 0, 0, 0].as_ptr()),
             vld1q_u32([4, 0, 0, 0].as_ptr()),
         ];
-        Backend::<R> {
+        Backend::<R, V> {
             state,
             ctrs,
             _pd: PhantomData,
+            _variant: PhantomData,
         }
     }
 }
@@ -50,16 +52,17 @@ impl<R: Rounds> Backend<R> {
 #[inline]
 #[cfg(feature = "cipher")]
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+pub(crate) unsafe fn inner<R, F, V>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
     F: StreamClosure<BlockSize = U64>,
+    V: Variant
 {
-    let mut backend = Backend::<R>::new(state);
+    let mut backend = Backend::<R, V>::new(state);
 
     f.call(&mut backend);
 
-    if V::IS_32_BIT_COUNTER {
+    if V::USES_U32_COUNTER {
         // handle 32-bit counter
         vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
     } else {
@@ -81,7 +84,7 @@ where
     R: Rounds,
     V: Variant,
 {
-    let mut backend = Backend::<R>::new(&mut core.state);
+    let mut backend = Backend::<R, V>::new(&mut core.state);
 
     backend.write_par_ks_blocks(buffer);
 
@@ -89,11 +92,11 @@ where
 }
 
 #[cfg(feature = "cipher")]
-impl<R: Rounds> BlockSizeUser for Backend<R> {
+impl<R: Rounds, V: Variant> BlockSizeUser for Backend<R, V> {
     type BlockSize = U64;
 }
 #[cfg(feature = "cipher")]
-impl<R: Rounds> ParBlocksSizeUser for Backend<R> {
+impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<R, V> {
     type ParBlocksSize = U4;
 }
 
@@ -114,7 +117,7 @@ macro_rules! add_assign_vec {
 }
 
 #[cfg(feature = "cipher")]
-impl<R: Rounds> StreamBackend for Backend<R> {
+impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         let state3 = self.state[3];
@@ -122,7 +125,7 @@ impl<R: Rounds> StreamBackend for Backend<R> {
         self.gen_par_ks_blocks(&mut par);
         *block = par[0];
         unsafe {
-            if V::IS_32_BIT_COUNTER {
+            if V::USES_U32_COUNTER {
                 self.state[3] = add64!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
             } else {
                 self.state[3] = vreinterpretq_u32_u64(vaddq_u64(
@@ -178,7 +181,14 @@ impl<R: Rounds> StreamBackend for Backend<R> {
                     );
                 }
             }
-            self.state[3] = add64!(self.state[3], self.ctrs[3]);
+            if V::USES_U32_COUNTER {
+                self.state[3] = add64!(self.state[3], self.ctrs[3]);
+            } else {
+                self.state[3] = vreinterpretq_u32_u64(vaddq_u64(
+                    vreinterpretq_u64_u32(self.state[3]),
+                    vld1q_u64([4, 0].as_ptr()),
+                ));
+            }
         }
     }
 }
@@ -204,7 +214,7 @@ macro_rules! extract {
     };
 }
 
-impl<R: Rounds> Backend<R> {
+impl<R: Rounds, V: Variant> Backend<R, V> {
     #[inline(always)]
     /// Generates `num_blocks` blocks and blindly writes them to `dest_ptr`
     ///

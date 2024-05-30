@@ -319,7 +319,7 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                 }
             } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
-                    backends::neon::inner::<R, _>(&mut self.state, f);
+                    backends::neon::inner::<R, _, V>(&mut self.state, f);
                 }
             } else {
                 f.call(&mut backends::soft::Backend(self));

@@ -264,7 +264,20 @@ mod legacy {
             og_cipher.apply_keystream(&mut expected);
             let mut result = TEST.clone();
             cipher.apply_keystream(&mut result);
-            assert_eq!(expected, result);
+            if expected != result {
+                let mut index: usize = 0;
+                let mut expected_u8: u8 = 0;
+                let mut found_u8: u8 = 0;
+                for (i, (e, r)) in expected.iter().zip(result.iter()).enumerate() {
+                    if e != r {
+                        index = i;
+                        expected_u8 = *e;
+                        found_u8 = *r;
+                        break;
+                    }
+                };
+                panic!("Index {} did not match;\n iteration: {}\n expected: {} != {}", index, i, expected_u8, found_u8);
+            }
             let expected_block_pos = block_pos + i * TEST_BLOCKS as u64;
             assert!(expected_block_pos == cipher.get_core().get_block_pos(), 
                 "Block pos did not increment as expected; Expected block pos: {}\n actual block_pos: {}\n iteration: {}",
