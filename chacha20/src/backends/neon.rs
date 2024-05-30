@@ -3,11 +3,11 @@
 //! Adapted from the Crypto++ `chacha_simd` implementation by Jack Lloyd and
 //! Jeffrey Walton (public domain).
 
-use crate::{Rounds, STATE_WORDS};
+use crate::{Rounds, Variant, STATE_WORDS};
 use core::{arch::aarch64::*, marker::PhantomData};
 
 #[cfg(feature = "rand_core")]
-use crate::{ChaChaCore, Variant};
+use crate::ChaChaCore;
 
 #[cfg(feature = "cipher")]
 use crate::chacha::Block;
@@ -59,7 +59,16 @@ where
 
     f.call(&mut backend);
 
-    vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
+    if V::IS_32_BIT_COUNTER {
+        // handle 32-bit counter
+        vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
+    } else {
+        // handle 64-bit counter
+        vst1q_u64(
+            state.as_mut_ptr().offset(12) as *mut u64,
+            vreinterpretq_u64_u32(backend.state[3]),
+        );
+    }
 }
 
 #[inline]
@@ -113,7 +122,14 @@ impl<R: Rounds> StreamBackend for Backend<R> {
         self.gen_par_ks_blocks(&mut par);
         *block = par[0];
         unsafe {
-            self.state[3] = add64!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
+            if V::IS_32_BIT_COUNTER {
+                self.state[3] = add64!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
+            } else {
+                self.state[3] = vreinterpretq_u32_u64(vaddq_u64(
+                    vreinterpretq_u64_u32(state3),
+                    vld1q_u64([1, 0].as_ptr()),
+                ));
+            }
         }
     }
 

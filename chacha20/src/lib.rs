@@ -267,16 +267,17 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
 
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
-    type Counter = u32;
+    type Counter = V::Counter;
 
     #[inline(always)]
     fn get_block_pos(&self) -> Self::Counter {
-        self.state[12]
+        V::get_block_pos(&self.state[12..V::NONCE_INDEX])
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        self.state[12] = pos
+        let block_pos_words = V::set_block_pos_helper(pos);
+        self.state[12..V::NONCE_INDEX].copy_from_slice(block_pos_words.as_ref())
     }
 }
 
@@ -284,8 +285,7 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
     #[inline(always)]
     fn remaining_blocks(&self) -> Option<usize> {
-        let rem = u32::MAX - self.get_block_pos();
-        rem.try_into().ok()
+        V::remaining_blocks(self.get_block_pos())
     }
 
     fn process_with_backend(&mut self, f: impl cipher::StreamClosure<BlockSize = Self::BlockSize>) {
@@ -296,21 +296,21 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                 cfg_if! {
                     if #[cfg(chacha20_force_avx2)] {
                         unsafe {
-                            backends::avx2::inner::<R, _>(&mut self.state, f);
+                            backends::avx2::inner::<R, _, V>(&mut self.state, f);
                         }
                     } else if #[cfg(chacha20_force_sse2)] {
                         unsafe {
-                            backends::sse2::inner::<R, _>(&mut self.state, f);
+                            backends::sse2::inner::<R, _, V>(&mut self.state, f);
                         }
                     } else {
                         let (avx2_token, sse2_token) = self.tokens;
                         if avx2_token.get() {
                             unsafe {
-                                backends::avx2::inner::<R, _>(&mut self.state, f);
+                                backends::avx2::inner::<R, _, V>(&mut self.state, f);
                             }
                         } else if sse2_token.get() {
                             unsafe {
-                                backends::sse2::inner::<R, _>(&mut self.state, f);
+                                backends::sse2::inner::<R, _, V>(&mut self.state, f);
                             }
                         } else {
                             f.call(&mut backends::soft::Backend(self));

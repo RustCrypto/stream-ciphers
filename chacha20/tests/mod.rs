@@ -233,4 +233,46 @@ mod legacy {
             }
         }
     }
+
+    /// Tests the 64-bit counter
+    #[test]
+    fn legacy_64_bit_counter() {
+        use cipher::StreamCipherSeekCore;
+        use chacha20_0_7::{ChaCha20Legacy as OgLegacy, LegacyNonce as OgLegacyNonce, cipher::{NewCipher, StreamCipher, StreamCipherSeek}};
+        let mut cipher = ChaCha20Legacy::new(&KEY_LONG.into(), &LegacyNonce::from(IV_LONG));
+        let mut og_cipher = OgLegacy::new(&KEY_LONG.into(), &OgLegacyNonce::from(IV_LONG));
+        
+        const TEST_BLOCKS: usize = 5;
+        const TEST: [u8; 64 * TEST_BLOCKS] = [0u8; 64 * TEST_BLOCKS];
+        let mut expected = TEST.clone();
+        og_cipher.apply_keystream(&mut expected);
+        let mut result = TEST.clone();
+        cipher.apply_keystream(&mut result);
+        assert_eq!(expected, result);
+
+        const SEEK_POS: u64 = (u32::MAX - 10) as u64 * 64;
+        cipher.seek(SEEK_POS);
+        og_cipher.seek(SEEK_POS);
+
+        let pos: u64 = cipher.current_pos();
+        assert_eq!(pos, og_cipher.current_pos());
+        let block_pos = cipher.get_core().get_block_pos();
+        assert!(block_pos < u32::MAX as u64);
+        // Apply keystream blocks until some point after the u32 boundary
+        for i in 1..20 {
+            let mut expected = TEST.clone();
+            og_cipher.apply_keystream(&mut expected);
+            let mut result = TEST.clone();
+            cipher.apply_keystream(&mut result);
+            assert_eq!(expected, result);
+            let expected_block_pos = block_pos + i * TEST_BLOCKS as u64;
+            assert!(expected_block_pos == cipher.get_core().get_block_pos(), 
+                "Block pos did not increment as expected; Expected block pos: {}\n actual block_pos: {}\n iteration: {}",
+                expected_block_pos,
+                cipher.get_core().get_block_pos(),
+                i
+            );
+        }
+        assert!(cipher.get_core().get_block_pos() > u32::MAX as u64);
+    }
 }
