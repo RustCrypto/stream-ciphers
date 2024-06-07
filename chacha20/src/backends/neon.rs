@@ -115,19 +115,6 @@ macro_rules! add_assign_vec {
     };
 }
 
-macro_rules! add_counter {
-    // macro definition for when V::USES_U32_COUNTER is true
-    ($a:expr, $b:literal, $uses_u32_counter:expr) => {
-        match $uses_u32_counter {
-            true => add64!($a, vld1q_u32([$b, 0, 0, 0].as_ptr())),
-            false => vreinterpretq_u32_u64(vaddq_u64(
-                vreinterpretq_u64_u32($a),
-                vld1q_u64([$b, 0].as_ptr()),
-            )),
-        }
-    };
-}
-
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
     #[inline(always)]
@@ -341,33 +328,5 @@ unsafe fn cols_to_rows(blocks: &mut [[uint32x4_t; 4]; 4]) {
         extract!(block[1], 3);
         extract!(block[2], 2);
         extract!(block[3], 1);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn reg_to_arr(reg: uint32x4_t) -> [u32; 4] {
-        unsafe {
-            let result: [u32; 4] = core::mem::transmute_copy(&reg);
-            result
-        }
-    }
-
-    #[test]
-    fn counter() {
-        unsafe {
-            let start: [u32; 4] = [0, 0, 0, 0];
-            let mut reg = vld1q_u32(start.as_ptr());
-            let one = vld1q_u32([1, 0, 0, 0].as_ptr());
-            let result_add64 = add64!(reg, one);
-            assert_eq!(reg_to_arr(result_add64), [1, 0, 0, 0]);
-
-            let max: [u32; 4] = [u32::MAX, 0, 0, 0];
-            reg = vld1q_u32(max.as_ptr());
-            let result_add64 = add64!(reg, one);
-            assert_eq!(reg_to_arr(result_add64), [0, 1, 0, 0]);
-        }
     }
 }
