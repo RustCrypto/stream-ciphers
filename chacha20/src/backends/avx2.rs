@@ -27,7 +27,7 @@ use core::arch::x86_64::*;
 
 /// Number of blocks processed in parallel.
 const PAR_BLOCKS: usize = 4;
-/// Number of `__m256i` to store parallel blocks.
+/// Number of `__m256i`-based blocks to store parallel blocks.
 const N: usize = PAR_BLOCKS / 2;
 
 #[inline]
