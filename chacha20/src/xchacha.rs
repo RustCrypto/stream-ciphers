@@ -159,7 +159,7 @@ mod hchacha20_tests {
     use hex_literal::hex;
 
     /// Test vectors from:
-    /// https://tools.ietf.org/id/draft-arciszewski-xchacha-03.html#rfc.section.2.2.1
+    /// https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha#section-2.2.1
     #[test]
     fn test_vector() {
         const KEY: [u8; 32] = hex!(
