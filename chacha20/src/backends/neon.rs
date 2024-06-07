@@ -22,7 +22,7 @@ struct Backend<R: Rounds, V: Variant> {
     state: [uint32x4_t; 4],
     ctrs: [uint32x4_t; 4],
     _pd: PhantomData<R>,
-    _variant: PhantomData<V>
+    _variant: PhantomData<V>,
 }
 
 impl<R: Rounds, V: Variant> Backend<R, V> {
@@ -56,7 +56,7 @@ pub(crate) unsafe fn inner<R, F, V>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
     F: StreamClosure<BlockSize = U64>,
-    V: Variant
+    V: Variant,
 {
     let mut backend = Backend::<R, V>::new(state);
 
@@ -66,7 +66,6 @@ where
         // handle 32-bit counter
         vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
     } else {
-        // handle 64-bit counter
         vst1q_u64(
             state.as_mut_ptr().offset(12) as *mut u64,
             vreinterpretq_u64_u32(backend.state[3]),
@@ -116,6 +115,19 @@ macro_rules! add_assign_vec {
     };
 }
 
+macro_rules! add_counter {
+    // macro definition for when V::USES_U32_COUNTER is true
+    ($a:expr, $b:literal, $uses_u32_counter:expr) => {
+        match $uses_u32_counter {
+            true => add64!($a, vld1q_u32([$b, 0, 0, 0].as_ptr())),
+            false => vreinterpretq_u32_u64(vaddq_u64(
+                vreinterpretq_u64_u32($a),
+                vld1q_u64([$b, 0].as_ptr()),
+            )),
+        }
+    };
+}
+
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
     #[inline(always)]
@@ -125,14 +137,7 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
         self.gen_par_ks_blocks(&mut par);
         *block = par[0];
         unsafe {
-            if V::USES_U32_COUNTER {
-                self.state[3] = add64!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
-            } else {
-                self.state[3] = vreinterpretq_u32_u64(vaddq_u64(
-                    vreinterpretq_u64_u32(state3),
-                    vld1q_u64([1, 0].as_ptr()),
-                ));
-            }
+            self.state[3] = add64!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
         }
     }
 
@@ -165,30 +170,40 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
                 double_quarter_round(&mut blocks);
             }
 
-            for block in 0..4 {
-                // add state to block
-                for state_row in 0..4 {
+            // write first block, with no special counter requirements
+            for state_row in 0..4 {
+                // add state
+                add_assign_vec!(blocks[0][state_row], self.state[state_row]);
+                // write
+                vst1q_u8(
+                    dest[0]
+                        .as_mut_ptr()
+                        .offset((state_row as isize) << 4 as isize),
+                    vreinterpretq_u8_u32(blocks[0][state_row as usize]),
+                );
+            }
+
+            // write blocks with adjusted counters
+            for block in 1..4 {
+                // add state with adjusted counter
+                for state_row in 0..3 {
                     add_assign_vec!(blocks[block][state_row], self.state[state_row]);
                 }
-                if block > 0 {
-                    blocks[block][3] = add64!(blocks[block][3], self.ctrs[block - 1]);
-                }
-                // write blocks to dest
+                add_assign_vec!(
+                    blocks[block][3],
+                    add64!(self.state[3], self.ctrs[block - 1])
+                );
+
+                // write
                 for state_row in 0..4 {
                     vst1q_u8(
-                        dest[block].as_mut_ptr().offset(state_row << 4),
+                        dest[block].as_mut_ptr().offset(state_row << 4 as usize),
                         vreinterpretq_u8_u32(blocks[block][state_row as usize]),
                     );
                 }
             }
-            if V::USES_U32_COUNTER {
-                self.state[3] = add64!(self.state[3], self.ctrs[3]);
-            } else {
-                self.state[3] = vreinterpretq_u32_u64(vaddq_u64(
-                    vreinterpretq_u64_u32(self.state[3]),
-                    vld1q_u64([4, 0].as_ptr()),
-                ));
-            }
+            //self.state[3] = vaddq_u32(self.state[3], self.ctrs[3]);
+            self.state[3] = add64!(self.state[3], self.ctrs[3]);
         }
     }
 }
@@ -326,5 +341,33 @@ unsafe fn cols_to_rows(blocks: &mut [[uint32x4_t; 4]; 4]) {
         extract!(block[1], 3);
         extract!(block[2], 2);
         extract!(block[3], 1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn reg_to_arr(reg: uint32x4_t) -> [u32; 4] {
+        unsafe {
+            let result: [u32; 4] = core::mem::transmute_copy(&reg);
+            result
+        }
+    }
+
+    #[test]
+    fn counter() {
+        unsafe {
+            let start: [u32; 4] = [0, 0, 0, 0];
+            let mut reg = vld1q_u32(start.as_ptr());
+            let one = vld1q_u32([1, 0, 0, 0].as_ptr());
+            let result_add64 = add64!(reg, one);
+            assert_eq!(reg_to_arr(result_add64), [1, 0, 0, 0]);
+
+            let max: [u32; 4] = [u32::MAX, 0, 0, 0];
+            reg = vld1q_u32(max.as_ptr());
+            let result_add64 = add64!(reg, one);
+            assert_eq!(reg_to_arr(result_add64), [0, 1, 0, 0]);
+        }
     }
 }

@@ -239,29 +239,37 @@ mod legacy {
     fn legacy_64_bit_counter() {
         use cipher::StreamCipherSeekCore;
         use chacha20_0_7::{ChaCha20Legacy as OgLegacy, LegacyNonce as OgLegacyNonce, cipher::{NewCipher, StreamCipher, StreamCipherSeek}};
-        let mut cipher = ChaCha20Legacy::new(&KEY_LONG.into(), &LegacyNonce::from(IV_LONG));
-        let mut og_cipher = OgLegacy::new(&KEY_LONG.into(), &OgLegacyNonce::from(IV_LONG));
+        use rand_chacha::{ChaCha20Rng as OgRng, rand_core::{RngCore, SeedableRng}};
+        let mut cipher = ChaCha20Legacy::new(&[0u8; 32].into(), &LegacyNonce::from([0u8; 8]));
+        let mut og_cipher = OgLegacy::new(&[0u8; 32].into(), &OgLegacyNonce::from([0u8; 8]));
+        //let mut rng = ChaCha20Rng
+        let mut rng = OgRng::from_seed([0u8; 32]);
         
-        const TEST_BLOCKS: usize = 5;
+        const TEST_BLOCKS: usize = 4;
         const TEST: [u8; 64 * TEST_BLOCKS] = [0u8; 64 * TEST_BLOCKS];
         let mut expected = TEST.clone();
-        og_cipher.apply_keystream(&mut expected);
+        rng.fill_bytes(&mut expected);
+        //og_cipher.apply_keystream(&mut expected);
         let mut result = TEST.clone();
         cipher.apply_keystream(&mut result);
         assert_eq!(expected, result);
 
         const SEEK_POS: u64 = (u32::MAX - 10) as u64 * 64;
         cipher.seek(SEEK_POS);
+        rng.set_word_pos(SEEK_POS as u128 / 4);
         og_cipher.seek(SEEK_POS);
 
         let pos: u64 = cipher.current_pos();
-        assert_eq!(pos, og_cipher.current_pos());
+        //assert_eq!(pos, og_cipher.current_pos());
+        assert_eq!(pos, rng.get_word_pos() as u64 * 4);
         let block_pos = cipher.get_core().get_block_pos();
         assert!(block_pos < u32::MAX as u64);
         // Apply keystream blocks until some point after the u32 boundary
-        for i in 1..20 {
+        for i in 1..80 {
+            let starting_block_pos = cipher.get_core().get_block_pos() as i64 - u32::MAX as i64;
             let mut expected = TEST.clone();
-            og_cipher.apply_keystream(&mut expected);
+            rng.fill_bytes(&mut expected);
+            //og_cipher.apply_keystream(&mut expected);
             let mut result = TEST.clone();
             cipher.apply_keystream(&mut result);
             if expected != result {
@@ -276,7 +284,7 @@ mod legacy {
                         break;
                     }
                 };
-                panic!("Index {} did not match;\n iteration: {}\n expected: {} != {}", index, i, expected_u8, found_u8);
+                panic!("Index {} did not match;\n iteration: {}\n expected: {} != {}\nstart block pos - u32::MAX: {}", index, i, expected_u8, found_u8, starting_block_pos);
             }
             let expected_block_pos = block_pos + i * TEST_BLOCKS as u64;
             assert!(expected_block_pos == cipher.get_core().get_block_pos(), 
@@ -286,6 +294,8 @@ mod legacy {
                 i
             );
         }
+        // this test assures us that the counter is in fact over u32::MAX, in
+        // case we change some of the parameters
         assert!(cipher.get_core().get_block_pos() > u32::MAX as u64);
     }
 }
