@@ -34,7 +34,7 @@ pub type XNonce = Array<u8, U24>;
 /// several interoperable libraries and protocols (e.g. libsodium, WireGuard)
 /// and is documented in an (expired) IETF draft:
 ///
-/// <https://tools.ietf.org/html/draft-arciszewski-xchacha-03>
+/// <https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha>
 pub type XChaCha20 = StreamCipherCoreWrapper<XChaChaCore<R20>>;
 /// XChaCha12 stream cipher (reduced-round variant of [`XChaCha20`] with 12 rounds)
 pub type XChaCha12 = StreamCipherCoreWrapper<XChaChaCore<R12>>;
@@ -159,7 +159,7 @@ mod hchacha20_tests {
     use hex_literal::hex;
 
     /// Test vectors from:
-    /// https://tools.ietf.org/id/draft-arciszewski-xchacha-03.html#rfc.section.2.2.1
+    /// https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha#section-2.2.1
     #[test]
     fn test_vector() {
         const KEY: [u8; 32] = hex!(
