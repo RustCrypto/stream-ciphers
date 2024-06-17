@@ -25,10 +25,22 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chacha20"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f08493fa7707effc63254c66c6ea908675912493cd67952eda23c09fae2610b1"
+dependencies = [
+ "cfg-if",
+ "cipher 0.3.0",
+ "cpufeatures",
+]
+
+[[package]]
+name = "chacha20"
 version = "0.10.0-pre"
 dependencies = [
  "cfg-if",
- "cipher",
+ "chacha20 0.7.3",
+ "cipher 0.5.0-pre.4",
  "cpufeatures",
  "hex-literal",
  "rand_chacha",
@@ -36,6 +48,15 @@ dependencies = [
  "serde",
  "serde_json",
  "zeroize",
+]
+
+[[package]]
+name = "cipher"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ee52072ec15386f770805afd189a01c8841be8696bed250fa2f13c4c0d6dfb7"
+dependencies = [
+ "generic-array",
 ]
 
 [[package]]
@@ -71,6 +92,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "generic-array"
+version = "0.14.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
+dependencies = [
+ "typenum",
+ "version_check",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -85,7 +116,7 @@ dependencies = [
 name = "hc-256"
 version = "0.6.0-pre"
 dependencies = [
- "cipher",
+ "cipher 0.5.0-pre.4",
  "hex-literal",
 ]
 
@@ -154,7 +185,7 @@ dependencies = [
 name = "rabbit"
 version = "0.5.0-pre"
 dependencies = [
- "cipher",
+ "cipher 0.5.0-pre.4",
  "hex-literal",
 ]
 
@@ -190,7 +221,7 @@ dependencies = [
 name = "rc4"
 version = "0.2.0-pre"
 dependencies = [
- "cipher",
+ "cipher 0.5.0-pre.4",
  "hex-literal",
 ]
 
@@ -205,7 +236,7 @@ name = "salsa20"
 version = "0.11.0-pre"
 dependencies = [
  "cfg-if",
- "cipher",
+ "cipher 0.5.0-pre.4",
  "hex-literal",
 ]
 
@@ -262,6 +293,12 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "version_check"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "wasi"
