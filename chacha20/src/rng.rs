@@ -219,7 +219,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                         }
                     }
                 }
-            } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
+            } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
                     backends::neon::rng_inner::<R, V>(self, buffer);
                 }
