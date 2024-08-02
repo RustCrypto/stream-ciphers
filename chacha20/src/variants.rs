@@ -17,8 +17,6 @@ impl VariantCounter for u64 {}
 pub trait Variant: Clone {
     /// the size of the Nonce in u32s
     const NONCE_INDEX: usize;
-    /// This const should be evaluated at compile time
-    const USES_U32_COUNTER: bool;
     type Counter: VariantCounter;
     type CounterWords: AsRef<[u32]>;
 
@@ -39,7 +37,6 @@ pub trait Variant: Clone {
 pub struct Ietf();
 impl Variant for Ietf {
     const NONCE_INDEX: usize = 13;
-    const USES_U32_COUNTER: bool = true;
     type Counter = u32;
     type CounterWords = [u32; 1];
     #[inline(always)]
@@ -63,7 +60,6 @@ pub struct Legacy();
 #[cfg(feature = "legacy")]
 impl Variant for Legacy {
     const NONCE_INDEX: usize = 14;
-    const USES_U32_COUNTER: bool = false;
     type Counter = u64;
     type CounterWords = [u32; 2];
     #[inline(always)]

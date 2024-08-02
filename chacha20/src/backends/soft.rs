@@ -29,7 +29,7 @@ impl<'a, R: Rounds, V: Variant> StreamBackend for Backend<'a, R, V> {
     fn gen_ks_block(&mut self, block: &mut Block) {
         let res = run_rounds::<R>(&self.0.state);
 
-        if V::USES_U32_COUNTER {
+        if core::mem::size_of::<V::Counter>() == 4 {
             self.0.state[12] = self.0.state[12].wrapping_add(1);
         } else {
             let no_carry = self.0.state[12].checked_add(1);

@@ -62,7 +62,7 @@ where
 
     f.call(&mut backend);
 
-    if V::USES_U32_COUNTER {
+    if core::mem::size_of::<V::Counter>() == 4 {
         // handle 32-bit counter
         vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
     } else {
@@ -101,8 +101,8 @@ impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<R, V> {
 
 /// Adds a counter row with either 32-bit or 64-bit addition
 macro_rules! add_counter {
-    ($a:expr, $b:expr, $is_32_bit:expr) => {
-        if $is_32_bit {
+    ($a:expr, $b:expr, $variant:ty) => {
+        if core::mem::size_of::<$variant::Counter>() == 4 {
             vaddq_u32($a, $b)
         } else {
             vreinterpretq_u32_u64(vaddq_u64(
@@ -129,11 +129,7 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
         self.gen_par_ks_blocks(&mut par);
         *block = par[0];
         unsafe {
-            self.state[3] = add_counter!(
-                state3,
-                vld1q_u32([1, 0, 0, 0].as_ptr()),
-                V::USES_U32_COUNTER
-            );
+            self.state[3] = add_counter!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()), V);
         }
     }
 
@@ -146,19 +142,19 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(self.state[3], self.ctrs[0], V::USES_U32_COUNTER),
+                    add_counter!(self.state[3], self.ctrs[0], V),
                 ],
                 [
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(self.state[3], self.ctrs[1], V::USES_U32_COUNTER),
+                    add_counter!(self.state[3], self.ctrs[1], V),
                 ],
                 [
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(self.state[3], self.ctrs[2], V::USES_U32_COUNTER),
+                    add_counter!(self.state[3], self.ctrs[2], V),
                 ],
             ];
 
@@ -187,7 +183,7 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
                 }
                 add_assign_vec!(
                     blocks[block][3],
-                    add_counter!(self.state[3], self.ctrs[block - 1], V::USES_U32_COUNTER)
+                    add_counter!(self.state[3], self.ctrs[block - 1], V)
                 );
 
                 // write
@@ -198,8 +194,7 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
                     );
                 }
             }
-            //self.state[3] = vaddq_u32(self.state[3], self.ctrs[3]);
-            self.state[3] = add_counter!(self.state[3], self.ctrs[3], V::USES_U32_COUNTER);
+            self.state[3] = add_counter!(self.state[3], self.ctrs[3], V);
         }
     }
 }
@@ -242,19 +237,19 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(self.state[3], self.ctrs[0], V::USES_U32_COUNTER),
+                add_counter!(self.state[3], self.ctrs[0], V),
             ],
             [
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(self.state[3], self.ctrs[1], V::USES_U32_COUNTER),
+                add_counter!(self.state[3], self.ctrs[1], V),
             ],
             [
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(self.state[3], self.ctrs[2], V::USES_U32_COUNTER),
+                add_counter!(self.state[3], self.ctrs[2], V),
             ],
         ];
 
@@ -269,8 +264,7 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
                 add_assign_vec!(blocks[block][state_row], self.state[state_row]);
             }
             if block > 0 {
-                blocks[block][3] =
-                    add_counter!(blocks[block][3], self.ctrs[block - 1], V::USES_U32_COUNTER);
+                blocks[block][3] = add_counter!(blocks[block][3], self.ctrs[block - 1], V);
             }
             // write blocks to buffer
             for state_row in 0..4 {
@@ -281,7 +275,7 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
             }
             dest_ptr = dest_ptr.add(64);
         }
-        self.state[3] = add_counter!(self.state[3], self.ctrs[3], V::USES_U32_COUNTER);
+        self.state[3] = add_counter!(self.state[3], self.ctrs[3], V);
     }
 }
 

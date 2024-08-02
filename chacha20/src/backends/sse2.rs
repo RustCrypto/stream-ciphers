@@ -44,7 +44,7 @@ where
     f.call(&mut backend);
 
     state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
-    if !V::USES_U32_COUNTER {
+    if core::mem::size_of::<V::Counter>() != 4 {
         state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
     }
 }
@@ -71,7 +71,7 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
     fn gen_ks_block(&mut self, block: &mut Block) {
         unsafe {
             let res = rounds::<R>(&self.v);
-            if V::USES_U32_COUNTER {
+            if core::mem::size_of::<V::Counter>() == 4 {
                 self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, 1));
             } else {
                 self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, 1));
