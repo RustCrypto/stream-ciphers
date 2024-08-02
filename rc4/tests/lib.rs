@@ -1,5 +1,7 @@
 //! https://datatracker.ietf.org/doc/html/rfc6229#section-2
 
+#![allow(deprecated)] // uses `from_slice`
+
 use hex_literal::hex;
 use rc4::{consts::*, KeyInit, StreamCipher};
 use rc4::{Key, Rc4};

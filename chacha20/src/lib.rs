@@ -86,8 +86,6 @@
 //!
 //! - `chacha20_force_avx2`: force AVX2 backend on x86/x86_64 targets.
 //!   Requires enabled AVX2 target feature. Ignored on non-x86(-64) targets.
-//! - `chacha20_force_neon`: force NEON backend on ARM targets.
-//!   Requires enabled NEON target feature. Ignored on non-ARM targets. Nightly-only.
 //! - `chacha20_force_soft`: force software backend.
 //! - `chacha20_force_sse2`: force SSE2 backend on x86/x86_64 targets.
 //!   Requires enabled SSE2 target feature. Ignored on non-x86(-64) targets.
@@ -317,7 +315,7 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                         }
                     }
                 }
-            } else if #[cfg(all(chacha20_force_neon, target_arch = "aarch64", target_feature = "neon"))] {
+            } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
                     backends::neon::inner::<R, _, V>(&mut self.state, f);
                 }
