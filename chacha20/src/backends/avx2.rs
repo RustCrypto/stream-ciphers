@@ -1,5 +1,6 @@
 use crate::{Rounds, Variant};
 use core::marker::PhantomData;
+use core::mem::size_of;
 
 #[cfg(feature = "rng")]
 use crate::ChaChaCore;
@@ -46,7 +47,7 @@ where
         _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(2))),
     ];
     let mut c = _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(3)));
-    if core::mem::size_of::<V::Counter>() == 4 {
+    if size_of::<V::Counter>() == 4 {
         c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 0));
     } else {
         c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 1, 0, 0));
@@ -54,7 +55,7 @@ where
     let mut ctr = [c; N];
     for i in 0..N {
         ctr[i] = c;
-        if core::mem::size_of::<V::Counter>() == 4 {
+        if size_of::<V::Counter>() == 4 {
             c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 2, 0, 0, 0, 2));
         } else {
             c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 2, 0, 2));
@@ -70,7 +71,7 @@ where
     f.call(&mut backend);
 
     state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
-    if core::mem::size_of::<V::Counter>() != 4 {
+    if size_of::<V::Counter>() != 4 {
         state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32;
     }
 }
@@ -132,7 +133,7 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
         unsafe {
             let res = rounds::<R>(&self.v, &self.ctr);
             for c in self.ctr.iter_mut() {
-                if core::mem::size_of::<V::Counter>() == 4 {
+                if size_of::<V::Counter>() == 4 {
                     *c = _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 1));
                 } else {
                     *c = _mm256_add_epi64(*c, _mm256_set_epi64x(0, 1, 0, 1));
@@ -155,7 +156,7 @@ impl<R: Rounds, V: Variant> StreamBackend for Backend<R, V> {
 
             let pb = PAR_BLOCKS as i32;
             for c in self.ctr.iter_mut() {
-                if core::mem::size_of::<V::Counter>() == 4 {
+                if size_of::<V::Counter>() == 4 {
                     *c = _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, pb, 0, 0, 0, pb));
                 } else {
                     *c = _mm256_add_epi64(*c, _mm256_set_epi64x(0, pb as i64, 0, pb as i64));

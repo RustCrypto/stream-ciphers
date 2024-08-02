@@ -4,7 +4,7 @@
 //! Jeffrey Walton (public domain).
 
 use crate::{Rounds, Variant, STATE_WORDS};
-use core::{arch::aarch64::*, marker::PhantomData};
+use core::{arch::aarch64::*, marker::PhantomData, mem::size_of};
 
 #[cfg(feature = "rand_core")]
 use crate::ChaChaCore;
@@ -102,7 +102,7 @@ impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<R, V> {
 /// Adds a counter row with either 32-bit or 64-bit addition
 macro_rules! add_counter {
     ($a:expr, $b:expr, $variant:ty) => {
-        if core::mem::size_of::<<$variant>::Counter>() == 4 {
+        if size_of::<<$variant>::Counter>() == 4 {
             vaddq_u32($a, $b)
         } else {
             vreinterpretq_u32_u64(vaddq_u64(
