@@ -233,4 +233,77 @@ mod legacy {
             }
         }
     }
+
+    /// Tests the 64-bit counter with a given amount of test blocks
+    fn legacy_counter_over_u32_max<const N: usize>(test: &[u8; N]) {
+        assert!(N % 64 == 0, "N should be a multiple of 64");
+        use cipher::StreamCipherSeekCore;
+        // using rand_chacha v0.3 because it is already a dev-dependency, and
+        // it uses a 64-bit counter
+        use rand_chacha::{ChaCha20Rng as OgRng, rand_core::{RngCore, SeedableRng}};
+        let mut cipher = ChaCha20Legacy::new(&[0u8; 32].into(), &LegacyNonce::from([0u8; 8]));
+        let mut rng = OgRng::from_seed([0u8; 32]);
+        
+        let mut expected = test.clone();
+        rng.fill_bytes(&mut expected);
+        let mut result = test.clone();
+        cipher.apply_keystream(&mut result);
+        assert_eq!(expected, result);
+
+        const SEEK_POS: u64 = (u32::MAX - 10) as u64 * 64;
+        cipher.seek(SEEK_POS);
+        rng.set_word_pos(SEEK_POS as u128 / 4);
+
+        let pos: u64 = cipher.current_pos();
+        assert_eq!(pos, rng.get_word_pos() as u64 * 4);
+        let block_pos = cipher.get_core().get_block_pos();
+        assert!(block_pos < u32::MAX as u64);
+        // Apply keystream blocks until some point after the u32 boundary
+        for i in 1..16 {
+            let starting_block_pos = cipher.get_core().get_block_pos() as i64 - u32::MAX as i64;
+            let mut expected = test.clone();
+            rng.fill_bytes(&mut expected);
+            let mut result = test.clone();
+            cipher.apply_keystream(&mut result);
+            if expected != result {
+                let mut index: usize = 0;
+                let mut expected_u8: u8 = 0;
+                let mut found_u8: u8 = 0;
+                for (i, (e, r)) in expected.iter().zip(result.iter()).enumerate() {
+                    if e != r {
+                        index = i;
+                        expected_u8 = *e;
+                        found_u8 = *r;
+                        break;
+                    }
+                };
+                panic!("Index {} did not match;\n iteration: {}\n expected: {} != {}\nstart block pos - u32::MAX: {}", index, i, expected_u8, found_u8, starting_block_pos);
+            }
+            let expected_block_pos = block_pos + i * (test.len() / 64) as u64;
+            assert!(expected_block_pos == cipher.get_core().get_block_pos(), 
+                "Block pos did not increment as expected; Expected block pos: {}\n actual block_pos: {}\n iteration: {}",
+                expected_block_pos,
+                cipher.get_core().get_block_pos(),
+                i
+            );
+        }
+        // this test assures us that the counter is in fact over u32::MAX, in
+        // case we change some of the parameters
+        assert!(cipher.get_core().get_block_pos() > u32::MAX as u64, "The 64-bit counter test did not surpass u32::MAX");
+    }
+
+    /// Runs the legacy_64_bit_counter test with different-sized arrays so that
+    /// both `gen_ks_block` and `gen_par_ks_blocks` are called with varying 
+    /// starting positions.
+    #[test]
+    fn legacy_64_bit_counter() {
+        legacy_counter_over_u32_max(&[0u8; 64 * 1]);
+        legacy_counter_over_u32_max(&[0u8; 64 * 2]);
+        legacy_counter_over_u32_max(&[0u8; 64 * 3]);
+        legacy_counter_over_u32_max(&[0u8; 64 * 4]);
+        legacy_counter_over_u32_max(&[0u8; 64 * 5]);
+        legacy_counter_over_u32_max(&[0u8; 64 * 6]);
+        legacy_counter_over_u32_max(&[0u8; 64 * 7]);
+        legacy_counter_over_u32_max(&[0u8; 64 * 8]);
+    }
 }

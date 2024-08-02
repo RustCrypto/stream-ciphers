@@ -2,6 +2,7 @@
 //! intrinsics.
 
 use crate::{quarter_round, ChaChaCore, Rounds, Variant, STATE_WORDS};
+use core::mem::size_of;
 
 #[cfg(feature = "cipher")]
 use crate::chacha::Block;
@@ -28,7 +29,18 @@ impl<'a, R: Rounds, V: Variant> StreamBackend for Backend<'a, R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         let res = run_rounds::<R>(&self.0.state);
-        self.0.state[12] = self.0.state[12].wrapping_add(1);
+
+        if size_of::<V::Counter>() == 4 {
+            self.0.state[12] = self.0.state[12].wrapping_add(1);
+        } else {
+            let no_carry = self.0.state[12].checked_add(1);
+            if let Some(v) = no_carry {
+                self.0.state[12] = v;
+            } else {
+                self.0.state[12] = 0;
+                self.0.state[13] = self.0.state[13].wrapping_add(1);
+            }
+        }
 
         for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
             chunk.copy_from_slice(&val.to_le_bytes());
