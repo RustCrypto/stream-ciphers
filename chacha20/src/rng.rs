@@ -10,7 +10,7 @@ use core::fmt::Debug;
 
 use rand_core::{
     block::{BlockRng, BlockRngCore, CryptoBlockRng},
-    CryptoRng, Error, RngCore, SeedableRng,
+    impl_try_rng_from_rng_core, CryptoRng, RngCore, SeedableRng,
 };
 
 #[cfg(feature = "serde1")]
@@ -382,11 +382,9 @@ macro_rules! impl_chacha_rng {
             fn fill_bytes(&mut self, dest: &mut [u8]) {
                 self.core.fill_bytes(dest)
             }
-            #[inline]
-            fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
-                Ok(self.fill_bytes(dest))
-            }
         }
+
+        impl_try_rng_from_rng_core!($ChaChaXRng);
 
         impl $ChaChaXRng {
             // The buffer is a 4-block window, i.e. it is always at a block-aligned position in the
@@ -733,7 +731,7 @@ pub(crate) mod tests {
         let mut rng1 = ChaChaRng::from_seed(seed);
         assert_eq!(rng1.next_u32(), 137206642);
 
-        let mut rng2 = ChaChaRng::from_rng(rng1).unwrap();
+        let mut rng2 = ChaChaRng::from_rng(rng1);
         assert_eq!(rng2.next_u32(), 1325750369);
     }
 
