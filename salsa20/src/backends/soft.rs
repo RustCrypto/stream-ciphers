@@ -4,7 +4,7 @@
 use crate::{Block, SalsaCore, Unsigned, STATE_WORDS};
 use cipher::{
     consts::{U1, U64},
-    BlockSizeUser, ParBlocksSizeUser, StreamBackend, StreamCipherSeekCore,
+    BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherSeekCore,
 };
 
 pub(crate) struct Backend<'a, R: Unsigned>(pub(crate) &'a mut SalsaCore<R>);
@@ -17,7 +17,7 @@ impl<'a, R: Unsigned> ParBlocksSizeUser for Backend<'a, R> {
     type ParBlocksSize = U1;
 }
 
-impl<'a, R: Unsigned> StreamBackend for Backend<'a, R> {
+impl<'a, R: Unsigned> StreamCipherBackend for Backend<'a, R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         let res = run_rounds::<R>(&self.0.state);

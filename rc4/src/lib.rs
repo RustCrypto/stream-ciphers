@@ -39,8 +39,8 @@ pub use cipher::{self, consts, KeyInit, StreamCipher};
 
 use cipher::{
     array::{Array, ArraySize},
-    Block, BlockSizeUser, KeySizeUser, ParBlocksSizeUser, StreamBackend, StreamCipherCore,
-    StreamCipherCoreWrapper, StreamClosure,
+    Block, BlockSizeUser, KeySizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
+    StreamCipherCore, StreamCipherCoreWrapper,
 };
 
 use core::marker::PhantomData;
@@ -94,7 +94,7 @@ impl<KeySize> StreamCipherCore for Rc4Core<KeySize> {
         None
     }
 
-    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
         f.call(&mut Backend(&mut self.state));
     }
 }
@@ -113,7 +113,7 @@ impl<'a> ParBlocksSizeUser for Backend<'a> {
     type ParBlocksSize = consts::U1;
 }
 
-impl<'a> StreamBackend for Backend<'a> {
+impl<'a> StreamCipherBackend for Backend<'a> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         block[0] = self.0.prga();

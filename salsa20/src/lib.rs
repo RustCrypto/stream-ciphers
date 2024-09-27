@@ -80,8 +80,8 @@ pub use cipher;
 use cipher::{
     array::{typenum::Unsigned, Array},
     consts::{U10, U24, U32, U4, U6, U64, U8},
-    Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore,
-    StreamCipherCoreWrapper, StreamCipherSeekCore, StreamClosure,
+    Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure,
+    StreamCipherCore, StreamCipherCoreWrapper, StreamCipherSeekCore,
 };
 use core::marker::PhantomData;
 
@@ -202,7 +202,7 @@ impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
         let rem = u64::MAX - self.get_block_pos();
         rem.try_into().ok()
     }
-    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
         cfg_if! {
             if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 unsafe {

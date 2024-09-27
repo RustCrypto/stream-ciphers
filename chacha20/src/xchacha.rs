@@ -3,8 +3,8 @@
 use cipher::{
     array::Array,
     consts::{U16, U24, U32, U64},
-    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
-    StreamCipherSeekCore, StreamClosure,
+    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
+    StreamCipherCoreWrapper, StreamCipherSeekCore,
 };
 
 use crate::{
@@ -75,7 +75,7 @@ impl<R: Rounds> StreamCipherCore for XChaChaCore<R> {
     }
 
     #[inline(always)]
-    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
         self.0.process_with_backend(f);
     }
 }

@@ -4,8 +4,8 @@ use super::{Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS};
 use cipher::{
     array::Array,
     consts::{U10, U16, U24, U32, U4, U6, U64},
-    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCore, StreamCipherCoreWrapper,
-    StreamCipherSeekCore, StreamClosure,
+    BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
+    StreamCipherCoreWrapper, StreamCipherSeekCore,
 };
 
 use crate::backends::soft::quarter_round;
@@ -56,7 +56,7 @@ impl<R: Unsigned> StreamCipherCore for XSalsaCore<R> {
     }
 
     #[inline(always)]
-    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
         self.0.process_with_backend(f);
     }
 }
