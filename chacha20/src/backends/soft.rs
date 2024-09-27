@@ -8,7 +8,7 @@ use crate::chacha::Block;
 #[cfg(feature = "cipher")]
 use cipher::{
     consts::{U1, U64},
-    BlockSizeUser, ParBlocksSizeUser, StreamBackend,
+    BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend,
 };
 
 pub(crate) struct Backend<'a, R: Rounds, V: Variant>(pub(crate) &'a mut ChaChaCore<R, V>);
@@ -24,7 +24,7 @@ impl<'a, R: Rounds, V: Variant> ParBlocksSizeUser for Backend<'a, R, V> {
 }
 
 #[cfg(feature = "cipher")]
-impl<'a, R: Rounds, V: Variant> StreamBackend for Backend<'a, R, V> {
+impl<'a, R: Rounds, V: Variant> StreamCipherBackend for Backend<'a, R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         let res = run_rounds::<R>(&self.0.state);

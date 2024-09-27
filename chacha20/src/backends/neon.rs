@@ -15,7 +15,7 @@ use crate::chacha::Block;
 #[cfg(feature = "cipher")]
 use cipher::{
     consts::{U4, U64},
-    BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamBackend, StreamClosure,
+    BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
 };
 
 struct Backend<R: Rounds> {
@@ -53,7 +53,7 @@ impl<R: Rounds> Backend<R> {
 pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
-    F: StreamClosure<BlockSize = U64>,
+    F: StreamCipherClosure<BlockSize = U64>,
 {
     let mut backend = Backend::<R>::new(state);
 
@@ -105,7 +105,7 @@ macro_rules! add_assign_vec {
 }
 
 #[cfg(feature = "cipher")]
-impl<R: Rounds> StreamBackend for Backend<R> {
+impl<R: Rounds> StreamCipherBackend for Backend<R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         let state3 = self.state[3];

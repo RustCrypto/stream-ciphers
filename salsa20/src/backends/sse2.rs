@@ -1,9 +1,10 @@
 use crate::{
-    backends::soft::Backend as SoftBackend, Block, SalsaCore, StreamClosure, Unsigned, STATE_WORDS,
+    backends::soft::Backend as SoftBackend, Block, SalsaCore, StreamCipherClosure, Unsigned,
+    STATE_WORDS,
 };
 use cipher::{
     consts::{U1, U64},
-    BlockSizeUser, ParBlocksSizeUser, StreamBackend,
+    BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend,
 };
 use core::marker::PhantomData;
 
@@ -17,7 +18,7 @@ use core::arch::x86_64::*;
 pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Unsigned,
-    F: StreamClosure<BlockSize = U64>,
+    F: StreamCipherClosure<BlockSize = U64>,
 {
     let state_ptr = state.as_ptr() as *const __m128i;
     let mut backend = Backend::<R> {
@@ -55,7 +56,7 @@ impl<R: Unsigned> ParBlocksSizeUser for Backend<R> {
     type ParBlocksSize = U1;
 }
 
-impl<R: Unsigned> StreamBackend for Backend<R> {
+impl<R: Unsigned> StreamCipherBackend for Backend<R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         unsafe {

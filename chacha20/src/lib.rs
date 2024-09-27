@@ -286,7 +286,10 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
         rem.try_into().ok()
     }
 
-    fn process_with_backend(&mut self, f: impl cipher::StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(
+        &mut self,
+        f: impl cipher::StreamCipherClosure<BlockSize = Self::BlockSize>,
+    ) {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
                 f.call(&mut backends::soft::Backend(self));

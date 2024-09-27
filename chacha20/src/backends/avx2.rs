@@ -5,19 +5,12 @@ use core::marker::PhantomData;
 use crate::{ChaChaCore, Variant};
 
 #[cfg(feature = "cipher")]
-use crate::{
-    STATE_WORDS,
-    chacha::Block
-};
+use crate::{chacha::Block, STATE_WORDS};
 
 #[cfg(feature = "cipher")]
 use cipher::{
-    StreamClosure,
-    consts::{U64, U4},
-    BlockSizeUser,
-    ParBlocksSizeUser,
-    ParBlocks,
-    StreamBackend
+    consts::{U4, U64},
+    BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
 };
 
 #[cfg(target_arch = "x86")]
@@ -36,7 +29,7 @@ const N: usize = PAR_BLOCKS / 2;
 pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
-    F: StreamClosure<BlockSize = U64>,
+    F: StreamCipherClosure<BlockSize = U64>,
 {
     let state_ptr = state.as_ptr() as *const __m128i;
     let v = [
@@ -68,7 +61,7 @@ where
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
-    V: Variant
+    V: Variant,
 {
     let state_ptr = core.state.as_ptr() as *const __m128i;
     let v = [
@@ -111,7 +104,7 @@ impl<R: Rounds> ParBlocksSizeUser for Backend<R> {
 }
 
 #[cfg(feature = "cipher")]
-impl<R: Rounds> StreamBackend for Backend<R> {
+impl<R: Rounds> StreamCipherBackend for Backend<R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         unsafe {

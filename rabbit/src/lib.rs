@@ -63,7 +63,7 @@ use cipher::{
     consts::{U1, U16, U8},
     crypto_common::InnerUser,
     Block, BlockSizeUser, InnerIvInit, IvSizeUser, KeyInit, KeySizeUser, ParBlocksSizeUser,
-    StreamBackend, StreamCipherCore, StreamCipherCoreWrapper, StreamClosure,
+    StreamCipherBackend, StreamCipherClosure, StreamCipherCore, StreamCipherCoreWrapper,
 };
 
 #[cfg(feature = "zeroize")]
@@ -290,7 +290,7 @@ impl StreamCipherCore for RabbitKeyOnlyCore {
         None
     }
 
-    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
         f.call(&mut Backend(&mut self.state));
     }
 }
@@ -334,7 +334,7 @@ impl StreamCipherCore for RabbitCore {
         None
     }
 
-    fn process_with_backend(&mut self, f: impl StreamClosure<BlockSize = Self::BlockSize>) {
+    fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
         f.call(&mut Backend(&mut self.state));
     }
 }
@@ -349,7 +349,7 @@ impl<'a> ParBlocksSizeUser for Backend<'a> {
     type ParBlocksSize = U1;
 }
 
-impl<'a> StreamBackend for Backend<'a> {
+impl<'a> StreamCipherBackend for Backend<'a> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         block.copy_from_slice(&self.0.next_block());
