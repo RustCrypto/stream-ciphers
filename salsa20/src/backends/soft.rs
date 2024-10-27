@@ -9,15 +9,15 @@ use cipher::{
 
 pub(crate) struct Backend<'a, R: Unsigned>(pub(crate) &'a mut SalsaCore<R>);
 
-impl<'a, R: Unsigned> BlockSizeUser for Backend<'a, R> {
+impl<R: Unsigned> BlockSizeUser for Backend<'_, R> {
     type BlockSize = U64;
 }
 
-impl<'a, R: Unsigned> ParBlocksSizeUser for Backend<'a, R> {
+impl<R: Unsigned> ParBlocksSizeUser for Backend<'_, R> {
     type ParBlocksSize = U1;
 }
 
-impl<'a, R: Unsigned> StreamCipherBackend for Backend<'a, R> {
+impl<R: Unsigned> StreamCipherBackend for Backend<'_, R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         let res = run_rounds::<R>(&self.0.state);

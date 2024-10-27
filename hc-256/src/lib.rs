@@ -248,15 +248,15 @@ impl ZeroizeOnDrop for Hc256Core {}
 
 struct Backend<'a>(&'a mut Hc256Core);
 
-impl<'a> BlockSizeUser for Backend<'a> {
+impl BlockSizeUser for Backend<'_> {
     type BlockSize = <Hc256Core as BlockSizeUser>::BlockSize;
 }
 
-impl<'a> ParBlocksSizeUser for Backend<'a> {
+impl ParBlocksSizeUser for Backend<'_> {
     type ParBlocksSize = U1;
 }
 
-impl<'a> StreamCipherBackend for Backend<'a> {
+impl StreamCipherBackend for Backend<'_> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         block.copy_from_slice(&self.0.gen_word().to_le_bytes());

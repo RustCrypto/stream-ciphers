@@ -14,17 +14,17 @@ use cipher::{
 pub(crate) struct Backend<'a, R: Rounds, V: Variant>(pub(crate) &'a mut ChaChaCore<R, V>);
 
 #[cfg(feature = "cipher")]
-impl<'a, R: Rounds, V: Variant> BlockSizeUser for Backend<'a, R, V> {
+impl<R: Rounds, V: Variant> BlockSizeUser for Backend<'_, R, V> {
     type BlockSize = U64;
 }
 
 #[cfg(feature = "cipher")]
-impl<'a, R: Rounds, V: Variant> ParBlocksSizeUser for Backend<'a, R, V> {
+impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<'_, R, V> {
     type ParBlocksSize = U1;
 }
 
 #[cfg(feature = "cipher")]
-impl<'a, R: Rounds, V: Variant> StreamCipherBackend for Backend<'a, R, V> {
+impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<'_, R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         let res = run_rounds::<R>(&self.0.state);
@@ -37,7 +37,7 @@ impl<'a, R: Rounds, V: Variant> StreamCipherBackend for Backend<'a, R, V> {
 }
 
 #[cfg(feature = "rng")]
-impl<'a, R: Rounds, V: Variant> Backend<'a, R, V> {
+impl<R: Rounds, V: Variant> Backend<'_, R, V> {
     #[inline(always)]
     pub(crate) fn gen_ks_blocks(&mut self, buffer: &mut [u32; 64]) {
         for i in 0..4 {
