@@ -341,15 +341,15 @@ impl StreamCipherCore for RabbitCore {
 
 struct Backend<'a>(&'a mut State);
 
-impl<'a> BlockSizeUser for Backend<'a> {
+impl BlockSizeUser for Backend<'_> {
     type BlockSize = BlockSize;
 }
 
-impl<'a> ParBlocksSizeUser for Backend<'a> {
+impl ParBlocksSizeUser for Backend<'_> {
     type ParBlocksSize = U1;
 }
 
-impl<'a> StreamCipherBackend for Backend<'a> {
+impl StreamCipherBackend for Backend<'_> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         block.copy_from_slice(&self.0.next_block());

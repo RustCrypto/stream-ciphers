@@ -105,15 +105,15 @@ impl<KeySize> ZeroizeOnDrop for Rc4Core<KeySize> where KeySize: ArraySize {}
 
 struct Backend<'a>(&'a mut Rc4State);
 
-impl<'a> BlockSizeUser for Backend<'a> {
+impl BlockSizeUser for Backend<'_> {
     type BlockSize = BlockSize;
 }
 
-impl<'a> ParBlocksSizeUser for Backend<'a> {
+impl ParBlocksSizeUser for Backend<'_> {
     type ParBlocksSize = consts::U1;
 }
 
-impl<'a> StreamCipherBackend for Backend<'a> {
+impl StreamCipherBackend for Backend<'_> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         block[0] = self.0.prga();
