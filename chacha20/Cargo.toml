@@ -11,7 +11,7 @@ rand_core-compatible RNGs based on those ciphers.
 authors = ["RustCrypto Developers"]
 license = "Apache-2.0 OR MIT"
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.81"
 readme = "README.md"
 documentation = "https://docs.rs/chacha20"
 repository = "https://github.com/RustCrypto/stream-ciphers"
