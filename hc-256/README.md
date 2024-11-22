@@ -10,8 +10,6 @@
 
 Pure Rust implementation of the [HC-256 Stream Cipher][1].
 
-[Documentation][docs-link]
-
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
 This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
@@ -26,7 +24,7 @@ USE AT YOUR OWN RISK!
 
 ## Minimum Supported Rust Version
 
-Rust **1.65** or higher.
+Rust **1.81** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be
 done with a minor version bump.
@@ -58,7 +56,7 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/hc-256/badge.svg
 [docs-link]: https://docs.rs/hc-256/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.65+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.81+-blue.svg
 [hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
 [hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 [build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/hc-256/badge.svg?branch=master&event=push

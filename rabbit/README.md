@@ -10,8 +10,6 @@
 
 Rust implementation of the [Rabbit Stream Cipher Algorithm (RFC 4503)][1].
 
-[Documentation][docs-link]
-
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
 This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
@@ -26,7 +24,7 @@ architectures.
 
 ## Minimum Supported Rust Version
 
-Rust **1.65** or higher.
+Rust **1.81** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be
 done with a minor version bump.
@@ -58,7 +56,7 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/rabbit/badge.svg
 [docs-link]: https://docs.rs/rabbit/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.65+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.81+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
 [build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/rabbit/badge.svg?branch=master&event=push
