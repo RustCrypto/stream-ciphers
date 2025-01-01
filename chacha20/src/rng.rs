@@ -10,7 +10,7 @@ use core::fmt::Debug;
 
 use rand_core::{
     block::{BlockRng, BlockRngCore, CryptoBlockRng},
-    impl_try_rng_from_rng_core, CryptoRng, RngCore, SeedableRng,
+    CryptoRng, RngCore, SeedableRng,
 };
 
 #[cfg(feature = "serde1")]
@@ -32,12 +32,18 @@ const BLOCK_WORDS: u8 = 16;
 
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
-#[derive(PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Seed([u8; 32]);
 
 impl AsRef<[u8; 32]> for Seed {
     fn as_ref(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
+impl AsRef<[u8]> for Seed {
+    fn as_ref(&self) -> &[u8] {
         &self.0
     }
 }
@@ -383,8 +389,6 @@ macro_rules! impl_chacha_rng {
                 self.core.fill_bytes(dest)
             }
         }
-
-        impl_try_rng_from_rng_core!($ChaChaXRng);
 
         impl $ChaChaXRng {
             // The buffer is a 4-block window, i.e. it is always at a block-aligned position in the

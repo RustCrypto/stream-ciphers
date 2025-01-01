@@ -31,7 +31,7 @@ work on stable Rust with the following `RUSTFLAGS`:
 
 - `x86` / `x86_64`
   - `avx2`: (~1.4cpb) `-Ctarget-cpu=haswell -Ctarget-feature=+avx2`
-  - `sse2`: (~2.5cpb) `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
+  - `sse2`: (~1.6cpb) `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
 - `aarch64`
   - `neon` (~2-3x faster than `soft`) requires Rust 1.61+ and the `neon` feature enabled
 - Portable
