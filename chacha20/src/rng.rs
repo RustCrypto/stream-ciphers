@@ -735,7 +735,7 @@ pub(crate) mod tests {
         let mut rng1 = ChaChaRng::from_seed(seed);
         assert_eq!(rng1.next_u32(), 137206642);
 
-        let mut rng2 = ChaChaRng::from_rng(rng1);
+        let mut rng2 = ChaChaRng::from_rng(&mut rng1);
         assert_eq!(rng2.next_u32(), 1325750369);
     }
 
