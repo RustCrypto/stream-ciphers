@@ -347,8 +347,10 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn generate(&mut self, r: &mut Self::Results) {
                 self.0.generate(&mut r.0);
-                for word in r.0.iter_mut() {
-                    *word = word.to_le();
+                if 1u32.to_le() != 1 {
+                    for word in r.0.iter_mut() {
+                        *word = word.to_le();
+                    }
                 }
             }
         }
