@@ -1103,4 +1103,12 @@ pub(crate) mod tests {
             assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
     }
+
+    #[test]
+    fn stream_id_endianness() {
+        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
+        rng.set_stream([3, 3333, 333333]);
+        let expected = 2059058063;
+        assert_eq!(rng.next_u32(), expected);
+    }
 }
