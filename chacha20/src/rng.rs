@@ -347,6 +347,10 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn generate(&mut self, r: &mut Self::Results) {
                 self.0.generate(&mut r.0);
+                #[cfg(target_endian = "big")]
+                for word in r.0.iter_mut() {
+                    *word = word.to_le();
+                }
             }
         }
 
@@ -380,11 +384,11 @@ macro_rules! impl_chacha_rng {
         impl RngCore for $ChaChaXRng {
             #[inline]
             fn next_u32(&mut self) -> u32 {
-                self.core.next_u32().to_le()
+                self.core.next_u32()
             }
             #[inline]
             fn next_u64(&mut self) -> u64 {
-                self.core.next_u64().to_le()
+                self.core.next_u64()
             }
             #[inline]
             fn fill_bytes(&mut self, dest: &mut [u8]) {
