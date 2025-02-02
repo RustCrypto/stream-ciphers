@@ -124,8 +124,7 @@ impl From<[u8; 12]> for StreamId {
     fn from(value: [u8; 12]) -> Self {
         let mut result = Self([0u32; 3]);
         for (n, chunk) in result.0.iter_mut().zip(value.chunks_exact(4)) {
-            *n = u32::from_le_bytes(chunk.try_into().unwrap());
-            *n = n.to_le();
+            *n = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
         }
         result
     }
@@ -136,8 +135,7 @@ impl From<u128> for StreamId {
         let bytes = value.to_le_bytes();
         let mut result = Self([0u32; 3]);
         for (n, chunk) in result.0.iter_mut().zip(bytes[0..12].chunks_exact(4)) {
-            *n = u32::from_le_bytes(chunk.try_into().unwrap());
-            *n = n.to_le();
+            *n = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
         }
         result
     }
