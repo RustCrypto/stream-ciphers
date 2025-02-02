@@ -116,7 +116,7 @@ pub struct StreamId([u32; 3]);
 
 impl From<[u32; 3]> for StreamId {
     fn from(value: [u32; 3]) -> Self {
-        Self(value)
+        Self([value[0].to_le(), value[1].to_le(), value[2].to_le()])
     }
 }
 
@@ -124,7 +124,7 @@ impl From<[u8; 12]> for StreamId {
     fn from(value: [u8; 12]) -> Self {
         let mut result = Self([0u32; 3]);
         for (n, chunk) in result.0.iter_mut().zip(value.chunks_exact(4)) {
-            *n = u32::from_le_bytes(chunk.try_into().unwrap())
+            *n = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
         }
         result
     }
@@ -135,7 +135,7 @@ impl From<u128> for StreamId {
         let bytes = value.to_le_bytes();
         let mut result = Self([0u32; 3]);
         for (n, chunk) in result.0.iter_mut().zip(bytes[0..12].chunks_exact(4)) {
-            *n = u32::from_le_bytes(chunk.try_into().unwrap());
+            *n = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
         }
         result
     }
@@ -154,7 +154,7 @@ impl From<u32> for BlockPos {
 
 impl From<[u8; 4]> for BlockPos {
     fn from(value: [u8; 4]) -> Self {
-        Self(u32::from_le_bytes(value))
+        Self(u32::from_le_bytes(value).to_le())
     }
 }
 
@@ -345,6 +345,10 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn generate(&mut self, r: &mut Self::Results) {
                 self.0.generate(&mut r.0);
+                #[cfg(target_endian = "big")]
+                for word in r.0.iter_mut() {
+                    *word = word.to_le();
+                }
             }
         }
 
@@ -438,7 +442,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_block_pos<B: Into<BlockPos>>(&mut self, block_pos: B) {
                 self.core.reset();
-                self.core.core.0.state[12] = block_pos.into().0
+                self.core.core.0.state[12] = block_pos.into().0.to_le()
             }
 
             /// Gets the block pos.
@@ -463,7 +467,7 @@ macro_rules! impl_chacha_rng {
                     .iter_mut()
                     .zip(stream.0.iter())
                 {
-                    *n = *val;
+                    *n = val.to_le();
                 }
                 if self.core.index() != BUFFER_SIZE {
                     self.core.generate_and_set(self.core.index());
@@ -1102,5 +1106,13 @@ pub(crate) mod tests {
         for _ in 0..1000 {
             assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
+    }
+
+    #[test]
+    fn stream_id_endianness() {
+        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
+        rng.set_stream([3, 3333, 333333]);
+        let expected = 2059058063;
+        assert_eq!(rng.next_u32(), expected);
     }
 }
