@@ -1114,6 +1114,12 @@ pub(crate) mod tests {
         rng.set_stream([3, 3333, 333333]);
         let expected = 2059058063;
         assert_eq!(rng.next_u32(), expected);
+        rng.set_stream(1234567);
+        let expected = 1254506509;
+        assert_eq!(rng.next_u32(), expected);
+        rng.set_stream([1,2,3,4,5,6,7,8,9,10,11,12]);
+        let expected = 1391671567;
+        assert_eq!(rng.next_u32(), expected);
     }
 
     /// If this test fails, the backend may be
