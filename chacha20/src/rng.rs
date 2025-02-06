@@ -1115,4 +1115,23 @@ pub(crate) mod tests {
         let expected = 2059058063;
         assert_eq!(rng.next_u32(), expected);
     }
+
+    /// If this test fails, the backend may be
+    /// performing 64-bit addition.
+    #[test]
+    fn counter_wrapping() {
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
+
+        // get first four blocks and word pos
+        let mut first_blocks = [0u8; 64 * 4];
+        rng.fill_bytes(&mut first_blocks);
+        let word_pos = rng.get_word_pos();
+
+        // get first four blocks after wrapping
+        rng.set_block_pos(u32::MAX);
+        let mut result = [0u8; 64 * 5];
+        rng.fill_bytes(&mut result);
+        assert_eq!(word_pos, rng.get_word_pos());
+        assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
+    }
 }
