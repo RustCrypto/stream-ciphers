@@ -27,7 +27,7 @@ use crate::{
 
 use cfg_if::cfg_if;
 
-// number of 32-bit words per ChaCha block (fixed by algorithm definition)
+/// Number of 32-bit words per ChaCha block (fixed by algorithm definition).
 const BLOCK_WORDS: u8 = 16;
 
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
@@ -108,22 +108,35 @@ impl From<u64> for WordPosInput {
     }
 }
 
-/// A wrapper for the `stream_id`. It can be used with a:
-/// * `[u32; 3]`
-/// * `[u8; 12]` or
-/// * a `u128`
-pub struct StreamId([u32; 3]);
+/// Amount of raw bytes backing a `StreamId` instance.
+const STREAM_ID_BYTES: usize = size_of::<StreamId>();
+/// The length of the array contained within `StreamId`.
+const STREAM_ID_LEN: usize = 3;
 
-impl From<[u32; 3]> for StreamId {
-    fn from(value: [u32; 3]) -> Self {
-        Self([value[0].to_le(), value[1].to_le(), value[2].to_le()])
+/// A wrapper for the `stream_id`.
+/// Can be constructed from any of the following:
+/// * `[u32; 3]`
+/// * `[u8; 12]`
+/// * `u128`
+pub struct StreamId([u32; STREAM_ID_LEN]);
+
+impl From<[u32; STREAM_ID_LEN]> for StreamId {
+    #[inline]
+    fn from(value: [u32; STREAM_ID_LEN]) -> Self {
+        let result = value.map(|v| v.to_le());
+        Self(result)
     }
 }
 
-impl From<[u8; 12]> for StreamId {
-    fn from(value: [u8; 12]) -> Self {
-        let mut result = Self([0u32; 3]);
-        for (n, chunk) in result.0.iter_mut().zip(value.chunks_exact(4)) {
+impl From<[u8; STREAM_ID_BYTES]> for StreamId {
+    #[inline]
+    fn from(value: [u8; STREAM_ID_BYTES]) -> Self {
+        let mut result = Self(Default::default());
+        for (n, chunk) in result
+            .0
+            .iter_mut()
+            .zip(value.chunks_exact(size_of::<u32>()))
+        {
             *n = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
         }
         result
@@ -131,13 +144,11 @@ impl From<[u8; 12]> for StreamId {
 }
 
 impl From<u128> for StreamId {
+    #[inline]
     fn from(value: u128) -> Self {
-        let bytes = value.to_le_bytes();
-        let mut result = Self([0u32; 3]);
-        for (n, chunk) in result.0.iter_mut().zip(bytes[0..12].chunks_exact(4)) {
-            *n = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
-        }
-        result
+        let result: [u8; STREAM_ID_BYTES] =
+            value.to_le_bytes()[..STREAM_ID_BYTES].try_into().unwrap();
+        result.into()
     }
 }
 
@@ -415,8 +426,8 @@ macro_rules! impl_chacha_rng {
 
             /// Set the offset from the start of the stream, in 32-bit words. This method
             /// takes either:
-            /// * u64
-            /// * [u8; 5]
+            /// * `[u8; 5]`
+            /// * `u64`
             ///
             /// As with `get_word_pos`, we use a 36-bit number. When given a `u64`, we use
             /// the least significant 4 bits as the RNG's index, and the 32 bits before it
@@ -432,20 +443,20 @@ macro_rules! impl_chacha_rng {
                 self.core.generate_and_set(word_pos.index);
             }
 
-            /// Sets the block pos and resets the RNG's index.
+            /// Set the block pos and reset the RNG's index.
             ///
             /// The word pos will be equal to `block_pos * 16 words per block`.
             ///
             /// This can be used with either:
-            /// * u32
-            /// * [u8; 4]
+            /// * `[u8; 4]`
+            /// * `u32`
             #[inline]
             pub fn set_block_pos<B: Into<BlockPos>>(&mut self, block_pos: B) {
                 self.core.reset();
                 self.core.core.0.state[12] = block_pos.into().0.to_le()
             }
 
-            /// Gets the block pos.
+            /// Get the block pos.
             #[inline]
             pub fn get_block_pos(&self) -> u32 {
                 self.core.core.0.state[12]
@@ -453,9 +464,9 @@ macro_rules! impl_chacha_rng {
 
             /// Set the stream number. The lower 96 bits are used and the rest are
             /// discarded. This method takes either:
-            /// * [u32; 3]
-            /// * [u8; 12]
-            /// * u128
+            /// * `[u32; 3]`
+            /// * `[u8; 12]`
+            /// * `u128`
             ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
