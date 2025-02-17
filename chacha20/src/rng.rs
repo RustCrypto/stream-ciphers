@@ -82,9 +82,10 @@ impl Debug for Seed {
     }
 }
 
-/// A wrapper for set_word_pos() input that can be assembled from:
-/// * `u64`
+/// A wrapper for set_word_pos() input.
+/// Can be constructed from any of the following:
 /// * `[u8; 5]`
+/// * `u64`
 pub struct WordPosInput {
     block_pos: u32,
     index: usize,
@@ -113,7 +114,7 @@ const STREAM_ID_BYTES: usize = size_of::<StreamId>();
 /// The length of the array contained within `StreamId`.
 const STREAM_ID_LEN: usize = 3;
 
-/// A wrapper for the `stream_id`.
+/// A wrapper for `stream_id`.
 /// Can be constructed from any of the following:
 /// * `[u32; 3]`
 /// * `[u8; 12]`
@@ -132,12 +133,12 @@ impl From<[u8; STREAM_ID_BYTES]> for StreamId {
     #[inline]
     fn from(value: [u8; STREAM_ID_BYTES]) -> Self {
         let mut result = Self(Default::default());
-        for (n, chunk) in result
+        for (cur, chunk) in result
             .0
             .iter_mut()
             .zip(value.chunks_exact(size_of::<u32>()))
         {
-            *n = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
+            *cur = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
         }
         result
     }
@@ -152,18 +153,21 @@ impl From<u128> for StreamId {
     }
 }
 
-/// A wrapper for `block_pos`. It can be used with:
-/// * u32
-/// * [u8; 4]
+/// A wrapper for `block_pos`.
+/// Can be constructed from any of the following:
+/// * `[u8; 4]`
+/// * `u32`
 pub struct BlockPos(u32);
 
 impl From<u32> for BlockPos {
+    #[inline]
     fn from(value: u32) -> Self {
         Self(value.to_le())
     }
 }
 
 impl From<[u8; 4]> for BlockPos {
+    #[inline]
     fn from(value: [u8; 4]) -> Self {
         Self(u32::from_le_bytes(value).to_le())
     }
@@ -425,7 +429,7 @@ macro_rules! impl_chacha_rng {
             }
 
             /// Set the offset from the start of the stream, in 32-bit words. This method
-            /// takes either:
+            /// takes any of the following:
             /// * `[u8; 5]`
             /// * `u64`
             ///
@@ -447,7 +451,7 @@ macro_rules! impl_chacha_rng {
             ///
             /// The word pos will be equal to `block_pos * 16 words per block`.
             ///
-            /// This can be used with either:
+            /// This method takes any of the following:
             /// * `[u8; 4]`
             /// * `u32`
             #[inline]
@@ -463,7 +467,7 @@ macro_rules! impl_chacha_rng {
             }
 
             /// Set the stream number. The lower 96 bits are used and the rest are
-            /// discarded. This method takes either:
+            /// discarded. This method takes any of the following:
             /// * `[u32; 3]`
             /// * `[u8; 12]`
             /// * `u128`
