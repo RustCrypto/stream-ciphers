@@ -109,29 +109,32 @@ impl From<u64> for WordPosInput {
     }
 }
 
-/// Amount of raw bytes backing a `StreamId` instance.
-const STREAM_ID_BYTES: usize = size_of::<StreamId>();
-/// The length of the array contained within `StreamId`.
-const STREAM_ID_LEN: usize = 3;
-
 /// A wrapper for `stream_id`.
 /// Can be constructed from any of the following:
 /// * `[u32; 3]`
 /// * `[u8; 12]`
 /// * `u128`
-pub struct StreamId([u32; STREAM_ID_LEN]);
+pub struct StreamId([u32; Self::LEN]);
 
-impl From<[u32; STREAM_ID_LEN]> for StreamId {
+impl StreamId {
+    /// Amount of raw bytes backing a `StreamId` instance.
+    const BYTES: usize = size_of::<Self>();
+
+    /// The length of the array contained within `StreamId`.
+    const LEN: usize = 3;
+}
+
+impl From<[u32; Self::LEN]> for StreamId {
     #[inline]
-    fn from(value: [u32; STREAM_ID_LEN]) -> Self {
+    fn from(value: [u32; Self::LEN]) -> Self {
         let result = value.map(|v| v.to_le());
         Self(result)
     }
 }
 
-impl From<[u8; STREAM_ID_BYTES]> for StreamId {
+impl From<[u8; Self::BYTES]> for StreamId {
     #[inline]
-    fn from(value: [u8; STREAM_ID_BYTES]) -> Self {
+    fn from(value: [u8; Self::BYTES]) -> Self {
         let mut result = Self(Default::default());
         for (cur, chunk) in result
             .0
@@ -147,8 +150,7 @@ impl From<[u8; STREAM_ID_BYTES]> for StreamId {
 impl From<u128> for StreamId {
     #[inline]
     fn from(value: u128) -> Self {
-        let result: [u8; STREAM_ID_BYTES] =
-            value.to_le_bytes()[..STREAM_ID_BYTES].try_into().unwrap();
+        let result: [u8; Self::BYTES] = value.to_le_bytes()[..Self::BYTES].try_into().unwrap();
         result.into()
     }
 }
