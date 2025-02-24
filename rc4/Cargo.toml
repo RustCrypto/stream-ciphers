@@ -16,7 +16,7 @@ categories = ["cryptography", "no-std"]
 cipher = "=0.5.0-pre.7"
 
 [dev-dependencies]
-hex-literal = "0.4"
+hex-literal = "1.0"
 
 [features]
 std = ["cipher/std"]
