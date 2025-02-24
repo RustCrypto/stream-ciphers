@@ -38,7 +38,7 @@ dependencies = [
  "cpufeatures",
  "hex-literal",
  "rand_chacha",
- "rand_core 0.9.1",
+ "rand_core 0.9.2",
  "serde",
  "serde_json",
  "zeroize",
@@ -194,9 +194,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a88e0da7a2c97baa202165137c158d0a2e824ac465d13d81046727b34cb247d3"
+checksum = "7a509b1a2ffbe92afab0e55c8fd99dea1c280e8171bd2d88682bb20bc41cbc2c"
 dependencies = [
  "zerocopy 0.8.18",
 ]
