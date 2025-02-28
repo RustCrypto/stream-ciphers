@@ -111,6 +111,7 @@ impl From<u64> for WordPosInput {
 }
 
 /// A wrapper for `stream_id`.
+///
 /// Can be constructed from any of the following:
 /// * `[u32; 3]`
 /// * `[u8; 12]`
