@@ -158,6 +158,7 @@ impl From<u128> for StreamId {
 }
 
 /// A wrapper for `block_pos`.
+///
 /// Can be constructed from any of the following:
 /// * `[u8; 4]`
 /// * `u32`
