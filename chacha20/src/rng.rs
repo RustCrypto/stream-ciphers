@@ -83,6 +83,7 @@ impl Debug for Seed {
 }
 
 /// A wrapper for set_word_pos() input.
+///
 /// Can be constructed from any of the following:
 /// * `[u8; 5]`
 /// * `u64`
