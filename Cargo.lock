@@ -190,6 +190,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rc4"
+version = "0.2.0-pre"
+dependencies = [
+ "cipher",
+ "hex-literal",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -24,18 +24,6 @@ relied on for security/confidentiality.
 
 **USE AT YOUR OWN RISK!**
 
-## Minimum Supported Rust Version
-
-Rust **1.81** or higher.
-
-Minimum supported Rust version can be changed in the future, but it will be
-done with a minor version bump.
-
-## SemVer Policy
-
-- All on-by-default features of this library are covered by SemVer
-- MSRV is considered exempt from SemVer as noted above
-
 ## License
 
 Licensed under either of:
@@ -58,7 +46,7 @@ dual licensed as above, without any additional terms or conditions.
 [docs-image]: https://docs.rs/rc4/badge.svg
 [docs-link]: https://docs.rs/rc4/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.81+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
 [build-image]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/rc4.yml/badge.svg
