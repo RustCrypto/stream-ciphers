@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-    "chacha20",
-    "hc-256",
-    "rabbit",
-    "rc4",
-    "salsa20",
+    #"chacha20",
+    #"hc-256",
+    #"rabbit",
+    #"rc4",
+    #"salsa20",
 ]
 
 [profile.dev]
