@@ -1,3 +1,4 @@
+#![allow(unsafe_op_in_unsafe_fn)]
 //! NEON-optimized implementation for aarch64 CPUs.
 //!
 //! Adapted from the Crypto++ `chacha_simd` implementation by Jack Lloyd and
@@ -14,8 +15,8 @@ use crate::chacha::Block;
 
 #[cfg(feature = "cipher")]
 use cipher::{
-    consts::{U4, U64},
     BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
+    consts::{U4, U64},
 };
 
 struct Backend<R: Rounds> {

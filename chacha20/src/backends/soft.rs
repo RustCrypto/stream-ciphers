@@ -1,14 +1,14 @@
 //! Portable implementation which does not rely on architecture-specific
 //! intrinsics.
 
-use crate::{quarter_round, ChaChaCore, Rounds, Variant, STATE_WORDS};
+use crate::{ChaChaCore, Rounds, STATE_WORDS, Variant, quarter_round};
 
 #[cfg(feature = "cipher")]
 use crate::chacha::Block;
 #[cfg(feature = "cipher")]
 use cipher::{
-    consts::{U1, U64},
     BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend,
+    consts::{U1, U64},
 };
 
 pub(crate) struct Backend<'a, R: Rounds, V: Variant>(pub(crate) &'a mut ChaChaCore<R, V>);

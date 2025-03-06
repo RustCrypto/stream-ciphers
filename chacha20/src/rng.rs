@@ -9,8 +9,8 @@
 use core::fmt::Debug;
 
 use rand_core::{
-    block::{BlockRng, BlockRngCore, CryptoBlockRng},
     CryptoRng, RngCore, SeedableRng,
+    block::{BlockRng, BlockRngCore, CryptoBlockRng},
 };
 
 #[cfg(feature = "serde1")]
@@ -20,9 +20,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
-    backends,
+    ChaChaCore, R8, R12, R20, Rounds, backends,
     variants::{Ietf, Variant},
-    ChaChaCore, Rounds, R12, R20, R8,
 };
 
 use cfg_if::cfg_if;
@@ -699,7 +698,7 @@ pub(crate) mod tests {
     }
 
     #[cfg(feature = "serde1")]
-    use super::{ChaCha12Rng, ChaCha20Rng, ChaCha8Rng};
+    use super::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng};
 
     type ChaChaRng = ChaCha20Rng;
 
@@ -1028,8 +1027,8 @@ pub(crate) mod tests {
     /// Because this test uses `rand_chacha v0.3.1` which uses a 64-bit counter, these
     /// test results should be accurate up to `block_pos = 2^32 - 1`.
     fn test_fill_bytes_v2() {
-        use rand_chacha::rand_core::{RngCore as _, SeedableRng as _};
         use rand_chacha::ChaCha20Rng as TesterRng;
+        use rand_chacha::rand_core::{RngCore, SeedableRng};
 
         let mut rng = ChaChaRng::from_seed([0u8; 32]);
         let mut tester_rng = TesterRng::from_seed([0u8; 32]);

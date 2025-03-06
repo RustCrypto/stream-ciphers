@@ -1,10 +1,10 @@
 pub use cipher::{
+    IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper,
     array::Array,
     consts::{U12, U32, U64},
-    IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper,
 };
 
-use crate::{variants::Ietf, ChaChaCore, Rounds, R12, R20, R8};
+use crate::{ChaChaCore, R8, R12, R20, Rounds, variants::Ietf};
 
 /// Key type used by all ChaCha variants.
 pub type Key = Array<u8, U32>;

@@ -3,9 +3,9 @@
 use crate::chacha::Key;
 use crate::{ChaChaCore, R20};
 use cipher::{
-    array::Array,
-    consts::{U32, U8},
     IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper,
+    array::Array,
+    consts::{U8, U32},
 };
 
 /// Nonce type used by [`ChaCha20Legacy`].

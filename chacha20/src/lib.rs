@@ -112,7 +112,7 @@
 #[cfg(feature = "cipher")]
 pub use cipher;
 #[cfg(feature = "cipher")]
-use cipher::{consts::U64, BlockSizeUser, StreamCipherCore, StreamCipherSeekCore};
+use cipher::{BlockSizeUser, StreamCipherCore, StreamCipherSeekCore, consts::U64};
 
 use cfg_if::cfg_if;
 use core::marker::PhantomData;
@@ -134,16 +134,16 @@ mod variants;
 use variants::Variant;
 
 #[cfg(feature = "cipher")]
-pub use chacha::{ChaCha12, ChaCha20, ChaCha8, Key, KeyIvInit};
+pub use chacha::{ChaCha8, ChaCha12, ChaCha20, Key, KeyIvInit};
 #[cfg(feature = "rng")]
 pub use rand_core;
 #[cfg(feature = "rng")]
-pub use rng::{ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng, ChaCha8Core, ChaCha8Rng};
+pub use rng::{ChaCha8Core, ChaCha8Rng, ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng};
 
 #[cfg(feature = "legacy")]
 pub use legacy::{ChaCha20Legacy, LegacyNonce};
 #[cfg(feature = "xchacha")]
-pub use xchacha::{hchacha, XChaCha12, XChaCha20, XChaCha8, XNonce};
+pub use xchacha::{XChaCha8, XChaCha12, XChaCha20, XNonce, hchacha};
 
 /// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
