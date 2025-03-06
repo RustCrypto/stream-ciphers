@@ -5,7 +5,7 @@ members = [
     "hc-256",
     "rabbit",
     "rc4",
-    #"salsa20",
+    "salsa20",
 ]
 
 [profile.dev]

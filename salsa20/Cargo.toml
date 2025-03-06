@@ -4,8 +4,8 @@ version = "0.11.0-pre.2"
 description = "Salsa20 Stream Cipher"
 authors = ["RustCrypto Developers"]
 license = "MIT OR Apache-2.0"
-edition = "2021"
-rust-version = "1.81"
+edition = "2024"
+rust-version = "1.85"
 readme = "README.md"
 documentation = "https://docs.rs/salsa20"
 repository = "https://github.com/RustCrypto/stream-ciphers"
@@ -14,14 +14,13 @@ categories = ["cryptography", "no-std"]
 
 [dependencies]
 cfg-if = "1"
-cipher = "=0.5.0-pre.7"
+cipher = "=0.5.0-pre.8"
 
 [dev-dependencies]
-cipher = { version = "=0.5.0-pre.7", features = ["dev"] }
+cipher = { version = "=0.5.0-pre.8", features = ["dev"] }
 hex-literal = "0.4"
 
 [features]
-std = ["cipher/std"]
 zeroize = ["cipher/zeroize"]
 
 [package.metadata.docs.rs]

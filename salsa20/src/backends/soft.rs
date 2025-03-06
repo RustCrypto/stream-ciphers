@@ -1,10 +1,10 @@
 //! Portable implementation which does not rely on architecture-specific
 //! intrinsics.
 
-use crate::{Block, SalsaCore, Unsigned, STATE_WORDS};
+use crate::{Block, STATE_WORDS, SalsaCore, Unsigned};
 use cipher::{
-    consts::{U1, U64},
     BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherSeekCore,
+    consts::{U1, U64},
 };
 
 pub(crate) struct Backend<'a, R: Unsigned>(pub(crate) &'a mut SalsaCore<R>);
