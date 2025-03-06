@@ -50,6 +50,7 @@ dependencies = [
  "blobby",
  "crypto-common",
  "inout",
+ "zeroize",
 ]
 
 [[package]]
@@ -83,6 +84,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hc-256"
+version = "0.6.0-pre"
+dependencies = [
+ "cipher",
+ "hex-literal",
+]
+
+[[package]]
 name = "hex-literal"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -95,6 +104,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4dab50e193aebe510fe0e40230145820e02f48dae0cf339ea4204e6e708ff7bd"
 dependencies = [
  "typenum",
+ "zeroize",
 ]
 
 [[package]]

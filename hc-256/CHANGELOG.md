@@ -8,8 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## UNRELEASED
 ### Fixed
 - Minimal versions build ([#290])
+- Hc256Core h2 function ([#324])
+
+### Changed
+- Bump `cipher` from `0.4` to `0.5` ([#338])
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#397])
+- Relax MSRV policy and allow MSRV bumps in patch releases
+
+### Removed
+- `std` feature ([#397])
 
 [#290]: https://github.com/RustCrypto/stream-ciphers/pull/290
+[#324]: https://github.com/RustCrypto/stream-ciphers/pull/324
+[#338]: https://github.com/RustCrypto/stream-ciphers/pull/338
+[#397]: https://github.com/RustCrypto/stream-ciphers/pull/397
 
 ## 0.5.0 (2022-02-10)
 ### Changed

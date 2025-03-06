@@ -60,10 +60,10 @@
 pub use cipher;
 
 use cipher::{
-    consts::{U1, U32, U4},
     AlgorithmName, Block, BlockSizeUser, Iv, IvSizeUser, Key, KeyIvInit, KeySizeUser,
     ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure, StreamCipherCore,
     StreamCipherCoreWrapper,
+    consts::{U1, U4, U32},
 };
 use core::fmt;
 
@@ -119,16 +119,16 @@ impl KeyIvInit for Hc256Core {
 
         for i in 0..KEY_WORDS {
             data[i] = key[4 * i] as u32 & 0xff
-                | (key[(4 * i) + 1] as u32 & 0xff) << 8
-                | (key[(4 * i) + 2] as u32 & 0xff) << 16
-                | (key[(4 * i) + 3] as u32 & 0xff) << 24;
+                | ((key[(4 * i) + 1] as u32 & 0xff) << 8)
+                | ((key[(4 * i) + 2] as u32 & 0xff) << 16)
+                | ((key[(4 * i) + 3] as u32 & 0xff) << 24);
         }
 
         for i in 0..IV_WORDS {
             data[i + KEY_WORDS] = iv[4 * i] as u32 & 0xff
-                | (iv[(4 * i) + 1] as u32 & 0xff) << 8
-                | (iv[(4 * i) + 2] as u32 & 0xff) << 16
-                | (iv[(4 * i) + 3] as u32 & 0xff) << 24;
+                | ((iv[(4 * i) + 1] as u32 & 0xff) << 8)
+                | ((iv[(4 * i) + 2] as u32 & 0xff) << 16)
+                | ((iv[(4 * i) + 3] as u32 & 0xff) << 24);
         }
 
         for i in IV_WORDS + KEY_WORDS..INIT_SIZE {

@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "chacha20",
-    #"hc-256",
+    "hc-256",
     #"rabbit",
     #"rc4",
     #"salsa20",
