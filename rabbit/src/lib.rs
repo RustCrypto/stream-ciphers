@@ -60,10 +60,10 @@
 pub use cipher;
 
 use cipher::{
-    consts::{U1, U16, U8},
-    crypto_common::InnerUser,
     Block, BlockSizeUser, InnerIvInit, IvSizeUser, KeyInit, KeySizeUser, ParBlocksSizeUser,
     StreamCipherBackend, StreamCipherClosure, StreamCipherCore, StreamCipherCoreWrapper,
+    consts::{U1, U8, U16},
+    crypto_common::InnerUser,
 };
 
 #[cfg(feature = "zeroize")]
@@ -149,8 +149,10 @@ impl State {
     fn setup_iv(&mut self, iv: [u8; IV_BYTE_LEN]) {
         let mut i = [0_u32; 4];
 
-        i[0] = iv[0] as u32 | (iv[1] as u32) << 8 | (iv[2] as u32) << 16 | (iv[3] as u32) << 24;
-        i[2] = iv[4] as u32 | (iv[5] as u32) << 8 | (iv[6] as u32) << 16 | (iv[7] as u32) << 24;
+        i[0] =
+            iv[0] as u32 | ((iv[1] as u32) << 8) | ((iv[2] as u32) << 16) | ((iv[3] as u32) << 24);
+        i[2] =
+            iv[4] as u32 | ((iv[5] as u32) << 8) | ((iv[6] as u32) << 16) | ((iv[7] as u32) << 24);
         i[1] = (i[0] >> 16) | (i[2] & 0xFFFF0000);
         i[3] = (i[2] << 16) | (i[0] & 0x0000FFFF);
 
