@@ -1,14 +1,14 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
 use cipher::{
-    array::Array,
-    consts::{U16, U24, U32, U64},
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
     StreamCipherCoreWrapper, StreamCipherSeekCore,
+    array::Array,
+    consts::{U16, U24, U32, U64},
 };
 
 use crate::{
-    quarter_round, variants::Ietf, ChaChaCore, Rounds, CONSTANTS, R12, R20, R8, STATE_WORDS,
+    CONSTANTS, ChaChaCore, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
 };
 
 #[cfg(feature = "zeroize")]

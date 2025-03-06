@@ -10,8 +10,8 @@ rand_core-compatible RNGs based on those ciphers.
 """
 authors = ["RustCrypto Developers"]
 license = "Apache-2.0 OR MIT"
-edition = "2021"
-rust-version = "1.81"
+edition = "2024"
+rust-version = "1.85"
 readme = "README.md"
 documentation = "https://docs.rs/chacha20"
 repository = "https://github.com/RustCrypto/stream-ciphers"
@@ -20,7 +20,7 @@ categories = ["cryptography", "no-std"]
 
 [dependencies]
 cfg-if = "1"
-cipher = { version = "=0.5.0-pre.7", optional = true }
+cipher = { version = "=0.5.0-pre.8", optional = true }
 rand_core = { version = "0.9", optional = true, default-features = false }
 serde = { version = "1.0", features = ["derive"], optional = true }
 
@@ -31,9 +31,9 @@ zeroize = { version = "1.8.1", optional = true, default-features = false }
 cpufeatures = "0.2"
 
 [dev-dependencies]
-cipher = { version = "=0.5.0-pre.7", features = ["dev"] }
-hex-literal = "0.4"
-rand_chacha = "0.3.1"
+cipher = { version = "=0.5.0-pre.8", features = ["dev"] }
+hex-literal = "1"
+rand_chacha = "0.9"
 serde_json = "1.0" # Only to test serde1
 
 [features]
@@ -41,7 +41,6 @@ default = ["cipher"]
 legacy = ["cipher"]
 rng = ["rand_core"]
 serde1 = ["serde"]
-std = ["cipher/std"]
 xchacha = ["cipher"]
 
 [package.metadata.docs.rs]

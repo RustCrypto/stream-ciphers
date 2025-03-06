@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.0 (UNRELEASED)
+### Added
+- `rand_core` support ([#333])
+
+### Removed
+- `chacha20_force_neon` cfg attribute ([#361])
+- `std` feature ([#397])
+
+### Fixed
+- `StreamId` endianness ([#389])
+- `StreamId` `From` impl ([#392])
+
+### Changed
+- Bump `cipher` from `0.4` to `0.5` ([#338])
+- Edition changed to 2024 and MSRV bumped to 1.85 ([#397])
+- Relax MSRV policy and allow MSRV bumps in patch releases
+
+[#333]: https://github.com/RustCrypto/stream-ciphers/pull/333
+[#338]: https://github.com/RustCrypto/stream-ciphers/pull/338
+[#361]: https://github.com/RustCrypto/stream-ciphers/pull/361
+[#389]: https://github.com/RustCrypto/stream-ciphers/pull/389
+[#392]: https://github.com/RustCrypto/stream-ciphers/pull/392
+[#397]: https://github.com/RustCrypto/stream-ciphers/pull/397
+
 ## 0.9.1 (2023-04-01)
 ### Added
 - NEON support via `chacha20_force_neon` cfg attribute ([#310], [#317])

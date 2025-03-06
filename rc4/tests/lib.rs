@@ -3,8 +3,8 @@
 #![allow(deprecated)] // uses `from_slice`
 
 use hex_literal::hex;
-use rc4::{consts::*, KeyInit, StreamCipher};
 use rc4::{Key, Rc4};
+use rc4::{KeyInit, StreamCipher, consts::*};
 
 #[test]
 fn test_rfc6229_length_40_bits_key1() {

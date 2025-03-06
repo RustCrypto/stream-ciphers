@@ -1,10 +1,11 @@
+#![allow(unsafe_op_in_unsafe_fn)]
 use crate::{
-    backends::soft::Backend as SoftBackend, Block, SalsaCore, StreamCipherClosure, Unsigned,
-    STATE_WORDS,
+    Block, STATE_WORDS, SalsaCore, StreamCipherClosure, Unsigned,
+    backends::soft::Backend as SoftBackend,
 };
 use cipher::{
-    consts::{U1, U64},
     BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend,
+    consts::{U1, U64},
 };
 use core::marker::PhantomData;
 

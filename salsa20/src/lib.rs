@@ -78,10 +78,10 @@ use cfg_if::cfg_if;
 pub use cipher;
 
 use cipher::{
-    array::{typenum::Unsigned, Array},
-    consts::{U10, U24, U32, U4, U6, U64, U8},
     Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure,
     StreamCipherCore, StreamCipherCoreWrapper, StreamCipherSeekCore,
+    array::{Array, typenum::Unsigned},
+    consts::{U4, U6, U8, U10, U24, U32, U64},
 };
 use core::marker::PhantomData;
 
@@ -91,7 +91,7 @@ use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 mod backends;
 mod xsalsa;
 
-pub use xsalsa::{hsalsa, XSalsa12, XSalsa20, XSalsa8, XSalsaCore};
+pub use xsalsa::{XSalsa8, XSalsa12, XSalsa20, XSalsaCore, hsalsa};
 
 /// Salsa20/8 stream cipher
 /// (reduced-round variant of Salsa20 with 8 rounds, *not recommended*)

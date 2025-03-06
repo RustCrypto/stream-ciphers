@@ -1,11 +1,11 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use super::{Key, Nonce, SalsaCore, Unsigned, XNonce, CONSTANTS};
+use super::{CONSTANTS, Key, Nonce, SalsaCore, Unsigned, XNonce};
 use cipher::{
-    array::Array,
-    consts::{U10, U16, U24, U32, U4, U6, U64},
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
     StreamCipherCoreWrapper, StreamCipherSeekCore,
+    array::Array,
+    consts::{U4, U6, U10, U16, U24, U32, U64},
 };
 
 use crate::backends::soft::quarter_round;

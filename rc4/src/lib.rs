@@ -35,12 +35,12 @@
 //! );
 //! ```
 
-pub use cipher::{self, consts, KeyInit, StreamCipher};
+pub use cipher::{self, KeyInit, StreamCipher, consts};
 
 use cipher::{
-    array::{Array, ArraySize},
     Block, BlockSizeUser, KeySizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
     StreamCipherCore, StreamCipherCoreWrapper,
+    array::{Array, ArraySize},
 };
 
 use core::marker::PhantomData;
