@@ -28,7 +28,15 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<'_, R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         let res = run_rounds::<R>(&self.0.state);
-        self.0.state[12] = self.0.state[12].wrapping_add(1);
+        self.0.counter = self.0.counter.saturating_add(1);
+        if let Some(ctr) = self.0.state[12].checked_add(1) {
+            self.0.state[12] = ctr;
+        } else if V::COUNTER_SIZE > 1 {
+            if let Some(ctr) = self.0.state[13].checked_add(1) {
+                self.0.state[12] = 0;
+                self.0.state[13] = ctr;
+            }
+        }
 
         for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
             chunk.copy_from_slice(&val.to_le_bytes());
@@ -42,7 +50,15 @@ impl<R: Rounds, V: Variant> Backend<'_, R, V> {
     pub(crate) fn gen_ks_blocks(&mut self, buffer: &mut [u32; 64]) {
         for i in 0..4 {
             let res = run_rounds::<R>(&self.0.state);
-            self.0.state[12] = self.0.state[12].wrapping_add(1);
+            self.0.counter = self.0.counter.saturating_add(1);
+            if let Some(ctr) = self.0.state[12].checked_add(1) {
+                self.0.state[12] = ctr;
+            } else if V::COUNTER_SIZE > 1 {
+                if let Some(ctr) = self.0.state[13].checked_add(1) {
+                    self.0.state[12] = 0;
+                    self.0.state[13] = ctr;
+                }
+            }
 
             for (word, val) in buffer[i << 4..(i + 1) << 4].iter_mut().zip(res.iter()) {
                 *word = val.to_le();

@@ -215,6 +215,8 @@ pub struct ChaChaCore<R: Rounds, V: Variant> {
     /// CPU target feature tokens
     #[allow(dead_code)]
     tokens: Tokens,
+    /// Current counter position
+    counter: u64,
     /// Number of rounds to perform
     rounds: PhantomData<R>,
     /// the variant of the implementation
@@ -254,9 +256,11 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                 let tokens = ();
             }
         }
+        debug_assert_eq!(state[12], 0);
         Self {
             state,
             tokens,
+            counter: 0,
             rounds: PhantomData,
             variant: PhantomData,
         }
@@ -265,16 +269,31 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
 
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
-    type Counter = u32;
+    type Counter = u64;
 
     #[inline(always)]
     fn get_block_pos(&self) -> Self::Counter {
-        self.state[12]
+        let le_pos = self.counter.to_le_bytes();
+        let max_val = V::MAX_USABLE_COUNTER;
+        if self.counter <= max_val {
+            for i in 0..V::COUNTER_SIZE {
+                debug_assert_eq!(
+                    self.state[12 + i],
+                    u32::from_le_bytes(<_>::try_from(&le_pos[4 * i..(4 * (i + 1))]).unwrap())
+                );
+            }
+        }
+        self.counter
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        self.state[12] = pos
+        self.counter = pos;
+        let le_pos = pos.to_le_bytes();
+        for i in 0..V::COUNTER_SIZE {
+            self.state[12 + i] =
+                u32::from_le_bytes(<_>::try_from(&le_pos[4 * i..(4 * (i + 1))]).unwrap());
+        }
     }
 }
 
@@ -282,7 +301,8 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
     #[inline(always)]
     fn remaining_blocks(&self) -> Option<usize> {
-        let rem = u32::MAX - self.get_block_pos();
+        let max_val = V::MAX_USABLE_COUNTER;
+        let rem = max_val.saturating_sub(self.get_block_pos());
         rem.try_into().ok()
     }
 
@@ -301,7 +321,7 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                         }
                     } else if #[cfg(chacha20_force_sse2)] {
                         unsafe {
-                            backends::sse2::inner::<R, _>(&mut self.state, f);
+                            backends::sse2::inner::<R, V, _>(&mut self.counter, &mut self.state, f);
                         }
                     } else {
                         let (avx2_token, sse2_token) = self.tokens;
@@ -311,7 +331,7 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                             }
                         } else if sse2_token.get() {
                             unsafe {
-                                backends::sse2::inner::<R, _>(&mut self.state, f);
+                                backends::sse2::inner::<R, V, _>(&mut self.counter, &mut self.state, f);
                             }
                         } else {
                             f.call(&mut backends::soft::Backend(self));

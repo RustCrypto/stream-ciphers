@@ -8,7 +8,7 @@ use cipher::{
 };
 
 use crate::{
-    CONSTANTS, ChaChaCore, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
+    CONSTANTS, ChaChaCore, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::XChaCha,
 };
 
 #[cfg(feature = "zeroize")]
@@ -42,7 +42,7 @@ pub type XChaCha12 = StreamCipherCoreWrapper<XChaChaCore<R12>>;
 pub type XChaCha8 = StreamCipherCoreWrapper<XChaChaCore<R8>>;
 
 /// The XChaCha core function.
-pub struct XChaChaCore<R: Rounds>(ChaChaCore<R, Ietf>);
+pub struct XChaChaCore<R: Rounds>(ChaChaCore<R, XChaCha>);
 
 impl<R: Rounds> KeySizeUser for XChaChaCore<R> {
     type KeySize = U32;
@@ -60,11 +60,9 @@ impl<R: Rounds> KeyIvInit for XChaChaCore<R> {
     fn new(key: &Key, iv: &XNonce) -> Self {
         let subkey = hchacha::<R>(key, iv[..16].as_ref().try_into().unwrap());
 
-        let mut nonce = [0u8; 12];
-        // first 4 bytes are 0, last 8 bytes are last 8 from the iv
-        // according to draft-arciszewski-xchacha-03
-        nonce[4..].copy_from_slice(&iv[16..]);
-        Self(ChaChaCore::<R, Ietf>::new(subkey.as_ref(), &nonce))
+        let mut nonce = [0u8; 8];
+        nonce[..].copy_from_slice(&iv[16..]);
+        Self(ChaChaCore::<R, XChaCha>::new(subkey.as_ref(), &nonce))
     }
 }
 
@@ -81,15 +79,15 @@ impl<R: Rounds> StreamCipherCore for XChaChaCore<R> {
 }
 
 impl<R: Rounds> StreamCipherSeekCore for XChaChaCore<R> {
-    type Counter = u32;
+    type Counter = u64;
 
     #[inline(always)]
-    fn get_block_pos(&self) -> u32 {
+    fn get_block_pos(&self) -> u64 {
         self.0.get_block_pos()
     }
 
     #[inline(always)]
-    fn set_block_pos(&mut self, pos: u32) {
+    fn set_block_pos(&mut self, pos: u64) {
         self.0.set_block_pos(pos);
     }
 }

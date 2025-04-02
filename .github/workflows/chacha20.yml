@@ -37,7 +37,8 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
-      - run: cargo build --target ${{ matrix.target }}
+      - run: cargo build --target ${{ matrix.target }} --features xchacha,legacy
+      - run: bash -c '[[ $(cargo test --features xchacha,legacy overflow -- --list --format=terse 2>/dev/null | wc -l) -eq 14 ]]'
       - run: cargo build --target ${{ matrix.target }} --features zeroize
 
   minimal-versions:
@@ -73,7 +74,7 @@ jobs:
           targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
-      - run: cargo test --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --features xchacha,legacy
       - run: cargo test --target ${{ matrix.target }} --features zeroize
 
   # Tests for the AVX2 backend
@@ -106,7 +107,7 @@ jobs:
           targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
-      - run: cargo test --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --features xchacha,legacy
       - run: cargo test --target ${{ matrix.target }} --features zeroize
 
   # Tests for the SSE2 backend
@@ -139,7 +140,7 @@ jobs:
           targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
-      - run: cargo test --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --features xchacha,legacy
       - run: cargo test --target ${{ matrix.target }} --features zeroize
 
   # Tests for the portable software backend
@@ -172,7 +173,7 @@ jobs:
           targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
       - run: cargo check --target ${{ matrix.target }} --all-features
-      - run: cargo test --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --features xchacha,legacy
       - run: cargo test --target ${{ matrix.target }} --features zeroize
 
   # Cross-compiled tests
@@ -206,4 +207,4 @@ jobs:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
       - uses: RustCrypto/actions/cross-install@master
-      - run: RUSTFLAGS="${{ matrix.rustflags }}" cross test --package chacha20 --target ${{ matrix.target }}
+      - run: RUSTFLAGS="${{ matrix.rustflags }}" cross test --package chacha20 --target ${{ matrix.target }} --features xchacha,legacy

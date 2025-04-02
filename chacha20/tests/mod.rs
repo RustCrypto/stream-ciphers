@@ -235,10 +235,9 @@ mod legacy {
     }
 }
 
-
 mod overflow {
-    use cipher::{StreamCipher, StreamCipherSeek};
     use chacha20::KeyIvInit;
+    use cipher::{StreamCipher, StreamCipherSeek};
 
     const OFFSET_256GB: u64 = 256u64 << 30;
     const OFFSET_256PB: u64 = 256u64 << 50;
@@ -262,11 +261,27 @@ mod overflow {
     }
 
     #[test]
+    fn test_current_pos() {
+        let offset: u64 = 256u64 << 30;
+
+        let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
+        cipher
+            .try_seek(offset - 64)
+            .expect("Couldn't seek to nearly 256GB");
+        assert_eq!(cipher.try_current_pos::<u64>().unwrap(), offset - (1 << 6));
+        cipher
+            .try_seek(offset - 63)
+            .expect("Couldn't seek to nearly 256GB");
+        cipher.try_current_pos::<u64>().unwrap();
+    }
+
+    #[test]
     fn bad_overflow_check2() {
         let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
         cipher
             .try_seek(OFFSET_256GB - 1)
             .expect("Couldn't seek to nearly 256GB");
+        dbg!(cipher.try_current_pos::<u64>());
         let mut data = [0u8; 2];
         cipher
             .try_apply_keystream(&mut data)
@@ -344,7 +359,7 @@ mod overflow {
     }
 
     #[test]
-#[cfg(feature = "xchacha")]
+    #[cfg(feature = "xchacha")]
     fn xchacha_256gb() {
         let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
         cipher
@@ -362,7 +377,7 @@ mod overflow {
     }
 
     #[test]
-#[cfg(feature = "xchacha")]
+    #[cfg(feature = "xchacha")]
     fn xchacha_upper_limit() {
         let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
         cipher
@@ -379,7 +394,7 @@ mod overflow {
     }
 
     #[test]
-#[cfg(feature = "xchacha")]
+    #[cfg(feature = "xchacha")]
     fn xchacha_has_a_big_counter() {
         let mut cipher = chacha20::XChaCha20::new(&Default::default(), &Default::default());
         cipher.try_seek(OFFSET_256PB).expect("Could seek to 256PB");
