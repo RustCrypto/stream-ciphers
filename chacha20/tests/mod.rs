@@ -262,8 +262,6 @@ mod overflow {
 
     #[test]
     fn test_starting_pos() {
-        let offset: u64 = 256u64 << 30;
-
         let mut cipher = chacha20::ChaCha20::new(&Default::default(), &Default::default());
         assert_eq!(cipher.try_current_pos::<u64>().unwrap(), 0);
         cipher.try_seek(0).unwrap();
@@ -291,7 +289,6 @@ mod overflow {
         cipher
             .try_seek(OFFSET_256GB - 1)
             .expect("Couldn't seek to nearly 256GB");
-        dbg!(cipher.try_current_pos::<u64>());
         let mut data = [0u8; 2];
         cipher
             .try_apply_keystream(&mut data)
