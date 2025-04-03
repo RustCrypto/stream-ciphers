@@ -38,7 +38,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
       - run: cargo build --target ${{ matrix.target }} --features xchacha,legacy
-      - run: bash -c '[[ $(cargo test --features xchacha,legacy overflow -- --list --format=terse 2>/dev/null | wc -l) -eq 14 ]]'
+      - run: bash -c '[[ $(cargo test --features xchacha,legacy overflow -- --include-ignored --list --format=terse 2>/dev/null | wc -l) -eq 15 ]]'
       - run: cargo build --target ${{ matrix.target }} --features zeroize
 
   minimal-versions:

@@ -50,14 +50,10 @@ impl<R: Rounds, V: Variant> Backend<'_, R, V> {
     pub(crate) fn gen_ks_blocks(&mut self, buffer: &mut [u32; 64]) {
         for i in 0..4 {
             let res = run_rounds::<R>(&self.0.state);
-            self.0.counter = self.0.counter.saturating_add(1);
-            if let Some(ctr) = self.0.state[12].checked_add(1) {
-                self.0.state[12] = ctr;
-            } else if V::COUNTER_SIZE > 1 {
-                if let Some(ctr) = self.0.state[13].checked_add(1) {
-                    self.0.state[12] = 0;
-                    self.0.state[13] = ctr;
-                }
+            self.0.counter = self.0.counter.wrapping_add(1) & V::MAX_USABLE_COUNTER;
+            self.0.state[12] = self.0.state[12].wrapping_add(1);
+            if self.0.state[12] == 0 && V::COUNTER_SIZE > 1 {
+                self.0.state[13] = self.0.state[13].wrapping_add(1);
             }
 
             for (word, val) in buffer[i << 4..(i + 1) << 4].iter_mut().zip(res.iter()) {

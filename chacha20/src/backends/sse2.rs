@@ -2,7 +2,7 @@
 use crate::{Rounds,Variant};
 
 #[cfg(feature = "rng")]
-use crate::{ChaChaCore, Variant};
+use crate::{ChaChaCore};
 
 #[cfg(feature = "cipher")]
 use crate::{chacha::Block, STATE_WORDS};
@@ -151,28 +151,50 @@ where
     V: Variant,
 {
     let state_ptr = core.state.as_ptr() as *const __m128i;
-    let mut backend = Backend::<R> {
+    let mut backend = Backend::<R,V> {
         v: [
             _mm_loadu_si128(state_ptr.add(0)),
             _mm_loadu_si128(state_ptr.add(1)),
             _mm_loadu_si128(state_ptr.add(2)),
             _mm_loadu_si128(state_ptr.add(3)),
         ],
+        counter: core.counter,
         _pd: PhantomData,
     };
 
     backend.gen_ks_blocks(buffer);
 
-    core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
+    core.counter = backend.counter;
+    if V::COUNTER_SIZE == 1 {
+        core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
+    } else {
+        let ctr = _mm_cvtsi128_si64(backend.v[3]) as u64;
+
+        core.state[12] = (ctr&(u32::MAX as u64)) as u32;
+        core.state[13] = (ctr>>32) as u32;
+    }
 }
 
 #[cfg(feature = "rng")]
-impl<R: Rounds> Backend<R> {
+impl<R: Rounds, V: Variant> Backend<R, V> {
     #[inline(always)]
     fn gen_ks_blocks(&mut self, block: &mut [u32]) {
+        if V::COUNTER_SIZE == 1 {
+            self.counter = V::MAX_USABLE_COUNTER &
+                self.counter.saturating_add(PAR_BLOCKS as u64);
+        } else {
+            self.counter = self.counter.saturating_add(PAR_BLOCKS as u64);
+        }
+
         unsafe {
             let res = rounds::<R,V>(&self.v);
-            self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32));
+            if V::COUNTER_SIZE == 1 {
+
+                self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32));
+
+            } else {
+                self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64));
+            }
 
             let blocks_ptr = block.as_mut_ptr() as *mut __m128i;
             for block in 0..PAR_BLOCKS {
