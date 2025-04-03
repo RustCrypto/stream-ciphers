@@ -240,7 +240,9 @@ mod overflow {
     use cipher::{StreamCipher, StreamCipherSeek};
 
     const OFFSET_256GB: u64 = 256u64 << 30;
+    #[cfg(feature = "xchacha")]
     const OFFSET_256PB: u64 = 256u64 << 50;
+    #[cfg(feature = "xchacha")]
     const OFFSET_1ZB: u128 = (64u128) << 64;
 
     #[test]
