@@ -4,6 +4,12 @@ updates:
   versioning-strategy: lockfile-only
   schedule:
     interval: weekly
+  allow:
+    - dependency-type: "all"
+  groups:
+    all-deps:
+      patterns:
+        - "*"
   open-pull-requests-limit: 10
 - package-ecosystem: github-actions
   directory: "/"
