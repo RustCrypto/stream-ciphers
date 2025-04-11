@@ -1,16 +1,16 @@
 [package]
 name = "salsa20"
 version = "0.11.0-pre.2"
-description = "Salsa20 Stream Cipher"
 authors = ["RustCrypto Developers"]
-license = "MIT OR Apache-2.0"
 edition = "2024"
 rust-version = "1.85"
-readme = "README.md"
 documentation = "https://docs.rs/salsa20"
+readme = "README.md"
 repository = "https://github.com/RustCrypto/stream-ciphers"
+license = "MIT OR Apache-2.0"
 keywords = ["crypto", "stream-cipher", "trait", "xsalsa20"]
 categories = ["cryptography", "no-std"]
+description = "Pure Rust implementation of the Salsa20 stream cipher"
 
 [dependencies]
 cfg-if = "1"

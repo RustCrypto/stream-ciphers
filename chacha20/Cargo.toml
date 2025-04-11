@@ -1,6 +1,15 @@
 [package]
 name = "chacha20"
 version = "0.10.0-pre.3"
+authors = ["RustCrypto Developers"]
+edition = "2024"
+rust-version = "1.85"
+documentation = "https://docs.rs/chacha20"
+readme = "README.md"
+repository = "https://github.com/RustCrypto/stream-ciphers"
+license = "MIT OR Apache-2.0"
+keywords = ["crypto", "stream-cipher", "chacha8", "chacha12", "xchacha20"]
+categories = ["cryptography", "no-std"]
 description = """
 The ChaCha20 stream cipher (RFC 8439) implemented in pure Rust using traits
 from the RustCrypto `cipher` crate, with optional architecture-specific
@@ -8,15 +17,6 @@ hardware acceleration (AVX2, SSE2). Additionally provides the ChaCha8, ChaCha12,
 XChaCha20, XChaCha12 and XChaCha8 stream ciphers, and also optional
 rand_core-compatible RNGs based on those ciphers.
 """
-authors = ["RustCrypto Developers"]
-license = "Apache-2.0 OR MIT"
-edition = "2024"
-rust-version = "1.85"
-readme = "README.md"
-documentation = "https://docs.rs/chacha20"
-repository = "https://github.com/RustCrypto/stream-ciphers"
-keywords = ["crypto", "stream-cipher", "chacha8", "chacha12", "xchacha20"]
-categories = ["cryptography", "no-std"]
 
 [dependencies]
 cfg-if = "1"
