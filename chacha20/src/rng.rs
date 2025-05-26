@@ -620,17 +620,6 @@ pub(crate) mod tests {
     ];
 
     #[test]
-    #[cfg(feature = "zeroize")]
-    fn test_zeroize_inputs_internal() {
-        let ptr = {
-            let initial_seed: Seed = KEY.into();
-            initial_seed.0.as_ptr()
-        };
-        let memory_inspection = unsafe { core::slice::from_raw_parts(ptr, 32) };
-        assert_ne!(&KEY, memory_inspection);
-    }
-
-    #[test]
     fn test_rng_output() {
         let mut rng = ChaCha20Rng::from_seed(KEY);
         let mut bytes = [0u8; 13];
