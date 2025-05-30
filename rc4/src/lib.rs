@@ -1,5 +1,5 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
@@ -100,7 +100,6 @@ impl<KeySize> StreamCipherCore for Rc4Core<KeySize> {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<KeySize> ZeroizeOnDrop for Rc4Core<KeySize> where KeySize: ArraySize {}
 
 struct Backend<'a>(&'a mut Rc4State);
