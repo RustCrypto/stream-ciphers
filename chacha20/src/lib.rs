@@ -100,7 +100,7 @@
 //! [`chacha20poly1305`]: https://docs.rs/chacha20poly1305
 
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
@@ -335,7 +335,6 @@ impl<R: Rounds, V: Variant> BlockSizeUser for ChaChaCore<R, V> {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<R: Rounds, V: Variant> Drop for ChaChaCore<R, V> {
     fn drop(&mut self) {
         self.state.zeroize();
@@ -343,7 +342,6 @@ impl<R: Rounds, V: Variant> Drop for ChaChaCore<R, V> {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<R: Rounds, V: Variant> ZeroizeOnDrop for ChaChaCore<R, V> {}
 
 /// The ChaCha20 quarter round function

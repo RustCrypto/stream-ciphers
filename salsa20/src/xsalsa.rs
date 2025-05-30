@@ -76,7 +76,6 @@ impl<R: Unsigned> StreamCipherSeekCore for XSalsaCore<R> {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<R: Unsigned> ZeroizeOnDrop for XSalsaCore<R> {}
 
 /// The HSalsa20 function defined in the paper "Extending the Salsa20 nonce"

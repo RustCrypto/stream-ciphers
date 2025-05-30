@@ -49,7 +49,7 @@
 //! [HC-256]: https://en.wikipedia.org/wiki/HC-256
 
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
@@ -233,7 +233,6 @@ impl Hc256Core {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl Drop for Hc256Core {
     fn drop(&mut self) {
         self.ptable.zeroize();
@@ -243,7 +242,6 @@ impl Drop for Hc256Core {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl ZeroizeOnDrop for Hc256Core {}
 
 struct Backend<'a>(&'a mut Hc256Core);

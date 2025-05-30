@@ -95,7 +95,6 @@ impl<R: Rounds> StreamCipherSeekCore for XChaChaCore<R> {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<R: Rounds> ZeroizeOnDrop for XChaChaCore<R> {}
 
 /// The HChaCha function: adapts the ChaCha core function in the same

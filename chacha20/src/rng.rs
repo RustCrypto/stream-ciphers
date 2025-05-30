@@ -335,7 +335,6 @@ macro_rules! impl_chacha_rng {
         ///
         /// [^3]: Internet Research Task Force, [*ChaCha20 and Poly1305 for IETF Protocols*](
         ///       https://www.rfc-editor.org/rfc/rfc8439)
-        #[cfg_attr(docsrs, doc(cfg(feature = "rng")))]
         #[derive(Clone)]
         pub struct $ChaChaXRng {
             /// The ChaChaCore struct
@@ -375,11 +374,9 @@ macro_rules! impl_chacha_rng {
         impl CryptoRng for $ChaChaXRng {}
 
         #[cfg(feature = "zeroize")]
-        #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
         impl ZeroizeOnDrop for $ChaChaXCore {}
 
         #[cfg(feature = "zeroize")]
-        #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
         impl ZeroizeOnDrop for $ChaChaXRng {}
 
         // Custom Debug implementation that does not expose the internal state
