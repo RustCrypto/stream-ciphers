@@ -318,7 +318,7 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                         }
                     }
                 }
-            } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
+            } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
                 unsafe {
                     backends::neon::inner::<R, _>(&mut self.state, f);
                 }

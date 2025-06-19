@@ -15,7 +15,9 @@ cfg_if! {
                 pub(crate) mod sse2;
             }
         }
-    } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
+    } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+        // TODO: Enable `neon` under Miri once https://github.com/rust-lang/miri/issues/3172 is
+        //  resolved
         pub(crate) mod neon;
     } else {
         pub(crate) mod soft;
