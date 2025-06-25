@@ -37,10 +37,6 @@ The following describes the security level ratings associated with each hash fun
 | :yellow_heart: | Theoretical break: security lower than claimed |
 | :broken_heart: | Attack demonstrated in practice: avoid if at all possible |
 
-## Minimum Supported Rust Version (MSRV) Policy
-
-MSRV bump is considered a breaking change and will be performed only with a minor version bump.
-
 ## Example
 
 Crates functionality is expressed in terms of traits defined in the [`cipher`] crate.

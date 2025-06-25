@@ -85,8 +85,8 @@ dual licensed as above, without any additional terms or conditions.
 [rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
-[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/chacha20/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Achacha20
+[build-image]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/chacha20.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/chacha20.yml?query=branch:master
 [hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
 [hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
 
