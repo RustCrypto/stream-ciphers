@@ -45,10 +45,12 @@ dual licensed as above, without any additional terms or conditions.
 [docs-link]: https://docs.rs/hc-256/
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
-[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
+[chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
+[chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/260049-stream-ciphers
+[build-link]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/hc-256.yml?query=branch:master
+[build-image]: https://github.com/RustCrypto/stream-ciphers/actions/workflows/hc-256.yml/badge.svg?branch=master
 [hazmat-link]: https://github.com/RustCrypto/meta/blob/master/HAZMAT.md
-[build-image]: https://github.com/RustCrypto/stream-ciphers/workflows/hc-256/badge.svg?branch=master&event=push
-[build-link]: https://github.com/RustCrypto/stream-ciphers/actions?query=workflow%3Ahc-256
+[hazmat-image]: https://img.shields.io/badge/crypto-hazmat%E2%9A%A0-red.svg
 
 [//]: # (footnotes)
 
