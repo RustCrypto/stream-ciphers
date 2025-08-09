@@ -25,7 +25,7 @@ pub type XSalsa12 = StreamCipherCoreWrapper<XSalsaCore<U6>>;
 pub type XSalsa8 = StreamCipherCoreWrapper<XSalsaCore<U4>>;
 
 /// The XSalsa core function.
-pub struct XSalsaCore<R: Unsigned>(SalsaCore<R>);
+pub struct XSalsaCore<R: Unsigned>(SalsaCore<R, U32>);
 
 impl<R: Unsigned> KeySizeUser for XSalsaCore<R> {
     type KeySize = U32;
@@ -41,7 +41,7 @@ impl<R: Unsigned> BlockSizeUser for XSalsaCore<R> {
 
 impl<R: Unsigned> KeyIvInit for XSalsaCore<R> {
     #[inline]
-    fn new(key: &Key, iv: &XNonce) -> Self {
+    fn new(key: &Key<U32>, iv: &XNonce) -> Self {
         let subkey = hsalsa::<R>(key, iv[..16].try_into().unwrap());
         let mut padded_iv = Nonce::default();
         padded_iv.copy_from_slice(&iv[16..]);
@@ -89,7 +89,7 @@ impl<R: Unsigned> ZeroizeOnDrop for XSalsaCore<R> {}
 /// - Nonce (`u32` x 4)
 ///
 /// It produces 256-bits of output suitable for use as a Salsa20 key
-pub fn hsalsa<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
+pub fn hsalsa<R: Unsigned>(key: &Key<U32>, input: &Array<u8, U16>) -> Array<u8, U32> {
     #[inline(always)]
     fn to_u32(chunk: &[u8]) -> u32 {
         u32::from_le_bytes(chunk.try_into().unwrap())

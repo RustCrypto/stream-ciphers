@@ -16,7 +16,7 @@ use core::arch::x86_64::*;
 
 #[inline]
 #[target_feature(enable = "sse2")]
-pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+pub(crate) unsafe fn inner<R, F, KeySize>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Unsigned,
     F: StreamCipherClosure<BlockSize = U64>,
@@ -37,9 +37,10 @@ where
         f.call(&mut backend);
         state[8] = _mm_cvtsi128_si32(backend.v[2]) as u32;
     } else {
-        f.call(&mut SoftBackend(&mut SalsaCore::<R> {
+        f.call(&mut SoftBackend(&mut SalsaCore::<R, KeySize> {
             state: *state,
             rounds: PhantomData,
+            key_size: PhantomData,
         }));
     }
 }
