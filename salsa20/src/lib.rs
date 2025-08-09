@@ -126,11 +126,11 @@ pub type XNonce = Array<u8, U24>;
 /// Number of 32-bit words in the Salsa20 state
 const STATE_WORDS: usize = 16;
 
-/// State initialization constant for 32-byte keys ("expand 32-byte k")
-const CONSTANTS_32: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
-
 /// State initialization constant for 16-byte keys ("expand 16-byte k")
 const CONSTANTS_16: [u32; 4] = [0x6170_7865, 0x3120_646e, 0x7962_2d36, 0x6b20_6574];
+
+/// State initialization constant for 32-byte keys ("expand 32-byte k")
+const CONSTANTS_32: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// The Salsa20 core function.
 pub struct SalsaCore<R: Unsigned, KeySize = U32> {
