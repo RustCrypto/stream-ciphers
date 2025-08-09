@@ -285,11 +285,11 @@ impl<R: Unsigned, KeySize> StreamCipherSeekCore for SalsaCore<R, KeySize> {
 }
 
 #[cfg(feature = "zeroize")]
-impl<R: Unsigned> Drop for SalsaCore<R> {
+impl<R: Unsigned, KeySize> Drop for SalsaCore<R, KeySize> {
     fn drop(&mut self) {
         self.state.zeroize();
     }
 }
 
 #[cfg(feature = "zeroize")]
-impl<R: Unsigned> ZeroizeOnDrop for SalsaCore<R> {}
+impl<R: Unsigned, KeySize> ZeroizeOnDrop for SalsaCore<R, KeySize> {}
