@@ -1,6 +1,6 @@
 //! XSalsa20 is an extended nonce variant of Salsa20
 
-use super::{CONSTANTS, Key, Nonce, SalsaCore, Unsigned, XNonce};
+use super::{CONSTANTS_32, Key, Nonce, SalsaCore, Unsigned, XNonce};
 use cipher::{
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
     StreamCipherCoreWrapper, StreamCipherSeekCore,
@@ -96,22 +96,22 @@ pub fn hsalsa<R: Unsigned>(key: &Key<U32>, input: &Array<u8, U16>) -> Array<u8, 
     }
 
     let mut state = [0u32; 16];
-    state[0] = CONSTANTS[0];
+    state[0] = CONSTANTS_32[0];
     state[1..5]
         .iter_mut()
         .zip(key[0..16].chunks_exact(4))
         .for_each(|(v, chunk)| *v = to_u32(chunk));
-    state[5] = CONSTANTS[1];
+    state[5] = CONSTANTS_32[1];
     state[6..10]
         .iter_mut()
         .zip(input.chunks_exact(4))
         .for_each(|(v, chunk)| *v = to_u32(chunk));
-    state[10] = CONSTANTS[2];
+    state[10] = CONSTANTS_32[2];
     state[11..15]
         .iter_mut()
         .zip(key[16..].chunks_exact(4))
         .for_each(|(v, chunk)| *v = to_u32(chunk));
-    state[15] = CONSTANTS[3];
+    state[15] = CONSTANTS_32[3];
 
     // 20 rounds consisting of 10 column rounds and 10 diagonal rounds
     for _ in 0..R::USIZE {
