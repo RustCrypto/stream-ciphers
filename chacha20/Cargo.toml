@@ -33,6 +33,7 @@ cpufeatures = "0.2"
 [dev-dependencies]
 cipher = { version = "0.5.0-rc.0", features = ["dev"] }
 hex-literal = "1"
+proptest = "1"
 rand_chacha = "0.9"
 serde_json = "1.0" # Only to test serde1
 
