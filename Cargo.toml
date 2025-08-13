@@ -10,3 +10,11 @@ members = [
 
 [profile.dev]
 opt-level = 2
+
+[patch.crates-io]
+# https://github.com/RustCrypto/utils/pull/1187
+blobby = { git = "https://github.com/RustCrypto/utils" }
+# https://github.com/RustCrypto/traits/pull/1959
+cipher = { git = "https://github.com/RustCrypto/traits", branch = "cipher/read_buf" }
+# https://github.com/RustCrypto/utils/pull/1201
+block-buffer = { git = "https://github.com/RustCrypto/utils", branch = "block-buffer/read-buf" }
