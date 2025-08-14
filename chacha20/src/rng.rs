@@ -185,6 +185,7 @@ impl From<[u8; 4]> for BlockPos {
 /// Can be constructed from any of the following:
 /// * `u64`
 /// * `[u32; 2]`
+#[allow(unused)]
 pub struct LegacyBlockPos(u64);
 
 impl From<u64> for LegacyBlockPos {
@@ -389,6 +390,7 @@ macro_rules! impl_shared_traits {
             /// * `[u8; 4]`
             /// * `u32`
             #[inline]
+            #[allow(unused)]
             pub fn set_block_pos<B: Into<BlockPos>>(&mut self, block_pos: B) {
                 self.core.reset();
                 self.core.core.0.state[12] = block_pos.into().0.to_le()
@@ -396,6 +398,7 @@ macro_rules! impl_shared_traits {
 
             /// Get the block pos.
             #[inline]
+            #[allow(unused)]
             pub fn get_block_pos(&self) -> u32 {
                 self.core.core.0.state[12]
             }
