@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "benches/**"
+      - "salsa20/**"
   push:
     branches: master
 
@@ -25,3 +26,20 @@ jobs:
         with:
           toolchain: stable
       - run: cargo bench --no-run
+
+  # ARM NEON benchmark validation on Apple Silicon
+  neon-benchmarks:
+    runs-on: macos-latest # Apple Silicon M1/M2 for native ARM64 NEON benchmarks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: RustCrypto/actions/cargo-cache@master
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Build Salsa20 NEON benchmarks
+        run: |
+          RUSTFLAGS="-C target-feature=+neon" cargo bench --bench salsa20 --no-run
+      - name: Validate benchmark compilation
+        run: |
+          cargo check --bench chacha20
+          cargo check --bench salsa20
