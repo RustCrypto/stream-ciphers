@@ -214,7 +214,6 @@ const BUF_BLOCKS: u8 = BUFFER_SIZE as u8 >> 4;
 impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
     /// 4 blocks with sse2 & soft
-    #[cfg(feature = "rand_core")]
     fn generate(&mut self, buffer: &mut [u32; 64]) {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
