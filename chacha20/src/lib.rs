@@ -226,10 +226,13 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     fn new(key: &[u8; 32], iv: &[u8]) -> Self {
         let mut state = [0u32; STATE_WORDS];
         state[0..4].copy_from_slice(&CONSTANTS);
+
         let key_chunks = key.chunks_exact(4);
         for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
             *val = u32::from_le_bytes(chunk.try_into().unwrap());
         }
+
+        assert_eq!(iv.len(), 4 * (16 - V::NONCE_INDEX));
         let iv_chunks = iv.as_ref().chunks_exact(4);
         for (val, chunk) in state[V::NONCE_INDEX..16].iter_mut().zip(iv_chunks) {
             *val = u32::from_le_bytes(chunk.try_into().unwrap());
