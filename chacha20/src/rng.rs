@@ -28,6 +28,9 @@ use cfg_if::cfg_if;
 
 /// Number of 32-bit words per ChaCha block (fixed by algorithm definition).
 const BLOCK_WORDS: u8 = 16;
+/// Number of blocks generated at once. Changing this does not change the
+/// current functionality.
+const MAX_PAR_BLOCKS: u32 = 4;
 
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
@@ -177,6 +180,27 @@ impl From<[u8; 4]> for BlockPos {
     }
 }
 
+/// A wrapper for the 64-bit `block_pos`.
+///
+/// Can be constructed from any of the following:
+/// * `u64`
+/// * `[u32; 2]`
+pub struct LegacyBlockPos(u64);
+
+impl From<u64> for LegacyBlockPos {
+    #[inline]
+    fn from(value: u64) -> Self {
+        Self(value.to_le())
+    }
+}
+
+impl From<[u32; 2]> for LegacyBlockPos {
+    #[inline]
+    fn from(value: [u32; 2]) -> Self {
+        Self((value[1].to_le() as u64) << 32 | value[0] as u64)
+    }
+}
+
 /// The results buffer that zeroizes on drop when the `zeroize` feature is enabled.
 #[derive(Clone)]
 pub struct BlockRngResults([u32; BUFFER_SIZE]);
@@ -211,182 +235,67 @@ const BUFFER_SIZE: usize = 64;
 // NB. this must remain consistent with some currently hard-coded numbers in this module
 const BUF_BLOCKS: u8 = BUFFER_SIZE as u8 >> 4;
 
-impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
-    /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
-    /// 4 blocks with sse2 & soft
-    #[cfg(feature = "rand_core")]
-    fn generate(&mut self, buffer: &mut [u32; 64]) {
+macro_rules! generate_core {
+    ($self:expr, $buffer:expr) => {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
-                backends::soft::Backend(self).gen_ks_blocks(buffer);
+                backends::soft::Backend($self).gen_ks_blocks($buffer);
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
                     if #[cfg(chacha20_force_avx2)] {
                         unsafe {
-                            backends::avx2::rng_inner::<R, V>(self, buffer);
+                            backends::avx2::rng_inner::<R, V>($self, $buffer);
                         }
                     } else if #[cfg(chacha20_force_sse2)] {
                         unsafe {
-                            backends::sse2::rng_inner::<R, V>(self, buffer);
+                            backends::sse2::rng_inner::<R, V>($self, $buffer);
                         }
                     } else {
-                        let (avx2_token, sse2_token) = self.tokens;
+                        let (avx2_token, sse2_token) = $self.tokens;
                         if avx2_token.get() {
                             unsafe {
-                                backends::avx2::rng_inner::<R, V>(self, buffer);
+                                backends::avx2::rng_inner::<R, V>($self, $buffer);
                             }
                         } else if sse2_token.get() {
                             unsafe {
-                                backends::sse2::rng_inner::<R, V>(self, buffer);
+                                backends::sse2::rng_inner::<R, V>($self, $buffer);
                             }
                         } else {
-                            backends::soft::Backend(self).gen_ks_blocks(buffer);
+                            backends::soft::Backend($self).gen_ks_blocks($buffer);
                         }
                     }
                 }
             } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
-                    backends::neon::rng_inner::<R, V>(self, buffer);
+                    backends::neon::rng_inner::<R, V>($self, $buffer);
                 }
             } else {
-                backends::soft::Backend(self).gen_ks_blocks(buffer);
+                backends::soft::Backend($self).gen_ks_blocks($buffer);
             }
         }
+    };
+}
+
+impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
+    /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
+    /// 4 blocks with sse2 & soft
+    #[cfg(feature = "rand_core")]
+    fn generate_64_bit_counter(&mut self, buffer: &mut [u32; 64]) {
+        let should_increment_large_counter = self.state[12].eq(&0u32.wrapping_sub(MAX_PAR_BLOCKS));
+        generate_core!(self, buffer);
+        if should_increment_large_counter {
+            self.state[13] = self.state[13].wrapping_add(1);
+        }
+    }
+    #[cfg(feature = "rand_core")]
+    fn generate(&mut self, buffer: &mut [u32; 64]) {
+        generate_core!(self, buffer);
     }
 }
 
-macro_rules! impl_chacha_rng {
-    ($ChaChaXRng:ident, $ChaChaXCore:ident, $rounds:ident, $abst: ident) => {
-        /// A cryptographically secure random number generator that uses the ChaCha algorithm.
-        ///
-        /// ChaCha is a stream cipher designed by Daniel J. Bernstein[^1], that we use as an RNG. It is
-        /// an improved variant of the Salsa20 cipher family, which was selected as one of the "stream
-        /// ciphers suitable for widespread adoption" by eSTREAM[^2].
-        ///
-        /// ChaCha uses add-rotate-xor (ARX) operations as its basis. These are safe against timing
-        /// attacks, although that is mostly a concern for ciphers and not for RNGs. We provide a SIMD
-        /// implementation to support high throughput on a variety of common hardware platforms.
-        ///
-        /// With the ChaCha algorithm it is possible to choose the number of rounds the core algorithm
-        /// should run. The number of rounds is a tradeoff between performance and security, where 8
-        /// rounds is the minimum potentially secure configuration, and 20 rounds is widely used as a
-        /// conservative choice.
-        ///
-        /// We use a 32-bit counter and 96-bit stream identifier as in the IETF implementation[^3]
-        /// except that we use a stream identifier in place of a nonce. A 32-bit counter over 64-byte
-        /// (16 word) blocks allows 256 GiB of output before cycling, and the stream identifier allows
-        /// 2<sup>96</sup> unique streams of output per seed. Both counter and stream are initialized
-        /// to zero but may be set via the `set_word_pos` and `set_stream` methods.
-        ///
-        /// The word layout is:
-        ///
-        /// ```text
-        /// constant  constant  constant  constant
-        /// seed      seed      seed      seed
-        /// seed      seed      seed      seed
-        /// counter   stream_id stream_id stream_id
-        /// ```
-        /// This implementation uses an output buffer of sixteen `u32` words, and uses
-        /// [`BlockRng`] to implement the [`RngCore`] methods.
-        ///
-        /// # Example for `ChaCha20Rng`
-        ///
-        /// ```rust
-        /// use chacha20::ChaCha20Rng;
-        /// // use rand_core traits
-        /// use rand_core::{SeedableRng, RngCore};
-        ///
-        /// // the following inputs are examples and are neither
-        /// // recommended nor suggested values
-        ///
-        /// let seed = [42u8; 32];
-        /// let mut rng = ChaCha20Rng::from_seed(seed);
-        /// rng.set_stream(100);
-        ///
-        /// // you can also use a [u8; 12] in `.set_stream()`
-        /// rng.set_stream([3u8; 12]);
-        /// // or a [u32; 3]
-        /// rng.set_stream([4u32; 3]);
-        ///
-        ///
-        /// rng.set_word_pos(5);
-        ///
-        /// // you can also use a [u8; 5] in `.set_word_pos()`
-        /// rng.set_word_pos([2u8; 5]);
-        ///
-        /// let x = rng.next_u32();
-        /// let mut array = [0u8; 32];
-        /// rng.fill_bytes(&mut array);
-        ///
-        /// // If you need to zeroize the RNG's buffer, ensure that "zeroize"
-        /// // feature is enabled in Cargo.toml, and then it will zeroize on
-        /// // drop automatically
-        /// # #[cfg(feature = "zeroize")]
-        /// use zeroize::Zeroize;
-        /// ```
-        ///
-        /// The other Rngs from this crate are initialized similarly.
-        ///
-        /// [^1]: D. J. Bernstein, [*ChaCha, a variant of Salsa20*](
-        ///       https://cr.yp.to/chacha.html)
-        ///
-        /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](
-        ///       http://www.ecrypt.eu.org/stream/)
-        ///
-        /// [^3]: Internet Research Task Force, [*ChaCha20 and Poly1305 for IETF Protocols*](
-        ///       https://www.rfc-editor.org/rfc/rfc8439)
-        #[derive(Clone)]
-        pub struct $ChaChaXRng {
-            /// The ChaChaCore struct
-            pub core: BlockRng<$ChaChaXCore>,
-        }
-
-        /// The ChaCha core random number generator
-        #[derive(Clone)]
-        pub struct $ChaChaXCore(ChaChaCore<$rounds, Ietf>);
-
-        impl SeedableRng for $ChaChaXRng {
-            type Seed = [u8; 32];
-
-            #[inline]
-            fn from_seed(seed: Self::Seed) -> Self {
-                Self {
-                    core: BlockRng::new($ChaChaXCore::from_seed(seed.into())),
-                }
-            }
-        }
-
-        impl BlockRngCore for $ChaChaXCore {
-            type Item = u32;
-            type Results = BlockRngResults;
-
-            #[inline]
-            fn generate(&mut self, r: &mut Self::Results) {
-                self.0.generate(&mut r.0);
-                #[cfg(target_endian = "big")]
-                for word in r.0.iter_mut() {
-                    *word = word.to_le();
-                }
-            }
-        }
-
-        impl CryptoBlockRng for $ChaChaXCore {}
-        impl CryptoRng for $ChaChaXRng {}
-
-        #[cfg(feature = "zeroize")]
-        impl ZeroizeOnDrop for $ChaChaXCore {}
-
-        #[cfg(feature = "zeroize")]
-        impl ZeroizeOnDrop for $ChaChaXRng {}
-
-        // Custom Debug implementation that does not expose the internal state
-        impl Debug for $ChaChaXRng {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                write!(f, "ChaChaXCore {{}}")
-            }
-        }
-
-        impl SeedableRng for $ChaChaXCore {
+macro_rules! impl_shared_traits {
+    ($Rng:ident, $Core:ident, $rounds:ident, $abst:ident) => {
+        impl SeedableRng for $Core {
             type Seed = Seed;
 
             #[inline]
@@ -394,8 +303,17 @@ macro_rules! impl_chacha_rng {
                 Self(ChaChaCore::<$rounds, Ietf>::new(seed.as_ref(), &[0u8; 12]))
             }
         }
+        impl SeedableRng for $Rng {
+            type Seed = [u8; 32];
 
-        impl RngCore for $ChaChaXRng {
+            #[inline]
+            fn from_seed(seed: Self::Seed) -> Self {
+                Self {
+                    core: BlockRng::new($Core::from_seed(seed.into())),
+                }
+            }
+        }
+        impl RngCore for $Rng {
             #[inline]
             fn next_u32(&mut self) -> u32 {
                 self.core.next_u32()
@@ -409,8 +327,23 @@ macro_rules! impl_chacha_rng {
                 self.core.fill_bytes(dest)
             }
         }
+        impl CryptoBlockRng for $Core {}
+        impl CryptoRng for $Rng {}
 
-        impl $ChaChaXRng {
+        #[cfg(feature = "zeroize")]
+        impl ZeroizeOnDrop for $Core {}
+
+        #[cfg(feature = "zeroize")]
+        impl ZeroizeOnDrop for $Rng {}
+
+        // Custom Debug implementation that does not expose the internal state
+        impl Debug for $Rng {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                write!(f, "ChaChaXCore {{}}")
+            }
+        }
+
+        impl $Rng {
             // The buffer is a 4-block window, i.e. it is always at a block-aligned position in the
             // stream but if the stream has been sought it may not be self-aligned.
 
@@ -522,38 +455,38 @@ macro_rules! impl_chacha_rng {
             }
         }
 
-        impl PartialEq<$ChaChaXRng> for $ChaChaXRng {
-            fn eq(&self, rhs: &$ChaChaXRng) -> bool {
-                let a: $abst::$ChaChaXRng = self.into();
-                let b: $abst::$ChaChaXRng = rhs.into();
+        impl PartialEq<$Rng> for $Rng {
+            fn eq(&self, rhs: &$Rng) -> bool {
+                let a: $abst::$Rng = self.into();
+                let b: $abst::$Rng = rhs.into();
                 a == b
             }
         }
 
-        impl Eq for $ChaChaXRng {}
+        impl Eq for $Rng {}
 
         #[cfg(feature = "serde1")]
-        impl Serialize for $ChaChaXRng {
+        impl Serialize for $Rng {
             fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
-                $abst::$ChaChaXRng::from(self).serialize(s)
+                $abst::$Rng::from(self).serialize(s)
             }
         }
         #[cfg(feature = "serde1")]
-        impl<'de> Deserialize<'de> for $ChaChaXRng {
+        impl<'de> Deserialize<'de> for $Rng {
             fn deserialize<D>(d: D) -> Result<Self, D::Error>
             where
                 D: Deserializer<'de>,
             {
-                $abst::$ChaChaXRng::deserialize(d).map(|x| Self::from(&x))
+                $abst::$Rng::deserialize(d).map(|x| Self::from(&x))
             }
         }
 
-        impl From<$ChaChaXCore> for $ChaChaXRng {
-            fn from(core: $ChaChaXCore) -> Self {
-                $ChaChaXRng {
+        impl From<$Core> for $Rng {
+            fn from(core: $Core) -> Self {
+                $Rng {
                     core: BlockRng::new(core),
                 }
             }
@@ -568,16 +501,16 @@ macro_rules! impl_chacha_rng {
             // the API.
             #[derive(Debug, PartialEq, Eq)]
             #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-            pub(crate) struct $ChaChaXRng {
+            pub(crate) struct $Rng {
                 seed: crate::rng::Seed,
                 stream: u128,
                 word_pos: u64,
             }
 
-            impl From<&super::$ChaChaXRng> for $ChaChaXRng {
+            impl From<&super::$Rng> for $Rng {
                 // Forget all information about the input except what is necessary to determine the
                 // outputs of any sequence of pub API calls.
-                fn from(r: &super::$ChaChaXRng) -> Self {
+                fn from(r: &super::$Rng) -> Self {
                     Self {
                         seed: r.get_seed().into(),
                         stream: r.get_stream(),
@@ -586,9 +519,9 @@ macro_rules! impl_chacha_rng {
                 }
             }
 
-            impl From<&$ChaChaXRng> for super::$ChaChaXRng {
+            impl From<&$Rng> for super::$Rng {
                 // Construct one of the possible concrete RNGs realizing an abstract state.
-                fn from(a: &$ChaChaXRng) -> Self {
+                fn from(a: &$Rng) -> Self {
                     use rand_core::SeedableRng;
                     let mut r = Self::from_seed(a.seed.0.into());
                     r.set_stream(a.stream);
@@ -600,11 +533,246 @@ macro_rules! impl_chacha_rng {
     };
 }
 
-impl_chacha_rng!(ChaCha8Rng, ChaCha8Core, R8, abst8);
+macro_rules! impl_chacha_rng {
+    ($ChaChaXRng:ident, $ChaChaXCore:ident, $ChaChaXLegacyRng:ident, $ChaChaXLegacyCore:ident, $rounds:ident, $abst:ident, $abst_legacy:ident) => {
+        /// A cryptographically secure random number generator that uses the ChaCha algorithm.
+        ///
+        /// ChaCha is a stream cipher designed by Daniel J. Bernstein[^1], that we use as an RNG. It is
+        /// an improved variant of the Salsa20 cipher family, which was selected as one of the "stream
+        /// ciphers suitable for widespread adoption" by eSTREAM[^2].
+        ///
+        /// ChaCha uses add-rotate-xor (ARX) operations as its basis. These are safe against timing
+        /// attacks, although that is mostly a concern for ciphers and not for RNGs. We provide a SIMD
+        /// implementation to support high throughput on a variety of common hardware platforms.
+        ///
+        /// With the ChaCha algorithm it is possible to choose the number of rounds the core algorithm
+        /// should run. The number of rounds is a tradeoff between performance and security, where 8
+        /// rounds is the minimum potentially secure configuration, and 20 rounds is widely used as a
+        /// conservative choice.
+        ///
+        /// We use a 32-bit counter and 96-bit stream identifier as in the IETF implementation[^3]
+        /// except that we use a stream identifier in place of a nonce. A 32-bit counter over 64-byte
+        /// (16 word) blocks allows 256 GiB of output before cycling, and the stream identifier allows
+        /// 2<sup>96</sup> unique streams of output per seed. Both counter and stream are initialized
+        /// to zero but may be set via the `set_word_pos` and `set_stream` methods.
+        ///
+        /// The word layout is:
+        ///
+        /// ```text
+        /// constant  constant  constant  constant
+        /// seed      seed      seed      seed
+        /// seed      seed      seed      seed
+        /// counter   stream_id stream_id stream_id
+        /// ```
+        /// This implementation uses an output buffer of sixteen `u32` words, and uses
+        /// [`BlockRng`] to implement the [`RngCore`] methods.
+        ///
+        /// # Example for `ChaCha20Rng`
+        ///
+        /// ```rust
+        /// use chacha20::ChaCha20Rng;
+        /// // use rand_core traits
+        /// use rand_core::{SeedableRng, RngCore};
+        ///
+        /// // the following inputs are examples and are neither
+        /// // recommended nor suggested values
+        ///
+        /// let seed = [42u8; 32];
+        /// let mut rng = ChaCha20Rng::from_seed(seed);
+        /// rng.set_stream(100);
+        ///
+        /// // you can also use a [u8; 12] in `.set_stream()`
+        /// rng.set_stream([3u8; 12]);
+        /// // or a [u32; 3]
+        /// rng.set_stream([4u32; 3]);
+        ///
+        ///
+        /// rng.set_word_pos(5);
+        ///
+        /// // you can also use a [u8; 5] in `.set_word_pos()`
+        /// rng.set_word_pos([2u8; 5]);
+        ///
+        /// let x = rng.next_u32();
+        /// let mut array = [0u8; 32];
+        /// rng.fill_bytes(&mut array);
+        ///
+        /// // If you need to zeroize the RNG's buffer, ensure that "zeroize"
+        /// // feature is enabled in Cargo.toml, and then it will zeroize on
+        /// // drop automatically
+        /// # #[cfg(feature = "zeroize")]
+        /// use zeroize::Zeroize;
+        /// ```
+        ///
+        /// The other Rngs from this crate are initialized similarly.
+        ///
+        /// [^1]: D. J. Bernstein, [*ChaCha, a variant of Salsa20*](
+        ///       https://cr.yp.to/chacha.html)
+        ///
+        /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](
+        ///       http://www.ecrypt.eu.org/stream/)
+        ///
+        /// [^3]: Internet Research Task Force, [*ChaCha20 and Poly1305 for IETF Protocols*](
+        ///       https://www.rfc-editor.org/rfc/rfc8439)
+        #[derive(Clone)]
+        pub struct $ChaChaXRng {
+            /// The ChaChaCore struct
+            pub core: BlockRng<$ChaChaXCore>,
+        }
 
-impl_chacha_rng!(ChaCha12Rng, ChaCha12Core, R12, abst12);
+        /// A cryptographically secure random number generator that uses the ChaCha algorithm.
+        ///
+        /// ChaCha is a stream cipher designed by Daniel J. Bernstein[^1], that we use as an RNG. It is
+        /// an improved variant of the Salsa20 cipher family, which was selected as one of the "stream
+        /// ciphers suitable for widespread adoption" by eSTREAM[^2].
+        ///
+        /// ChaCha uses add-rotate-xor (ARX) operations as its basis. These are safe against timing
+        /// attacks, although that is mostly a concern for ciphers and not for RNGs. We provide a SIMD
+        /// implementation to support high throughput on a variety of common hardware platforms.
+        ///
+        /// With the ChaCha algorithm it is possible to choose the number of rounds the core algorithm
+        /// should run. The number of rounds is a tradeoff between performance and security, where 8
+        /// rounds is the minimum potentially secure configuration, and 20 rounds is widely used as a
+        /// conservative choice.
+        ///
+        /// TODO: Fix this paragraph, some adjustments have been made already
+        /// We use a 64-bit counter and 64-bit stream identifier as in the IETF implementation[^3]
+        /// except that we use a stream identifier in place of a nonce. A 64-bit counter over 64-byte
+        /// (16 word) blocks allows 256 GiB of output before cycling, and the stream identifier allows
+        /// 2<sup>96</sup> unique streams of output per seed. Both counter and stream are initialized
+        /// to zero but may be set via the `set_word_pos` and `set_stream` methods.
+        ///
+        /// The word layout is:
+        ///
+        /// ```text
+        /// constant  constant  constant  constant
+        /// seed      seed      seed      seed
+        /// seed      seed      seed      seed
+        /// counter   counter   stream_id stream_id
+        /// ```
+        /// This implementation uses an output buffer of sixteen `u32` words, and uses
+        /// [`BlockRng`] to implement the [`RngCore`] methods.
+        ///
+        /// # Example for `ChaCha20Rng`
+        ///
+        /// ```rust
+        /// use chacha20::ChaCha20Rng;
+        /// // use rand_core traits
+        /// use rand_core::{SeedableRng, RngCore};
+        ///
+        /// // the following inputs are examples and are neither
+        /// // recommended nor suggested values
+        ///
+        /// let seed = [42u8; 32];
+        /// let mut rng = ChaCha20Rng::from_seed(seed);
+        /// rng.set_stream(100);
+        ///
+        /// // you can also use a [u8; 12] in `.set_stream()`
+        /// rng.set_stream([3u8; 12]);
+        /// // or a [u32; 3]
+        /// rng.set_stream([4u32; 3]);
+        ///
+        ///
+        /// rng.set_word_pos(5);
+        ///
+        /// // you can also use a [u8; 5] in `.set_word_pos()`
+        /// rng.set_word_pos([2u8; 5]);
+        ///
+        /// let x = rng.next_u32();
+        /// let mut array = [0u8; 32];
+        /// rng.fill_bytes(&mut array);
+        ///
+        /// // If you need to zeroize the RNG's buffer, ensure that "zeroize"
+        /// // feature is enabled in Cargo.toml, and then it will zeroize on
+        /// // drop automatically
+        /// # #[cfg(feature = "zeroize")]
+        /// use zeroize::Zeroize;
+        /// ```
+        ///
+        /// The other Rngs from this crate are initialized similarly.
+        ///
+        /// [^1]: D. J. Bernstein, [*ChaCha, a variant of Salsa20*](
+        ///       https://cr.yp.to/chacha.html)
+        ///
+        /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](
+        ///       http://www.ecrypt.eu.org/stream/)
+        ///
+        /// [^3]: Internet Research Task Force, [*ChaCha20 and Poly1305 for IETF Protocols*](
+        ///       https://www.rfc-editor.org/rfc/rfc8439)
+        #[derive(Clone)]
+        pub struct $ChaChaXLegacyRng {
+            pub core: BlockRng<$ChaChaXLegacyCore>,
+        }
 
-impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
+        /// The ChaCha core random number generator
+        #[derive(Clone)]
+        pub struct $ChaChaXCore(ChaChaCore<$rounds, Ietf>);
+
+        /// The ChaCha core random number generator
+        #[derive(Clone)]
+        pub struct $ChaChaXLegacyCore(ChaChaCore<$rounds, Ietf>);
+
+        impl_shared_traits!($ChaChaXRng, $ChaChaXCore, $rounds, $abst);
+        impl_shared_traits!($ChaChaXLegacyRng, $ChaChaXLegacyCore, $rounds, $abst_legacy);
+
+        impl BlockRngCore for $ChaChaXLegacyCore {
+            type Item = u32;
+            type Results = BlockRngResults;
+
+            #[inline]
+            fn generate(&mut self, r: &mut Self::Results) {
+                self.0.generate_64_bit_counter(&mut r.0);
+                #[cfg(target_endian = "big")]
+                for word in r.0.iter_mut() {
+                    *word = word.to_le();
+                }
+            }
+        }
+
+        impl BlockRngCore for $ChaChaXCore {
+            type Item = u32;
+            type Results = BlockRngResults;
+
+            #[inline]
+            fn generate(&mut self, r: &mut Self::Results) {
+                self.0.generate(&mut r.0);
+                #[cfg(target_endian = "big")]
+                for word in r.0.iter_mut() {
+                    *word = word.to_le();
+                }
+            }
+        }
+    };
+}
+
+impl_chacha_rng!(
+    ChaCha8Rng,
+    ChaCha8Core,
+    ChaCha8LegacyRng,
+    ChaCha8LegacyCore,
+    R8,
+    abst8,
+    abst8legacy
+);
+
+impl_chacha_rng!(
+    ChaCha12Rng,
+    ChaCha12Core,
+    ChaCha12LegacyRng,
+    ChaCha12LegacyCore,
+    R12,
+    abst12,
+    abst12legacy
+);
+
+impl_chacha_rng!(
+    ChaCha20Rng,
+    ChaCha20Core,
+    ChaCha20LegacyRng,
+    ChaCha20LegacyCore,
+    R20,
+    abst20,
+    abst20legacy
+);
 
 #[cfg(test)]
 pub(crate) mod tests {
