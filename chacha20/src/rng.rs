@@ -362,10 +362,6 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn generate(&mut self, r: &mut Self::Results) {
                 self.0.generate(&mut r.0);
-                #[cfg(target_endian = "big")]
-                for word in r.0.iter_mut() {
-                    *word = word.to_le();
-                }
             }
         }
 
