@@ -121,7 +121,7 @@ impl<R: Rounds> Backend<R> {
     fn gen_ks_blocks(&mut self, block: &mut [u32]) {
         unsafe {
             let res = rounds::<R>(&self.v);
-            self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, 1));
+            self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64));
 
             let blocks_ptr = block.as_mut_ptr() as *mut __m128i;
             for block in 0..PAR_BLOCKS {
@@ -138,7 +138,7 @@ impl<R: Rounds> Backend<R> {
 unsafe fn rounds<R: Rounds>(v: &[__m128i; 4]) -> [[__m128i; 4]; PAR_BLOCKS] {
     let mut res = [*v; 4];
     for block in 1..PAR_BLOCKS {
-        res[block][3] = _mm_add_epi32(res[block][3], _mm_set_epi32(0, 0, 0, block as i32));
+        res[block][3] = _mm_add_epi64(res[block][3], _mm_set_epi64x(0, block as i64));
     }
 
     for _ in 0..R::COUNT {

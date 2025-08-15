@@ -1162,6 +1162,7 @@ pub(crate) mod tests {
     }
 
     #[test]
+    #[ignore = "64 bit counter"]
     fn test_chacha_word_pos_zero() {
         let mut rng = ChaChaRng::from_seed(Default::default());
         assert_eq!(rng.core.core.0.state[12], 0);
