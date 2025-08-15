@@ -96,14 +96,10 @@ pub struct WordPosInput {
 
 impl From<[u8; 5]> for WordPosInput {
     fn from(value: [u8; 5]) -> Self {
-        let mut result = Self {
+        Self {
             block_pos: u32::from_le_bytes(value[0..4].try_into().unwrap()),
             index: (value[4] & 0b1111) as usize,
-        };
-        let overshot = result.block_pos & 0b11;
-        result.block_pos &= !0b11;
-        result.index += overshot as usize * BLOCK_WORDS as usize;
-        result
+        }
     }
 }
 
@@ -397,20 +393,14 @@ macro_rules! impl_shared_traits {
             #[allow(unused)]
             pub fn set_block_pos<B: Into<BlockPos>>(&mut self, block_pos: B) {
                 self.core.reset();
-                // TODO: Change to multiple of 4
-                let bp = block_pos.into().0;
-                let mult_4 = bp & !0b11;
-                let overshot_words = (bp & 0b11) * BLOCK_WORDS as u32;
-                self.core.core.0.state[12] = mult_4.to_le();
-                self.core.generate_and_set(overshot_words as usize);
+                self.core.core.0.state[12] = block_pos.into().0.to_le()
             }
 
             /// Get the block pos.
             #[inline]
             #[allow(unused)]
             pub fn get_block_pos(&self) -> u32 {
-                self.core.core.0.state[12].wrapping_sub(4)
-                    + self.core.index() as u32 / BLOCK_WORDS as u32
+                self.core.core.0.state[12]
             }
 
             /// Set the stream number. The lower 96 bits are used and the rest are
