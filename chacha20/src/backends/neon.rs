@@ -261,7 +261,6 @@ impl<R: Rounds> Backend<R> {
     }
 }
 
-
 #[inline]
 unsafe fn double_quarter_round(blocks: &mut [[uint32x4_t; 4]; 4]) {
     add_xor_rot(blocks);

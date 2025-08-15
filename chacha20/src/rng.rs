@@ -1311,6 +1311,7 @@ pub(crate) mod tests {
     /// If this test fails, the backend may be
     /// performing 64-bit addition.
     #[test]
+    #[ignore = "Counter is now a 64 bit counter"]
     fn counter_wrapping() {
         let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
