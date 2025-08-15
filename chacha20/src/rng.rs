@@ -317,16 +317,16 @@ macro_rules! impl_chacha_rng {
         /// let mut rng = ChaCha20Rng::from_seed(seed);
         /// rng.set_stream(100);
         ///
-        /// // you can also use a [u8; 12] in `.set_stream()`
-        /// rng.set_stream([3u8; 12]);
-        /// // or a [u32; 3]
-        /// rng.set_stream([4u32; 3]);
+        /// // you can also use a [u8; 8] in `.set_stream()`
+        /// rng.set_stream([3u8; 8]);
+        /// // or a [u32; 2]
+        /// rng.set_stream([4u32; 2]);
         ///
         ///
         /// rng.set_word_pos(5);
         ///
-        /// // you can also use a [u8; 5] in `.set_word_pos()`
-        /// rng.set_word_pos([2u8; 5]);
+        /// // you can also use a [u8; 9] in `.set_word_pos()`
+        /// rng.set_word_pos([2u8; 9]);
         ///
         /// let x = rng.next_u32();
         /// let mut array = [0u8; 32];
@@ -422,12 +422,13 @@ macro_rules! impl_chacha_rng {
             /// byte-offset.
             #[inline]
             pub fn get_word_pos(&self) -> u128 {
-                let mut result =
-                    u128::from(self.core.core.0.state[12].wrapping_sub(BUF_BLOCKS.into())) << 4;
-                result += u128::from(self.core.core.0.state[13]) << (32 + 4);
-                result += self.core.index() as u128;
+                let mut block_counter = (u64::from(self.core.core.0.state[13]) << 32)
+                    | u64::from(self.core.core.0.state[12]);
+                block_counter = block_counter.wrapping_sub(BUF_BLOCKS as u64);
+                let word_pos =
+                    block_counter as u128 * BLOCK_WORDS as u128 + self.core.index() as u128;
                 // eliminate bits above the 68th bit
-                result & ((1 << 68) - 1)
+                word_pos & ((1 << 68) - 1)
             }
 
             /// Set the offset from the start of the stream, in 32-bit words. This method
@@ -1169,5 +1170,15 @@ pub(crate) mod tests {
         rng.fill_bytes(&mut result);
         assert_eq!(word_pos, rng.get_word_pos());
         assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
+    }
+
+    #[test]
+    fn initial_state() {
+        let seed = [
+            1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0,
+            0, 0, 0, 2, 92,
+        ];
+        let rng = ChaCha20Rng::from_seed(seed);
+        assert_eq!(rng.get_word_pos(), 0);
     }
 }
