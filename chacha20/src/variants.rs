@@ -6,6 +6,7 @@
 pub trait Variant: Clone {
     /// the size of the Nonce in u32s
     const NONCE_INDEX: usize;
+    const COUNTER_MAX: u64;
 }
 
 #[derive(Clone)]
@@ -13,6 +14,7 @@ pub trait Variant: Clone {
 pub struct Ietf();
 impl Variant for Ietf {
     const NONCE_INDEX: usize = 13;
+    const COUNTER_MAX: u64 = u32::MAX as u64;
 }
 
 #[derive(Clone)]
@@ -22,4 +24,5 @@ pub struct Legacy();
 #[cfg(feature = "legacy")]
 impl Variant for Legacy {
     const NONCE_INDEX: usize = 14;
+    const COUNTER_MAX: u64 = u64::MAX;
 }

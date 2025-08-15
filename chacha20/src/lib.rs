@@ -282,8 +282,12 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
     #[inline(always)]
     fn remaining_blocks(&self) -> Option<usize> {
-        let rem = u32::MAX - self.get_block_pos();
-        rem.try_into().ok()
+        let rem = V::COUNTER_MAX - self.get_block_pos() as u64;
+        if rem > usize::MAX as u64 {
+            None
+        } else {
+            rem.try_into().ok()
+        }
     }
 
     fn process_with_backend(
