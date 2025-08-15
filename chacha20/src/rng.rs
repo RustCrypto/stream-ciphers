@@ -1008,7 +1008,7 @@ pub(crate) mod tests {
         use super::BLOCK_WORDS;
         let mut rng = ChaChaRng::from_seed(Default::default());
         // refilling the buffer in set_word_pos will wrap the block counter past 0
-        let last_block = (1 << 68) - u128::from(BLOCK_WORDS);
+        let last_block = (1 << 68) - u128::from(BLOCK_WORDS) * 8;
         rng.set_word_pos(last_block);
         assert_eq!(rng.get_word_pos(), last_block);
     }
