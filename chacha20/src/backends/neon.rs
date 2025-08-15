@@ -25,6 +25,15 @@ struct Backend<R: Rounds> {
     _pd: PhantomData<R>,
 }
 
+macro_rules! add64 {
+    ($a:expr, $b:expr) => {
+        vreinterpretq_u32_u64(vaddq_u64(
+            vreinterpretq_u64_u32($a),
+            vreinterpretq_u64_u32($b),
+        ))
+    };
+}
+
 impl<R: Rounds> Backend<R> {
     #[inline]
     unsafe fn new(state: &mut [u32; STATE_WORDS]) -> Self {
@@ -64,16 +73,6 @@ where
         state.as_mut_ptr().offset(12) as *mut u64,
         vreinterpretq_u64_u32(backend.state[3]),
     );
-}
-
-/// Adds a counter row with 64-bit addition
-macro_rules! add_counter {
-    ($a:expr, $b:expr) => {
-        vreinterpretq_u32_u64(vaddq_u64(
-            vreinterpretq_u64_u32($a),
-            vreinterpretq_u64_u32($b),
-        ))
-    };
 }
 
 #[inline]
@@ -121,7 +120,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
         self.gen_par_ks_blocks(&mut par);
         *block = par[0];
         unsafe {
-            self.state[3] = add_counter!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
+            self.state[3] = add64!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
         }
     }
 
@@ -134,19 +133,19 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(self.state[3], self.ctrs[0]),
+                    add64!(self.state[3], self.ctrs[0]),
                 ],
                 [
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(self.state[3], self.ctrs[1]),
+                    add64!(self.state[3], self.ctrs[1]),
                 ],
                 [
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(self.state[3], self.ctrs[2]),
+                    add64!(self.state[3], self.ctrs[2]),
                 ],
             ];
 
@@ -160,10 +159,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     add_assign_vec!(blocks[block][state_row], self.state[state_row]);
                 }
                 if block > 0 {
-                    add_assign_vec!(
-                        blocks[block][3],
-                        add_counter!(self.state[3], self.ctrs[block - 1])
-                    );
+                    blocks[block][3] = add64!(blocks[block][3], self.ctrs[block - 1]);
                 }
                 // write blocks to dest
                 for state_row in 0..4 {
@@ -173,7 +169,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     );
                 }
             }
-            self.state[3] = add_counter!(self.state[3], self.ctrs[3]);
+            self.state[3] = add64!(self.state[3], self.ctrs[3]);
         }
     }
 }
@@ -216,19 +212,19 @@ impl<R: Rounds> Backend<R> {
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(self.state[3], self.ctrs[0]),
+                add64!(self.state[3], self.ctrs[0]),
             ],
             [
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(self.state[3], self.ctrs[1]),
+                add64!(self.state[3], self.ctrs[1]),
             ],
             [
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(self.state[3], self.ctrs[2]),
+                add64!(self.state[3], self.ctrs[2]),
             ],
         ];
 
@@ -243,10 +239,7 @@ impl<R: Rounds> Backend<R> {
                 add_assign_vec!(blocks[block][state_row], self.state[state_row]);
             }
             if block > 0 {
-                add_assign_vec!(
-                    blocks[block][3],
-                    add_counter!(self.state[3], self.ctrs[block - 1]);
-                );
+                blocks[block][3] = add64!(blocks[block][3], self.ctrs[block - 1]);
             }
             // write blocks to buffer
             for state_row in 0..4 {
@@ -257,7 +250,7 @@ impl<R: Rounds> Backend<R> {
             }
             dest_ptr = dest_ptr.add(64);
         }
-        self.state[3] = add_counter!(self.state[3], self.ctrs[3]);
+        self.state[3] = add64!(self.state[3], self.ctrs[3]);
     }
 }
 
