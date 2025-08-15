@@ -15,6 +15,6 @@ opt-level = 2
 # https://github.com/RustCrypto/utils/pull/1187
 blobby = { git = "https://github.com/RustCrypto/utils" }
 # https://github.com/RustCrypto/traits/pull/1959
-cipher = { git = "https://github.com/RustCrypto/traits", branch = "cipher/read_buf" }
+cipher = { git = "https://github.com/RustCrypto/traits" }
 # https://github.com/RustCrypto/utils/pull/1201
-block-buffer = { git = "https://github.com/RustCrypto/utils", branch = "block-buffer/read-buf" }
+block-buffer = { git = "https://github.com/RustCrypto/utils" }
