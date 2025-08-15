@@ -202,7 +202,7 @@ impl From<u64> for LegacyBlockPos {
 impl From<[u32; 2]> for LegacyBlockPos {
     #[inline]
     fn from(value: [u32; 2]) -> Self {
-        Self((value[1].to_le() as u64) << 32 | value[0] as u64)
+        Self((value[1].to_le() as u64) << 32 | value[0].to_le() as u64)
     }
 }
 
