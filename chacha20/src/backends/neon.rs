@@ -60,7 +60,20 @@ where
 
     f.call(&mut backend);
 
-    vst1q_u32(state.as_mut_ptr().offset(12), backend.state[3]);
+    vst1q_u64(
+        state.as_mut_ptr().offset(12) as *mut u64,
+        vreinterpretq_u64_u32(backend.state[3]),
+    );
+}
+
+/// Adds a counter row with 64-bit addition
+macro_rules! add_counter {
+    ($a:expr, $b:expr) => {
+        vreinterpretq_u32_u64(vaddq_u64(
+            vreinterpretq_u64_u32($a),
+            vreinterpretq_u64_u32($b),
+        ))
+    };
 }
 
 #[inline]
@@ -77,7 +90,10 @@ where
 
     backend.write_par_ks_blocks(buffer);
 
-    vst1q_u32(core.state.as_mut_ptr().offset(12), backend.state[3]);
+    vst1q_u64(
+        core.state.as_mut_ptr().offset(12) as *mut u64,
+        vreinterpretq_u64_u32(backend.state[3]),
+    );
 }
 
 #[cfg(feature = "cipher")]
@@ -105,7 +121,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
         self.gen_par_ks_blocks(&mut par);
         *block = par[0];
         unsafe {
-            self.state[3] = vaddq_u32(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
+            self.state[3] = add_counter!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()));
         }
     }
 
@@ -118,19 +134,19 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    vaddq_u32(self.state[3], self.ctrs[0]),
+                    add_counter!(self.state[3], self.ctrs[0]),
                 ],
                 [
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    vaddq_u32(self.state[3], self.ctrs[1]),
+                    add_counter!(vaddq_u32(self.state[3], self.ctrs[1])),
                 ],
                 [
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    vaddq_u32(self.state[3], self.ctrs[2]),
+                    add_counter!(vaddq_u32(self.state[3], self.ctrs[2])),
                 ],
             ];
 
@@ -144,7 +160,10 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     add_assign_vec!(blocks[block][state_row], self.state[state_row]);
                 }
                 if block > 0 {
-                    blocks[block][3] = vaddq_u32(blocks[block][3], self.ctrs[block - 1]);
+                    add_assign_vec!(
+                        blocks[block][3],
+                        add_counter!(self.state[3], self.ctrs[block - 1]);
+                    );
                 }
                 // write blocks to dest
                 for state_row in 0..4 {
@@ -154,7 +173,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     );
                 }
             }
-            self.state[3] = vaddq_u32(self.state[3], self.ctrs[3]);
+            self.state[3] = add_counter!(self.state[3], self.ctrs[3]);
         }
     }
 }
@@ -197,19 +216,19 @@ impl<R: Rounds> Backend<R> {
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                vaddq_u32(self.state[3], self.ctrs[0]),
+                add_counter!(self.state[3], self.ctrs[0]),
             ],
             [
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                vaddq_u32(self.state[3], self.ctrs[1]),
+                add_counter!(vaddq_u32(self.state[3], self.ctrs[1])),
             ],
             [
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                vaddq_u32(self.state[3], self.ctrs[2]),
+                add_counter!(vaddq_u32(self.state[3], self.ctrs[2])),
             ],
         ];
 
@@ -224,7 +243,10 @@ impl<R: Rounds> Backend<R> {
                 add_assign_vec!(blocks[block][state_row], self.state[state_row]);
             }
             if block > 0 {
-                blocks[block][3] = vaddq_u32(blocks[block][3], self.ctrs[block - 1]);
+                add_assign_vec!(
+                    blocks[block][3],
+                    add_counter!(self.state[3], self.ctrs[block - 1]);
+                );
             }
             // write blocks to buffer
             for state_row in 0..4 {
@@ -235,9 +257,10 @@ impl<R: Rounds> Backend<R> {
             }
             dest_ptr = dest_ptr.add(64);
         }
-        self.state[3] = vaddq_u32(self.state[3], self.ctrs[3]);
+        self.state[3] = add_counter!(self.state[3], self.ctrs[3]);
     }
 }
+
 
 #[inline]
 unsafe fn double_quarter_round(blocks: &mut [[uint32x4_t; 4]; 4]) {

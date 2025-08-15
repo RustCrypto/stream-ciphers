@@ -42,6 +42,7 @@ where
     f.call(&mut backend);
 
     state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
+    state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
 }
 
 struct Backend<R: Rounds> {
@@ -65,7 +66,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
     fn gen_ks_block(&mut self, block: &mut Block) {
         unsafe {
             let res = rounds::<R>(&self.v);
-            self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, 1));
+            self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, 1));
 
             let block_ptr = block.as_mut_ptr() as *mut __m128i;
             for i in 0..4 {
@@ -77,7 +78,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
     fn gen_par_ks_blocks(&mut self, blocks: &mut cipher::ParBlocks<Self>) {
         unsafe {
             let res = rounds::<R>(&self.v);
-            self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32));
+            self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64));
 
             let blocks_ptr = blocks.as_mut_ptr() as *mut __m128i;
             for block in 0..PAR_BLOCKS {
@@ -111,6 +112,7 @@ where
     backend.gen_ks_blocks(buffer);
 
     core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
+    core.state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
 }
 
 #[cfg(feature = "rng")]
@@ -119,7 +121,7 @@ impl<R: Rounds> Backend<R> {
     fn gen_ks_blocks(&mut self, block: &mut [u32]) {
         unsafe {
             let res = rounds::<R>(&self.v);
-            self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32));
+            self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, 1));
 
             let blocks_ptr = block.as_mut_ptr() as *mut __m128i;
             for block in 0..PAR_BLOCKS {
