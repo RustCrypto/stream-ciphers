@@ -140,13 +140,13 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(vaddq_u32(self.state[3], self.ctrs[1])),
+                    add_counter!(self.state[3], self.ctrs[1]),
                 ],
                 [
                     self.state[0],
                     self.state[1],
                     self.state[2],
-                    add_counter!(vaddq_u32(self.state[3], self.ctrs[2])),
+                    add_counter!(self.state[3], self.ctrs[2]),
                 ],
             ];
 
@@ -222,13 +222,13 @@ impl<R: Rounds> Backend<R> {
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(vaddq_u32(self.state[3], self.ctrs[1])),
+                add_counter!(self.state[3], self.ctrs[1]),
             ],
             [
                 self.state[0],
                 self.state[1],
                 self.state[2],
-                add_counter!(vaddq_u32(self.state[3], self.ctrs[2])),
+                add_counter!(self.state[3], self.ctrs[2]),
             ],
         ];
 
