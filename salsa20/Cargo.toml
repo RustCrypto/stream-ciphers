@@ -14,7 +14,7 @@ description = "Pure Rust implementation of the Salsa20 stream cipher"
 
 [dependencies]
 cfg-if = "1"
-cipher = "0.5.0-rc.0"
+cipher = { version = "0.5.0-rc.0", features = ["stream-wrapper"] }
 
 [dev-dependencies]
 cipher = { version = "0.5.0-rc.0", features = ["dev"] }
