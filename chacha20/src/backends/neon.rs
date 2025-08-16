@@ -159,7 +159,12 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
                     add_assign_vec!(blocks[block][state_row], self.state[state_row]);
                 }
                 if block > 0 {
-                    blocks[block][3] = add64!(blocks[block][3], self.ctrs[block - 1]);
+                    add_assign_vec!(
+                        blocks[block][3],
+                        add64!(self.state[3], self.ctrs[block - 1])
+                    );
+                } else {
+                    add_assign_vec!(blocks[block][3], self.state[3]);
                 }
                 // write blocks to dest
                 for state_row in 0..4 {
