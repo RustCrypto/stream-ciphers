@@ -97,8 +97,6 @@ mod chacha20test {
 
     #[test]
     fn chacha20_potential_counter_issue_1() {
-        use std::panic;
-
         let mut cipher = ChaCha20::new(&KEY.into(), &IV.into());
         let mut first_block = [0u8; 64];
         assert_eq!(cipher.current_pos::<u64>(), 0);
