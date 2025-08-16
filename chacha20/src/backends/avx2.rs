@@ -72,11 +72,11 @@ where
         _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(2))),
     ];
     let mut c = _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(3)));
-    c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 0));
+    c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 1, 0, 0));
     let mut ctr = [c; N];
     for i in 0..N {
         ctr[i] = c;
-        c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 2, 0, 0, 0, 2));
+        c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 2, 0, 2));
     }
     let mut backend = Backend::<R> {
         v,

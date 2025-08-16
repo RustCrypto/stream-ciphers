@@ -172,7 +172,8 @@ pub struct BlockPos([u32; 2]);
 
 impl From<u64> for BlockPos {
     #[inline]
-    fn from(value: u64) -> Self {
+    fn from(mut value: u64) -> Self {
+        value = value.to_le();
         Self([value as u32, (value >> 32) as u32])
     }
 }
@@ -186,7 +187,8 @@ impl From<[u8; 8]> for BlockPos {
 
 impl From<[u32; 2]> for BlockPos {
     #[inline]
-    fn from(value: [u32; 2]) -> Self {
+    fn from(mut value: [u32; 2]) -> Self {
+        value.iter_mut().for_each(|x| *x = x.to_le());
         Self(value)
     }
 }
@@ -1182,13 +1184,23 @@ pub(crate) mod tests {
         // get first four blocks and word pos
         let mut first_blocks = [0u8; 64 * 4];
         rng.fill_bytes(&mut first_blocks);
-        let word_pos = rng.get_word_pos();
+        let first_blocks_end_word_pos = rng.get_word_pos();
+        let first_blocks_end_block_counter = rng.get_block_pos();
 
         // get first four blocks after wrapping
-        rng.set_block_pos(u64::MAX);
+        rng.set_block_pos([u32::MAX, u32::MAX]);
         let mut result = [0u8; 64 * 5];
         rng.fill_bytes(&mut result);
-        assert_eq!(word_pos, rng.get_word_pos());
+        assert_eq!(first_blocks_end_word_pos, rng.get_word_pos());
+        assert_eq!(first_blocks_end_block_counter, rng.get_block_pos() - 3);
+        
+        if first_blocks[0..64 * 4].ne(&result[64..]) {
+            for (i, (a, b)) in first_blocks.iter().zip(result.iter().skip(64)).enumerate() {
+                if a.ne(b) {
+                    panic!("i = {}\na = {}\nb = {}", i, a, b);
+                }
+            }
+        }
         assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
     }
 
