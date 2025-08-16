@@ -146,11 +146,10 @@ unsafe fn rounds<R: Rounds>(v: &[__m128i; 4]) -> [[__m128i; 4]; PAR_BLOCKS] {
     }
 
     for block in 0..PAR_BLOCKS {
-        for i in 0..4 {
+        for i in 0..3 {
             res[block][i] = _mm_add_epi32(res[block][i], v[i]);
         }
-        // add the counter since `v` is lacking updated counter values
-        res[block][3] = _mm_add_epi32(res[block][3], _mm_set_epi32(0, 0, 0, block as i32));
+        res[block][3] = _mm_add_epi32(res[block][3], _mm_add_epi64(v[3], _mm_set_epi64x(0, block as i64)));
     }
 
     res

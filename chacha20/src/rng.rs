@@ -1193,7 +1193,7 @@ pub(crate) mod tests {
         rng.fill_bytes(&mut result);
         assert_eq!(first_blocks_end_word_pos, rng.get_word_pos());
         assert_eq!(first_blocks_end_block_counter, rng.get_block_pos() - 3);
-        
+
         if first_blocks[0..64 * 4].ne(&result[64..]) {
             for (i, (a, b)) in first_blocks.iter().zip(result.iter().skip(64)).enumerate() {
                 if a.ne(b) {
