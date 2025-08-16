@@ -265,16 +265,17 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
 
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
-    type Counter = u32;
+    type Counter = V::Counter;
 
     #[inline(always)]
     fn get_block_pos(&self) -> Self::Counter {
-        self.state[12]
+        V::get_block_pos(&self.state[12..V::NONCE_INDEX])
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        self.state[12] = pos
+        let block_pos_words = V::set_block_pos_helper(pos);
+        self.state[12..V::NONCE_INDEX].copy_from_slice(block_pos_words.as_ref());
     }
 }
 
@@ -282,12 +283,7 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
     #[inline(always)]
     fn remaining_blocks(&self) -> Option<usize> {
-        let rem = V::COUNTER_MAX - self.get_block_pos() as u64;
-        if rem > usize::MAX as u64 {
-            None
-        } else {
-            rem.try_into().ok()
-        }
+        V::remaining_blocks(self.get_block_pos())
     }
 
     fn process_with_backend(

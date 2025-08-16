@@ -21,7 +21,7 @@ cipher::stream_cipher_seek_test!(chacha20legacy_seek, ChaCha20Legacy);
 #[cfg(feature = "cipher")]
 mod chacha20test {
     use chacha20::{ChaCha20, KeyIvInit};
-    use cipher::StreamCipher;
+    use cipher::{StreamCipher, StreamCipherSeek};
     use hex_literal::hex;
 
     //
@@ -93,6 +93,39 @@ mod chacha20test {
 
         cipher.apply_keystream(&mut buf);
         assert_eq!(&buf[..], &CIPHERTEXT[..]);
+    }
+
+    #[test]
+    fn chacha20_potential_counter_issue_1() {
+        use std::panic;
+
+        let mut cipher = ChaCha20::new(&KEY.into(), &IV.into());
+        let mut first_block = [0u8; 64];
+        assert_eq!(cipher.current_pos::<u64>(), 0);
+        cipher.apply_keystream(&mut first_block);
+
+        let mut buf_1 = [0u8; 64];
+        let mut buf_2 = [0u8; 65];
+
+        // seek to end of keystream
+        let max_bytes = (u64::from(u32::MAX) + 1) * 64;
+        let pos = max_bytes - 128;
+        cipher.try_seek(pos).unwrap();
+        assert_eq!(cipher.current_pos::<u64>(), pos);
+
+        // overshoot keystream length
+        let applied_keystream = cipher.try_apply_keystream(&mut buf_2);
+        assert_eq!(applied_keystream.is_err(), true);
+
+        // exhaust keystream
+        cipher.apply_keystream(&mut buf_1);
+
+        // seek to beginning and check if the first block is the same as before
+        let mut first_block_observation_2 = [0u8; 64];
+        cipher.seek(0);
+        assert_eq!(cipher.current_pos::<u64>(), 0);
+        cipher.apply_keystream(&mut first_block_observation_2);
+        assert_eq!(first_block_observation_2, first_block);
     }
 }
 
