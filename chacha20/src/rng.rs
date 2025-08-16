@@ -1037,7 +1037,6 @@ pub(crate) mod tests {
     }
 
     #[test]
-    #[ignore = "64 bit counter"]
     fn test_chacha_word_pos_zero() {
         let mut rng = ChaChaRng::from_seed(Default::default());
         assert_eq!(rng.core.core.0.state[12], 0);
@@ -1175,10 +1174,9 @@ pub(crate) mod tests {
     }
 
     /// If this test fails, the backend may be
-    /// performing 64-bit addition.
+    /// performing 32-bit addition.
     #[test]
-    #[ignore = "Counter is now a 64 bit counter"]
-    fn counter_wrapping_32_bit_counter() {
+    fn counter_nonwrapping_32_bit_counter() {
         let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
         // get first four blocks and word pos
@@ -1191,6 +1189,6 @@ pub(crate) mod tests {
         let mut result = [0u8; 64 * 5];
         rng.fill_bytes(&mut result);
         assert_eq!(word_pos, rng.get_word_pos());
-        assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
+        assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
     }
 }
