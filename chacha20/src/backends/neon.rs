@@ -155,7 +155,7 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
 
             for block in 0..4 {
                 // add state to block
-                for state_row in 0..4 {
+                for state_row in 0..3 {
                     add_assign_vec!(blocks[block][state_row], self.state[state_row]);
                 }
                 if block > 0 {
