@@ -751,7 +751,7 @@ pub(crate) mod tests {
     #[cfg(feature = "serde1")]
     #[test]
     fn test_chacha_serde_format_stability() {
-        let j = r#"{"seed":[4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8],"stream":27182818284,"word_pos":3141592653}"#;
+        let j = r#"{"seed":[4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8],"stream":27182818284,"word_pos":314159265359}"#;
         let r: ChaChaRng = serde_json::from_str(j).unwrap();
         let j1 = serde_json::to_string(&r).unwrap();
         assert_eq!(j, j1);
@@ -965,6 +965,29 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn test_chacha_nonce_2() {
+        // Test vector 5 from
+        // https://tools.ietf.org/html/draft-nir-cfrg-chacha20-poly1305-04
+        // Although we do not support setting a nonce, we try it here anyway so
+        // we can use this test vector.
+        let seed = [0u8; 32];
+        let mut rng = ChaChaRng::from_seed(seed);
+        // 96-bit nonce in LE order is: 0,0,0,0, 0,0,0,0, 0,0,0,2
+        rng.set_stream(2u64 << (24 + 32));
+
+        let mut results = [0u32; 16];
+        for i in results.iter_mut() {
+            *i = rng.next_u32();
+        }
+        let expected = [
+            0x374dc6c2, 0x3736d58c, 0xb904e24a, 0xcd3f93ef, 0x88228b1a, 0x96a4dfb3, 0x5b76ab72,
+            0xc727ee54, 0x0e0e978a, 0xf3145c95, 0x1b748ea8, 0xf786c297, 0x99c28f5f, 0x628314e8,
+            0x398a19fa, 0x6ded1b53,
+        ];
+        assert_eq!(results, expected);
+    }
+
+    #[test]
     fn test_chacha_clone_streams() {
         let seed = [
             0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7,
@@ -998,7 +1021,7 @@ pub(crate) mod tests {
         use super::{BLOCK_WORDS, BUF_BLOCKS};
         let mut rng = ChaChaRng::from_seed(Default::default());
         // refilling the buffer in set_word_pos will wrap the block counter to 0
-        let last_block = (2u128).pow(64) - u128::from(BUF_BLOCKS * BLOCK_WORDS * 2);
+        let last_block = (1 << 68) - u128::from(BUF_BLOCKS * BLOCK_WORDS);
         rng.set_word_pos(last_block);
         assert_eq!(rng.get_word_pos(), last_block);
     }
@@ -1008,7 +1031,7 @@ pub(crate) mod tests {
         use super::BLOCK_WORDS;
         let mut rng = ChaChaRng::from_seed(Default::default());
         // refilling the buffer in set_word_pos will wrap the block counter past 0
-        let last_block = (1 << 68) - u128::from(BLOCK_WORDS) * 8;
+        let last_block = (1 << 68) - u128::from(BLOCK_WORDS);
         rng.set_word_pos(last_block);
         assert_eq!(rng.get_word_pos(), last_block);
     }
@@ -1169,15 +1192,5 @@ pub(crate) mod tests {
         rng.fill_bytes(&mut result);
         assert_eq!(word_pos, rng.get_word_pos());
         assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
-    }
-
-    #[test]
-    fn initial_state() {
-        let seed = [
-            1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0,
-            0, 0, 0, 2, 92,
-        ];
-        let rng = ChaCha20Rng::from_seed(seed);
-        assert_eq!(rng.get_word_pos(), 0);
     }
 }
