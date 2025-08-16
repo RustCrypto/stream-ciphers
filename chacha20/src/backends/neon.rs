@@ -235,11 +235,16 @@ impl<R: Rounds> Backend<R> {
         let mut dest_ptr = buffer.as_mut_ptr() as *mut u8;
         for block in 0..4 {
             // add state to block
-            for state_row in 0..4 {
+            for state_row in 0..3 {
                 add_assign_vec!(blocks[block][state_row], self.state[state_row]);
             }
             if block > 0 {
-                blocks[block][3] = add64!(blocks[block][3], self.ctrs[block - 1]);
+                add_assign_vec!(
+                    blocks[block][3],
+                    add64!(self.state[3], self.ctrs[block - 1])
+                );
+            } else {
+                add_assign_vec!(blocks[block][3], self.state[3]);
             }
             // write blocks to buffer
             for state_row in 0..4 {
