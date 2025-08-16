@@ -1192,7 +1192,7 @@ pub(crate) mod tests {
         assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
     }
 
-    /// If this test fails, the backend may be doing 
+    /// If this test fails, the backend may be doing
     /// 32-bit addition.
     #[test]
     fn counter_not_wrapping_at_32_bits() {
@@ -1208,7 +1208,10 @@ pub(crate) mod tests {
         let mut result = [0u8; 64 * 5];
         rng.fill_bytes(&mut result);
         assert_ne!(first_blocks_end_word_pos, rng.get_word_pos());
-        assert_eq!(rng.get_word_pos(), first_blocks_end_word_pos + (1 << 32) * BLOCK_WORDS as u128);
+        assert_eq!(
+            rng.get_word_pos(),
+            first_blocks_end_word_pos + (1 << 32) * BLOCK_WORDS as u128
+        );
         assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
     }
 }
