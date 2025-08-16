@@ -1173,10 +1173,10 @@ pub(crate) mod tests {
         assert_eq!(rng.next_u32(), expected);
     }
 
-    /// If this test fails, the backend may be
-    /// performing 32-bit addition.
+    /// If this test fails, the backend may not be
+    /// performing 64-bit addition.
     #[test]
-    fn counter_nonwrapping_32_bit_counter() {
+    fn counter_wrapping_64_bit_counter() {
         let mut rng = ChaChaRng::from_seed([0u8; 32]);
 
         // get first four blocks and word pos
@@ -1189,6 +1189,26 @@ pub(crate) mod tests {
         let mut result = [0u8; 64 * 5];
         rng.fill_bytes(&mut result);
         assert_eq!(word_pos, rng.get_word_pos());
+        assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
+    }
+
+    /// If this test fails, the backend may be doing 
+    /// 32-bit addition.
+    #[test]
+    fn counter_not_wrapping_at_32_bits() {
+        let mut rng = ChaChaRng::from_seed([0u8; 32]);
+
+        // get first four blocks and word pos
+        let mut first_blocks = [0u8; 64 * 4];
+        rng.fill_bytes(&mut first_blocks);
+        let first_blocks_end_word_pos = rng.get_word_pos();
+
+        // get first four blocks after the supposed overflow
+        rng.set_block_pos(u32::MAX as u64);
+        let mut result = [0u8; 64 * 5];
+        rng.fill_bytes(&mut result);
+        assert_ne!(first_blocks_end_word_pos, rng.get_word_pos());
+        assert_eq!(rng.get_word_pos(), first_blocks_end_word_pos + (1 << 32) * BLOCK_WORDS as u128);
         assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
     }
 }
