@@ -84,8 +84,8 @@ impl Debug for Seed {
 /// A wrapper for set_word_pos() input.
 ///
 /// Can be constructed from any of the following:
-/// * `[u8; 9]`
 /// * `u128`
+/// * `[u8; 9]`
 pub struct WordPosInput {
     block_pos: [u32; 2],
     index: usize,
@@ -286,10 +286,10 @@ macro_rules! impl_chacha_rng {
         /// rounds is the minimum potentially secure configuration, and 20 rounds is widely used as a
         /// conservative choice.
         ///
-        /// We use a 32-bit counter and 96-bit stream identifier as in the IETF implementation[^3]
-        /// except that we use a stream identifier in place of a nonce. A 32-bit counter over 64-byte
-        /// (16 word) blocks allows 256 GiB of output before cycling, and the stream identifier allows
-        /// 2<sup>96</sup> unique streams of output per seed. Both counter and stream are initialized
+        /// We use a 64-bit counter and 64-bit stream identifier as in Bernstein's implementation[^3]
+        /// except that we use a stream identifier in place of a nonce. A 64-bit counter over 64-byte
+        /// (16 word) blocks allows 1 ZiB of output before cycling, and the stream identifier allows
+        /// 2<sup>64</sup> unique streams of output per seed. Both counter and stream are initialized
         /// to zero but may be set via the `set_word_pos` and `set_stream` methods.
         ///
         /// The word layout is:
@@ -298,7 +298,7 @@ macro_rules! impl_chacha_rng {
         /// constant  constant  constant  constant
         /// seed      seed      seed      seed
         /// seed      seed      seed      seed
-        /// counter   stream_id stream_id stream_id
+        /// counter   counter   stream_id stream_id
         /// ```
         /// This implementation uses an output buffer of sixteen `u32` words, and uses
         /// [`BlockRng`] to implement the [`RngCore`] methods.
@@ -346,9 +346,6 @@ macro_rules! impl_chacha_rng {
         ///
         /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](
         ///       http://www.ecrypt.eu.org/stream/)
-        ///
-        /// [^3]: Internet Research Task Force, [*ChaCha20 and Poly1305 for IETF Protocols*](
-        ///       https://www.rfc-editor.org/rfc/rfc8439)
         #[derive(Clone)]
         pub struct $ChaChaXRng {
             /// The ChaChaCore struct
@@ -433,15 +430,16 @@ macro_rules! impl_chacha_rng {
 
             /// Set the offset from the start of the stream, in 32-bit words. This method
             /// takes any of the following:
-            /// * `[u8; 9]`
             /// * `u128`
+            /// * `[u8; 9]`
             ///
             /// As with `get_word_pos`, we use a 36-bit number. When given a `u64`, we use
             /// the least significant 4 bits as the RNG's index, and the 32 bits before it
             /// as the block position.
             ///
             /// When given a `[u8; 9]`, the word_pos is set similarly, but it is more
-            /// arbitrary.
+            /// arbitrary since the index is set using the lowest 4 bits of the last
+            /// byte.
             #[inline]
             pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
                 let word_pos: WordPosInput = word_offset.into();
@@ -456,7 +454,8 @@ macro_rules! impl_chacha_rng {
             /// The word pos will be equal to `block_pos * 16 words per block`.
             ///
             /// This method takes any of the following:
-            /// * `[u8; 4]`
+            /// * `u64`
+            /// * `[u8; 8]`
             /// * `[u32; 2]`
             #[inline]
             #[allow(unused)]
@@ -476,9 +475,9 @@ macro_rules! impl_chacha_rng {
 
             /// Set the stream number. The lower 96 bits are used and the rest are
             /// discarded. This method takes any of the following:
-            /// * `[u32; 2]`
-            /// * `[u8; 8]`
             /// * `u64`
+            /// * `[u8; 8]`
+            /// * `[u32; 2]`
             ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key.
