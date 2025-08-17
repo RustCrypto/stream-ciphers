@@ -95,6 +95,39 @@ mod chacha20test {
         assert_eq!(&buf[..], &CIPHERTEXT[..]);
     }
 
+    macro_rules! impl_chacha20_potential_counter_issue {
+        ($name:ident, $num_blocks:literal) => {
+            #[test]
+            fn $name() {
+                let mut cipher = ChaCha20::new(&KEY.into(), &IV.into());
+                let mut first_block = [0u8; 64];
+                assert_eq!(cipher.current_pos::<u64>(), 0);
+                cipher.apply_keystream(&mut first_block);
+
+                let mut buf_1 = [0u8; $num_blocks * 64];
+                let mut buf_2 = [0u8; $num_blocks * 64 + 1];
+
+                // seek to end of keystream
+                let pos = (1 << 32) * 64 - $num_blocks * 64 - 64;
+                cipher.try_seek(pos).unwrap();
+                assert_eq!(cipher.current_pos::<u64>(), pos);
+
+                // overshoot keystream length
+                let applied_keystream = cipher.try_apply_keystream(&mut buf_2);
+                assert_eq!(applied_keystream.is_err(), true);
+
+                // exhaust keystream
+                cipher.apply_keystream(&mut buf_1);
+
+                // seek to beginning and check if the first block is the same as before
+                let mut first_block_observation_2 = [0u8; 64];
+                cipher.seek(0);
+                assert_eq!(cipher.current_pos::<u64>(), 0);
+                cipher.apply_keystream(&mut first_block_observation_2);
+                assert_eq!(first_block_observation_2, first_block);
+            }
+        };
+    }
     #[test]
     fn chacha20_potential_counter_issue_v1() {
         let mut cipher = ChaCha20::new(&KEY.into(), &IV.into());
@@ -126,35 +159,13 @@ mod chacha20test {
         assert_eq!(first_block_observation_2, first_block);
     }
 
-    #[test]
-    fn chacha20_potential_counter_issue_v2() {
-        let mut cipher = ChaCha20::new(&KEY.into(), &IV.into());
-        let mut first_block = [0u8; 64];
-        assert_eq!(cipher.current_pos::<u64>(), 0);
-        cipher.apply_keystream(&mut first_block);
+    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v2, 4);
+    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v3, 11);
+    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v4, 10);
+    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v5, 9);
+    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v6, 8);
+    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v7, 7);
 
-        let mut buf_1 = [0u8; 256];
-        let mut buf_2 = [0u8; 257];
-
-        // seek to end of keystream
-        let pos = (1 << 32) * 64 - 256 - 64;
-        cipher.try_seek(pos).unwrap();
-        assert_eq!(cipher.current_pos::<u64>(), pos);
-
-        // overshoot keystream length
-        let applied_keystream = cipher.try_apply_keystream(&mut buf_2);
-        assert_eq!(applied_keystream.is_err(), true);
-
-        // exhaust keystream
-        cipher.apply_keystream(&mut buf_1);
-
-        // seek to beginning and check if the first block is the same as before
-        let mut first_block_observation_2 = [0u8; 64];
-        cipher.seek(0);
-        assert_eq!(cipher.current_pos::<u64>(), 0);
-        cipher.apply_keystream(&mut first_block_observation_2);
-        assert_eq!(first_block_observation_2, first_block);
-    }
 }
 
 #[rustfmt::skip]
