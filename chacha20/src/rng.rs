@@ -482,7 +482,26 @@ macro_rules! impl_chacha_rng {
             /// * `[u32; 2]`
             ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
-            /// are available per seed/key.
+            /// are available per seed/key. In theory a 96-bit nonce can be used by
+            /// passing the last 64-bits to this function and using the first 32-bits as
+            /// the most significant half of the 64-bit counter, which may be set
+            /// directly via `set_block_pos` like so:
+            ///
+            /// ```
+            /// use chacha20::ChaCha20Rng;
+            /// use rand_core::{SeedableRng, RngCore};
+            ///
+            /// let seed = [1u8; 32];
+            /// let mut rng = ChaCha20Rng::from_seed(seed);
+            ///
+            /// // set state[12] to 0, state[13] to 1, state[14] to 2, state[15] to 3
+            /// rng.set_block_pos([0u32, 1u32]);
+            /// rng.set_stream([2u32, 3u32]);
+            ///
+            /// // confirm that state is set correctly
+            /// assert_eq!(rng.get_block_pos(), 1 << 32);
+            /// assert_eq!(rng.get_stream(), (3 << 32) + 2);
+            /// ```
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
@@ -1225,5 +1244,18 @@ pub(crate) mod tests {
             first_blocks_end_word_pos + (1 << 32) * BLOCK_WORDS as u128
         );
         assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
+    }
+
+    /// Ensures that old `StreamId` behavior is the same as before when
+    /// using `set_block_pos`.
+    #[test]
+    fn stream_id_equivalence_test() {
+        use chacha20_old::ChaCha20Rng as OldRng;
+        let mut old_rng = OldRng::from_seed([0u8; 32]);
+        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
+        old_rng.set_stream([1, 2, 3]);
+        rng.set_block_pos([0, 1]);
+        rng.set_stream([2, 3]);
+        assert_eq!(rng.next_u32(), old_rng.next_u32());
     }
 }
