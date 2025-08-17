@@ -165,7 +165,6 @@ mod chacha20test {
     impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v5, 9);
     impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v6, 8);
     impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v7, 7);
-
 }
 
 #[rustfmt::skip]
