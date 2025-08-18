@@ -491,7 +491,7 @@ macro_rules! impl_chacha_rng {
             /// use chacha20::ChaCha20Rng;
             /// use rand_core::{SeedableRng, RngCore};
             ///
-            /// let seed = [1u8; 32];
+            /// let seed = [2u8; 32];
             /// let mut rng = ChaCha20Rng::from_seed(seed);
             ///
             /// // set state[12] to 0, state[13] to 1, state[14] to 2, state[15] to 3
