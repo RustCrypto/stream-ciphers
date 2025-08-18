@@ -31,7 +31,6 @@ zeroize = { version = "1.8.1", optional = true, default-features = false }
 cpufeatures = "0.2"
 
 [dev-dependencies]
-chacha20_old = { package = "chacha20", version = "0.10.0-rc.0", features = ["rng"] }
 cipher = { version = "0.5.0-rc.0", features = ["dev"] }
 hex-literal = "1"
 proptest = "1"

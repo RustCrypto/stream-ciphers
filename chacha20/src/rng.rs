@@ -1245,17 +1245,4 @@ pub(crate) mod tests {
         );
         assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
     }
-
-    /// Ensures that old `StreamId` behavior is the same as before when
-    /// using `set_block_pos`.
-    #[test]
-    fn stream_id_equivalence_test() {
-        use chacha20_old::ChaCha20Rng as OldRng;
-        let mut old_rng = OldRng::from_seed([0u8; 32]);
-        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
-        old_rng.set_stream([1, 2, 3]);
-        rng.set_block_pos([0, 1]);
-        rng.set_stream([2, 3]);
-        assert_eq!(rng.next_u32(), old_rng.next_u32());
-    }
 }
