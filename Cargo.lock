@@ -25,9 +25,9 @@ checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
 name = "bitflags"
-version = "2.9.1"
+version = "2.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
+checksum = "6a65b545ab31d687cff52899d4890855fec459eb6afe0da6417b8a18da87aa29"
 
 [[package]]
 name = "blobby"
@@ -37,7 +37,7 @@ source = "git+https://github.com/RustCrypto/utils#f5ac85f6aa02aa39614f62a6a1add9
 [[package]]
 name = "block-buffer"
 version = "0.11.0-rc.4"
-source = "git+https://github.com/RustCrypto/utils?branch=block-buffer%2Fread-buf#79e12dfd745e732d24ba1566f705f35ba409edc6"
+source = "git+https://github.com/RustCrypto/utils#dfcd9a0a75c45085f0e594597fb0d1dc8b781b86"
 dependencies = [
  "hybrid-array",
  "zeroize",
@@ -68,7 +68,7 @@ dependencies = [
 [[package]]
 name = "cipher"
 version = "0.5.0-rc.0"
-source = "git+https://github.com/RustCrypto/traits?branch=cipher%2Fread_buf#f63bd790c8a4f5383915f3b5a32c587be5854282"
+source = "git+https://github.com/RustCrypto/traits#079b4ab4743d835aa5acebd038856a83cc13dcdc"
 dependencies = [
  "blobby",
  "block-buffer",
@@ -89,7 +89,7 @@ dependencies = [
 [[package]]
 name = "crypto-common"
 version = "0.2.0-rc.3"
-source = "git+https://github.com/RustCrypto/traits?branch=cipher%2Fread_buf#f63bd790c8a4f5383915f3b5a32c587be5854282"
+source = "git+https://github.com/RustCrypto/traits#079b4ab4743d835aa5acebd038856a83cc13dcdc"
 dependencies = [
  "hybrid-array",
 ]
@@ -217,9 +217,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.97"
+version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d61789d7719defeb74ea5fe81f2fdfdbd28a803847077cecce2ff14e1472f6f1"
+checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
 dependencies = [
  "unicode-ident",
 ]
@@ -399,9 +399,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.104"
+version = "2.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b6f705963418cdb9927482fa304bc562ece2fdd4f616084c50b7023b435a40"
+checksum = "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6"
 dependencies = [
  "proc-macro2",
  "quote",
