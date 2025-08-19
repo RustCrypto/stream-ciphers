@@ -183,20 +183,20 @@ fn salsa20_big_offset() {
 
     let pos = 1u64 << 40;
 
-    let mut buf1 = [0u8; 256];
-    cipher.seek(pos - 128);
+    let mut buf1 = [0u8; 1000];
+    cipher.seek(pos - 500);
 
     cipher.write_keystream(&mut buf1);
 
     let cur_pos: u64 = cipher.current_pos();
-    assert_eq!(cur_pos, pos + 128);
+    assert_eq!(cur_pos, pos + 500);
 
-    let mut buf2 = [0u8; 256];
-    let (buf2l, buf2r) = buf2.split_at_mut(128);
+    let mut buf2 = [0u8; 1000];
+    let (buf2l, buf2r) = buf2.split_at_mut(500);
 
     cipher.seek(pos);
     cipher.write_keystream(buf2r);
-    cipher.seek(pos - 128);
+    cipher.seek(pos - 500);
     cipher.write_keystream(buf2l);
 
     assert_eq!(buf1, buf2);
