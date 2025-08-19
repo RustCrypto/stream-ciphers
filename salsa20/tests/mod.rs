@@ -176,6 +176,34 @@ fn xsalsa20_encrypt_hello_world() {
     assert_eq!(buf, EXPECTED_XSALSA20_HELLO_WORLD);
 }
 
+// Regression test for https://github.com/RustCrypto/stream-ciphers/issues/445
+#[test]
+fn salsa20_big_offset() {
+    let mut cipher = Salsa20::new(&KEY1.into(), &IV1.into());
+
+    let pos = 1u64 << 40;
+
+    let mut buf1 = [0u8; 1000];
+    cipher.seek(pos - 500);
+
+    cipher.write_keystream(&mut buf1);
+
+    let cur_pos: u64 = cipher.current_pos();
+    assert_eq!(cur_pos, pos + 500);
+
+    let mut buf2 = [0u8; 1000];
+    let (buf2l, buf2r) = buf2.split_at_mut(500);
+
+    cipher.seek(pos);
+    cipher.write_keystream(buf2r);
+    cipher.seek(pos - 500);
+    cipher.write_keystream(buf2l);
+
+    assert_eq!(buf1, buf2);
+    let cur_pos: u64 = cipher.current_pos();
+    assert_eq!(cur_pos, pos);
+}
+
 #[test]
 fn salsa20_regression_2024_03() {
     use salsa20::{
