@@ -108,7 +108,7 @@ mod chacha20test {
                 let mut buf_2 = [0u8; $num_blocks * 64 + 1];
 
                 // seek to end of keystream
-                let pos = (1 << 32) * 64 - $num_blocks * 64 - 64;
+                let pos = (1 << 32) * 64 - $num_blocks * 64;
                 cipher.try_seek(pos).unwrap();
                 assert_eq!(cipher.current_pos::<u64>(), pos);
 
