@@ -47,11 +47,13 @@ impl Variant for Ietf {
     fn remaining_blocks(block_pos: Self::Counter) -> Option<usize> {
         let total_blocks = 1u64 << 32;
         let rem = total_blocks - block_pos as u64;
+        #[cfg(target_pointer_width = "32")]
         if rem > usize::MAX as u64 {
-            None
+            return None;
         } else {
-            Some(rem as usize)
+            return Some(rem as usize);
         }
+        rem.try_into().ok()
     }
 }
 
