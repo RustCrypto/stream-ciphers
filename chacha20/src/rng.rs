@@ -81,40 +81,6 @@ impl Debug for Seed {
     }
 }
 
-/// A wrapper for set_word_pos() input.
-///
-/// Can be constructed from any of the following:
-/// * `u128`
-/// * `[u8; 9]`
-pub struct WordPosInput {
-    block_pos: [u32; 2],
-    index: usize,
-}
-
-impl From<[u8; 9]> for WordPosInput {
-    fn from(value: [u8; 9]) -> Self {
-        let s12 = u32::from_le_bytes(value[0..4].try_into().unwrap());
-        let s13 = u32::from_le_bytes(value[4..8].try_into().unwrap());
-        Self {
-            block_pos: [s12, s13],
-            index: (value[8] & 0b1111) as usize,
-        }
-    }
-}
-
-impl From<u128> for WordPosInput {
-    fn from(value: u128) -> Self {
-        let index = (value.to_le_bytes()[0] & 0b1111) as usize;
-        let counter = value >> 4;
-        let s12 = counter as u32;
-        let s13 = (counter >> 32) as u32;
-        Self {
-            block_pos: [s12, s13],
-            index,
-        }
-    }
-}
-
 /// A wrapper for `stream_id`.
 ///
 /// Can be constructed from any of the following:
@@ -324,11 +290,7 @@ macro_rules! impl_chacha_rng {
         /// // or a [u32; 2]
         /// rng.set_stream([4u32; 2]);
         ///
-        ///
         /// rng.set_word_pos(5);
-        ///
-        /// // you can also use a [u8; 9] in `.set_word_pos()`
-        /// rng.set_word_pos([2u8; 9]);
         ///
         /// let x = rng.next_u32();
         /// let mut array = [0u8; 32];
@@ -430,25 +392,19 @@ macro_rules! impl_chacha_rng {
                 word_pos & ((1 << 68) - 1)
             }
 
-            /// Set the offset from the start of the stream, in 32-bit words. This method
-            /// takes any of the following:
-            /// * `u128`
-            /// * `[u8; 9]`
+            /// Set the offset from the start of the stream, in 32-bit words.
             ///
             /// As with `get_word_pos`, we use a 36-bit number. When given a `u64`, we use
             /// the least significant 4 bits as the RNG's index, and the 32 bits before it
             /// as the block position.
-            ///
-            /// When given a `[u8; 9]`, the word_pos is set similarly, but it is more
-            /// arbitrary since the index is set using the lowest 4 bits of the last
-            /// byte.
             #[inline]
-            pub fn set_word_pos<W: Into<WordPosInput>>(&mut self, word_offset: W) {
-                let word_pos: WordPosInput = word_offset.into();
-                self.core.core.0.state[12] = word_pos.block_pos[0];
-                self.core.core.0.state[13] = word_pos.block_pos[1];
-                // generate will increase block_pos by 4
-                self.core.generate_and_set(word_pos.index);
+            pub fn set_word_pos(&mut self, word_offset: u128) {
+                let index = (word_offset.to_le_bytes()[0] & 0b1111) as usize;
+                let counter = word_offset >> 4;
+                //self.set_block_pos(counter as u64);
+                self.core.core.0.state[12] = counter as u32;
+                self.core.core.0.state[13] = (counter >> 32) as u32;
+                self.core.generate_and_set(index);
             }
 
             /// Set the block pos and reset the RNG's index.
@@ -720,10 +676,6 @@ pub(crate) mod tests {
         // test set_word_pos with u64
         rng.set_word_pos(8888);
         assert_eq!(rng.get_word_pos(), 8888);
-
-        // test set_word_pos with [u8; 9]
-        rng.set_word_pos([55, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(rng.get_word_pos(), 55 * 16);
     }
 
     #[cfg(feature = "serde1")]
