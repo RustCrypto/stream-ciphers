@@ -87,6 +87,8 @@ impl Debug for Seed {
 /// * `[u32; 3]`
 /// * `[u8; 12]`
 /// * `u128`
+/// 
+/// The arrays should be in little endian order.
 pub struct StreamId([u32; Self::LEN]);
 
 impl StreamId {
@@ -131,15 +133,16 @@ impl From<u64> for StreamId {
 /// A wrapper for `block_pos`.
 ///
 /// Can be constructed from any of the following:
-/// * `[u8; 8]`
 /// * `u64`
+/// * `[u8; 8]`
 /// * `[u32; 2]`
+/// 
+/// The arrays should be in little endian order.
 pub struct BlockPos([u32; 2]);
 
 impl From<u64> for BlockPos {
     #[inline]
-    fn from(mut value: u64) -> Self {
-        value = value.to_le();
+    fn from(value: u64) -> Self {
         Self([value as u32, (value >> 32) as u32])
     }
 }
@@ -153,8 +156,7 @@ impl From<[u8; 8]> for BlockPos {
 
 impl From<[u32; 2]> for BlockPos {
     #[inline]
-    fn from(mut value: [u32; 2]) -> Self {
-        value.iter_mut().for_each(|x| *x = x.to_le());
+    fn from(value: [u32; 2]) -> Self {
         Self(value)
     }
 }
@@ -399,7 +401,7 @@ macro_rules! impl_chacha_rng {
             /// as the block position.
             #[inline]
             pub fn set_word_pos(&mut self, word_offset: u128) {
-                let index = (word_offset.to_le_bytes()[0] & 0b1111) as usize;
+                let index = (word_offset & 0b1111) as usize;
                 let counter = word_offset >> 4;
                 //self.set_block_pos(counter as u64);
                 self.core.core.0.state[12] = counter as u32;
@@ -415,13 +417,15 @@ macro_rules! impl_chacha_rng {
             /// * `u64`
             /// * `[u8; 8]`
             /// * `[u32; 2]`
+            /// 
+            /// Note: the arrays should be in little endian order.
             #[inline]
             #[allow(unused)]
             pub fn set_block_pos<B: Into<BlockPos>>(&mut self, block_pos: B) {
                 self.core.reset();
                 let block_pos = block_pos.into().0;
-                self.core.core.0.state[12] = block_pos[0].to_le();
-                self.core.core.0.state[13] = block_pos[1].to_le()
+                self.core.core.0.state[12] = block_pos[0];
+                self.core.core.0.state[13] = block_pos[1]
             }
 
             /// Get the block pos.
@@ -436,6 +440,8 @@ macro_rules! impl_chacha_rng {
             /// * `u64`
             /// * `[u8; 8]`
             /// * `[u32; 2]`
+            /// 
+            /// Note: the arrays should be in little endian order.
             ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
             /// are available per seed/key. In theory a 96-bit nonce can be used by
@@ -651,7 +657,7 @@ pub(crate) mod tests {
         let seed = [44u8; 32];
         let mut rng = ChaCha20Rng::from_seed(seed);
 
-        // test set_stream with [u32; 3]
+        // test set_stream with [u32; 2]
         rng.set_stream([313453u32, 0u32]);
         assert_eq!(rng.get_stream(), 313453);
 
