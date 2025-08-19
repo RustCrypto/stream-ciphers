@@ -177,6 +177,22 @@ fn xsalsa20_encrypt_hello_world() {
 }
 
 #[test]
+fn salsa20_big_offset() {
+    let mut cipher = Salsa20::new(&KEY1.into(), &IV1.into());
+
+    let block_size = 64;
+    let pos = block_size * u64::from(u32::MAX);
+
+    let mut buf1 = [0u8; 256];
+    cipher.seek(pos);
+
+    cipher.write_keystream(&mut buf1);
+
+    let cur_pos: u64 = cipher.current_pos();
+    assert_eq!(cur_pos, pos + u64::try_from(buf1.len()).unwrap());
+}
+
+#[test]
 fn salsa20_regression_2024_03() {
     use salsa20::{
         SalsaCore,
