@@ -50,8 +50,6 @@ impl Variant for Ietf {
         #[cfg(target_pointer_width = "32")]
         if rem > usize::MAX as u64 {
             return None;
-        } else {
-            return Some(rem as usize);
         }
         rem.try_into().ok()
     }
