@@ -1,9 +1,9 @@
 #![allow(unsafe_op_in_unsafe_fn)]
-use crate::Rounds;
+use crate::{Rounds, Variant};
 use core::marker::PhantomData;
 
 #[cfg(feature = "rng")]
-use crate::{ChaChaCore, Variant};
+use crate::ChaChaCore;
 
 #[cfg(feature = "cipher")]
 use crate::{chacha::Block, STATE_WORDS};
