@@ -27,10 +27,11 @@ const N: usize = PAR_BLOCKS / 2;
 #[inline]
 #[target_feature(enable = "avx2")]
 #[cfg(feature = "cipher")]
-pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+pub(crate) unsafe fn inner<R, F, V>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
     F: StreamCipherClosure<BlockSize = U64>,
+    V: Variant,
 {
     let state_ptr = state.as_ptr() as *const __m128i;
     let v = [
@@ -54,7 +55,9 @@ where
     f.call(&mut backend);
 
     state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
-    state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32;
+    if size_of::<V::Counter>() == 8 {
+        state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32;
+    }
 }
 
 #[inline]

@@ -60,19 +60,24 @@ impl<R: Rounds> Backend<R> {
 #[inline]
 #[cfg(feature = "cipher")]
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+pub(crate) unsafe fn inner<R, F, V>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
     F: StreamCipherClosure<BlockSize = U64>,
+    V: Variant,
 {
     let mut backend = Backend::<R>::new(state);
 
     f.call(&mut backend);
 
-    vst1q_u64(
-        state.as_mut_ptr().offset(12) as *mut u64,
-        vreinterpretq_u64_u32(backend.state[3]),
-    );
+    if size_of::<V::Counter>() == 8 {
+        vst1q_u64(
+            state.as_mut_ptr().offset(12) as *mut u64,
+            vreinterpretq_u64_u32(backend.state[3]),
+        );
+    } else {
+        state[12] = vgetq_lane_u32(backend.state[3], 0);
+    }
 }
 
 #[inline]
