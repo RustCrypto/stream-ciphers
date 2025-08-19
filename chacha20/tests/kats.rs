@@ -120,7 +120,7 @@ mod chacha20test {
                 cipher.apply_keystream(&mut buf_1);
 
                 // seek to beginning and check if the first block is the same as before
-                cipher.seek(0);
+                //cipher.seek(0);
                 assert_eq!(cipher.current_pos::<u64>(), 0);
                 cipher.apply_keystream(&mut first_4_blocks);
 
