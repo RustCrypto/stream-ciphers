@@ -87,7 +87,7 @@ impl Debug for Seed {
 /// * `[u32; 3]`
 /// * `[u8; 12]`
 /// * `u128`
-/// 
+///
 /// The arrays should be in little endian order.
 pub struct StreamId([u32; Self::LEN]);
 
@@ -136,7 +136,7 @@ impl From<u64> for StreamId {
 /// * `u64`
 /// * `[u8; 8]`
 /// * `[u32; 2]`
-/// 
+///
 /// The arrays should be in little endian order.
 pub struct BlockPos([u32; 2]);
 
@@ -417,7 +417,7 @@ macro_rules! impl_chacha_rng {
             /// * `u64`
             /// * `[u8; 8]`
             /// * `[u32; 2]`
-            /// 
+            ///
             /// Note: the arrays should be in little endian order.
             #[inline]
             #[allow(unused)]
@@ -440,7 +440,7 @@ macro_rules! impl_chacha_rng {
             /// * `u64`
             /// * `[u8; 8]`
             /// * `[u32; 2]`
-            /// 
+            ///
             /// Note: the arrays should be in little endian order.
             ///
             /// This is initialized to zero; 2<sup>96</sup> unique streams of output
