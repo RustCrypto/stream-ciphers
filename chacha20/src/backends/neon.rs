@@ -70,14 +70,10 @@ where
 
     f.call(&mut backend);
 
-    if size_of::<V::Counter>() == 8 {
-        vst1q_u64(
-            state.as_mut_ptr().offset(12) as *mut u64,
-            vreinterpretq_u64_u32(backend.state[3]),
-        );
-    } else {
-        state[12] = vgetq_lane_u32(backend.state[3], 0);
-    }
+    vst1q_u64(
+        state.as_mut_ptr().offset(12) as *mut u64,
+        vreinterpretq_u64_u32(backend.state[3]),
+    );
 }
 
 #[inline]

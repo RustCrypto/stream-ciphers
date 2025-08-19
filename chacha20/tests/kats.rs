@@ -108,7 +108,7 @@ mod chacha20test {
                 let mut buf_2 = [0u8; $num_blocks * 64 + 1];
 
                 // seek to end of keystream
-                let pos = (1 << 32) * 64 - $num_blocks * 64;
+                let pos = (1 << 32) * 64 - $num_blocks * 64 - 64;
                 cipher.try_seek(pos).unwrap();
                 assert_eq!(cipher.current_pos::<u64>(), pos);
 
@@ -119,8 +119,11 @@ mod chacha20test {
                 // exhaust keystream
                 cipher.apply_keystream(&mut buf_1);
 
+                // verify that we cannot write another byte
+                assert!(cipher.try_apply_keystream(&mut [0u8; 1]).is_err());
+
                 // seek to beginning and check if the first block is the same as before
-                //cipher.seek(0);
+                cipher.seek(0);
                 assert_eq!(cipher.current_pos::<u64>(), 0);
                 cipher.apply_keystream(&mut first_4_blocks);
 

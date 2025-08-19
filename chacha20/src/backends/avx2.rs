@@ -55,9 +55,7 @@ where
     f.call(&mut backend);
 
     state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
-    if size_of::<V::Counter>() == 8 {
-        state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32;
-    }
+    state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32;
 }
 
 #[inline]

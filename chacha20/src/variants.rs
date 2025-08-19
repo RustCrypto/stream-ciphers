@@ -45,13 +45,7 @@ impl Variant for Ietf {
     }
     #[inline(always)]
     fn remaining_blocks(block_pos: Self::Counter) -> Option<usize> {
-        let total_blocks = 1u64 << 32;
-        let rem = total_blocks - block_pos as u64;
-        #[cfg(target_pointer_width = "32")]
-        if rem > usize::MAX as u64 {
-            return None;
-        }
-        rem.try_into().ok()
+        (u32::MAX - block_pos).try_into().ok()
     }
 }
 
@@ -76,8 +70,9 @@ impl Variant for Legacy {
     }
     #[inline(always)]
     fn remaining_blocks(block_pos: Self::Counter) -> Option<usize> {
-        let remaining = (1u128 << 64) - block_pos as u128;
-        if remaining > usize::MAX as u128 {
+        let remaining = u64::MAX - block_pos;
+        #[cfg(target_pointer_width = "32")]
+        if remaining > usize::MAX as u64 {
             return None;
         }
         remaining.try_into().ok()
