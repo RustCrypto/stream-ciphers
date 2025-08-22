@@ -1,12 +1,9 @@
 //! Distinguishing features of ChaCha variants.
-//!
-//! To be revisited for the 64-bit counter.
 
 /// A trait that distinguishes some ChaCha variants
 pub trait Variant: Clone {
-    /// the size of the Nonce in u32s
+    /// Where the nonce starts in the state array
     const NONCE_INDEX: usize;
-    const COUNTER_MAX: u64;
     #[cfg(feature = "cipher")]
     type Counter: cipher::StreamCipherCounter;
     #[cfg(not(feature = "cipher"))]
@@ -31,7 +28,6 @@ pub trait Variant: Clone {
 pub struct Ietf();
 impl Variant for Ietf {
     const NONCE_INDEX: usize = 13;
-    const COUNTER_MAX: u64 = u32::MAX as u64;
     type Counter = u32;
 
     type CounterWords = [u32; 1];
@@ -56,7 +52,6 @@ pub struct Legacy();
 #[cfg(feature = "legacy")]
 impl Variant for Legacy {
     const NONCE_INDEX: usize = 14;
-    const COUNTER_MAX: u64 = u64::MAX;
     type Counter = u64;
 
     type CounterWords = [u32; 2];

@@ -33,7 +33,9 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<'_, R, V> {
             self.0.state[12] = v;
         } else {
             self.0.state[12] = 0;
-            self.0.state[13] = self.0.state[13].wrapping_add(1);
+            if size_of::<V::Counter>() == 8 {
+                self.0.state[13] = self.0.state[13].wrapping_add(1);
+            }
         }
 
         for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
