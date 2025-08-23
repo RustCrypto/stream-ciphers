@@ -31,9 +31,8 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<'_, R, V> {
         let mut ctr = u64::from(self.0.state[13]) << 32 | u64::from(self.0.state[12]);
         ctr = ctr.wrapping_add(1);
         self.0.state[12] = ctr as u32;
-        match size_of::<V::Counter>() == 8 {
-            true => self.0.state[13] = (ctr >> 32) as u32,
-            false => {}
+        if size_of::<V::Counter>() == 8 {
+            self.0.state[13] = (ctr >> 32) as u32
         }
 
         for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
