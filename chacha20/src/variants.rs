@@ -1,8 +1,12 @@
 //! ChaCha variant-specific configurations.
 
+mod sealed {
+    pub trait Sealed {}
+}
+
 /// A trait that distinguishes some ChaCha variants. Contains configurations
 /// for "Legacy" DJB variant and the IETF variant.
-pub trait Variant: Clone {
+pub trait Variant: Clone + sealed::Sealed {
     /// Where the nonce starts in the state array.
     const NONCE_INDEX: usize;
 
@@ -33,6 +37,9 @@ pub trait Variant: Clone {
 #[derive(Clone)]
 /// IETF ChaCha configuration to use a 32-bit counter and 96-bit nonce.
 pub struct Ietf();
+
+impl sealed::Sealed for Ietf {}
+
 impl Variant for Ietf {
     const NONCE_INDEX: usize = 13;
     type Counter = u32;
@@ -56,6 +63,8 @@ impl Variant for Ietf {
 #[derive(Clone)]
 #[cfg(feature = "legacy")]
 pub struct Legacy();
+
+impl sealed::Sealed for Legacy {}
 
 #[cfg(feature = "legacy")]
 impl Variant for Legacy {

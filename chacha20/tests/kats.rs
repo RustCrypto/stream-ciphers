@@ -341,7 +341,6 @@ mod legacy {
         let mut first_block_observation_4 = Default::default();
         core.write_keystream_block(&mut first_block_observation_4);
 
-        // fails when `state[13]` changes
         assert_eq!(first_block_observation_1, first_block_observation_4)
     }
 }
