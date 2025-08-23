@@ -58,14 +58,3 @@ check-cfg = [
 
 [lints.clippy]
 needless_range_loop = "allow"
-
-[lints.rust.unexpected_cfgs]
-level = "warn"
-check-cfg = [
-  'cfg(chacha20_force_soft)',
-  'cfg(chacha20_force_sse2)',
-  'cfg(chacha20_force_avx2)',
-]
-
-[lints.clippy]
-needless_range_loop = "allow"
