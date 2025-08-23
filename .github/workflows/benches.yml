@@ -17,9 +17,10 @@ env:
 
 jobs:
   build:
+    if: false # TODO: temp disabled due to unpublished prerelease dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:

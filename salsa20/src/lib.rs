@@ -73,8 +73,6 @@
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
-
-use cfg_if::cfg_if;
 pub use cipher;
 
 use cipher::{
@@ -178,17 +176,6 @@ impl<R: Unsigned> KeyIvInit for SalsaCore<R> {
 
         state[15] = CONSTANTS[3];
 
-        cfg_if! {
-            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                state = [
-                    state[0], state[5], state[10], state[15],
-                    state[4], state[9], state[14], state[3],
-                    state[8], state[13], state[2], state[7],
-                    state[12], state[1], state[6], state[11],
-                ];
-            }
-        }
-
         Self {
             state,
             rounds: PhantomData,
@@ -203,15 +190,7 @@ impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
         rem.try_into().ok()
     }
     fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
-        cfg_if! {
-            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                unsafe {
-                    backends::sse2::inner::<R, _>(&mut self.state, f);
-                }
-            } else {
-                f.call(&mut backends::soft::Backend(self));
-            }
-        }
+        f.call(&mut backends::soft::Backend(self));
     }
 }
 
@@ -220,28 +199,13 @@ impl<R: Unsigned> StreamCipherSeekCore for SalsaCore<R> {
 
     #[inline(always)]
     fn get_block_pos(&self) -> u64 {
-        cfg_if! {
-            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                (self.state[8] as u64) + ((self.state[5] as u64) << 32)
-            }
-            else {
-                (self.state[8] as u64) + ((self.state[9] as u64) << 32)
-            }
-        }
+        (self.state[8] as u64) + ((self.state[9] as u64) << 32)
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: u64) {
-        cfg_if! {
-            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                self.state[8] = (pos & 0xffff_ffff) as u32;
-                self.state[5] = ((pos >> 32) & 0xffff_ffff) as u32;
-            }
-            else {
-                self.state[8] = (pos & 0xffff_ffff) as u32;
-                self.state[9] = ((pos >> 32) & 0xffff_ffff) as u32;
-            }
-        }
+        self.state[8] = (pos & 0xffff_ffff) as u32;
+        self.state[9] = ((pos >> 32) & 0xffff_ffff) as u32;
     }
 }
 
