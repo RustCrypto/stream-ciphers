@@ -38,7 +38,6 @@ where
             _mm_loadu_si128(state_ptr.add(3)),
         ],
         _pd: PhantomData,
-        _variant: PhantomData,
     };
 
     f.call(&mut backend);
@@ -51,8 +50,7 @@ where
 
 struct Backend<R: Rounds, V: Variant> {
     v: [__m128i; 4],
-    _pd: PhantomData<R>,
-    _variant: PhantomData<V>,
+    _pd: PhantomData<(R, V)>,
 }
 
 #[cfg(feature = "cipher")]
@@ -120,7 +118,6 @@ where
             _mm_loadu_si128(state_ptr.add(3)),
         ],
         _pd: PhantomData,
-        _variant: PhantomData,
     };
 
     backend.gen_ks_blocks(buffer);

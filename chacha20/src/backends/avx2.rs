@@ -58,7 +58,6 @@ where
         v,
         ctr,
         _pd: PhantomData,
-        _variant: PhantomData,
     };
 
     f.call(&mut backend);
@@ -94,7 +93,6 @@ where
         v,
         ctr,
         _pd: PhantomData,
-        _variant: PhantomData
     };
 
     backend.rng_gen_par_ks_blocks(buffer);
@@ -106,8 +104,7 @@ where
 struct Backend<R: Rounds, V: Variant> {
     v: [__m256i; 3],
     ctr: [__m256i; N],
-    _pd: PhantomData<R>,
-    _variant: PhantomData<V>,
+    _pd: PhantomData<(R, V)>,
 }
 
 #[cfg(feature = "cipher")]

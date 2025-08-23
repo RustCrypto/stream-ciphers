@@ -22,8 +22,7 @@ use cipher::{
 struct Backend<R: Rounds, V: Variant> {
     state: [uint32x4_t; 4],
     ctrs: [uint32x4_t; 4],
-    _pd: PhantomData<R>,
-    _variant: PhantomData<V>,
+    _pd: PhantomData<(R, V)>,
 }
 
 macro_rules! add_counter {
@@ -58,7 +57,6 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
             state,
             ctrs,
             _pd: PhantomData,
-            _variant: PhantomData,
         }
     }
 }
