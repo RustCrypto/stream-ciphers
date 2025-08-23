@@ -213,4 +213,4 @@ jobs:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
       - uses: RustCrypto/actions/cross-install@master
-      - run: RUSTFLAGS="${{ matrix.rustflags }}" cross test --package chacha20 --target ${{ matrix.target }}
+      - run: RUSTFLAGS="${{ matrix.rustflags }}" cross test --package chacha20 --target ${{ matrix.target }} --all-features
