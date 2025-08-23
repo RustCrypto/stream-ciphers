@@ -64,6 +64,7 @@ impl Variant for Ietf {
 #[cfg(feature = "legacy")]
 pub struct Legacy();
 
+#[cfg(feature = "legacy")]
 impl sealed::Sealed for Legacy {}
 
 #[cfg(feature = "legacy")]
