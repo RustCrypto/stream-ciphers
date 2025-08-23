@@ -198,7 +198,6 @@ const BUF_BLOCKS: u8 = BUFFER_SIZE as u8 >> 4;
 impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
     /// 4 blocks with sse2 & soft
-    #[cfg(feature = "rand_core")]
     fn generate(&mut self, buffer: &mut [u32; 64]) {
         cfg_if! {
             if #[cfg(chacha20_force_soft)] {
@@ -327,10 +326,7 @@ macro_rules! impl_chacha_rng {
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                Self(ChaChaCore::<$rounds, Legacy>::new(
-                    seed.as_ref(),
-                    &[0u8; 12],
-                ))
+                Self(ChaChaCore::<$rounds, Legacy>::new(seed.as_ref(), &[0u8; 8]))
             }
         }
         impl SeedableRng for $ChaChaXRng {
@@ -744,6 +740,8 @@ pub(crate) mod tests {
         ];
         let mut rng1 = ChaChaRng::from_seed(seed);
         assert_eq!(rng1.next_u32(), 137206642);
+
+        assert_eq!(rng1.get_seed(), seed);
 
         let mut rng2 = ChaChaRng::from_rng(&mut rng1);
         assert_eq!(rng2.next_u32(), 1325750369);

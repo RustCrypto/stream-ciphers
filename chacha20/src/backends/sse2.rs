@@ -132,7 +132,8 @@ where
 #[cfg(feature = "rng")]
 impl<R: Rounds, V: Variant> Backend<R, V> {
     #[inline(always)]
-    fn gen_ks_blocks(&mut self, block: &mut [u32]) {
+    fn gen_ks_blocks(&mut self, block: &mut [u32; 64]) {
+        const _: () = assert!(4 * PAR_BLOCKS * size_of::<__m128i>() == size_of::<[u32; 64]>());
         unsafe {
             let res = rounds::<R, V>(&self.v);
             self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64));
