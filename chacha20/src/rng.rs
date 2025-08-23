@@ -463,7 +463,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                for (n, val) in self.core.core.0.state[Legacy::NONCE_INDEX..BLOCK_WORDS as usize]
+                for (n, val) in self.core.core.0.state[14..BLOCK_WORDS as usize]
                     .as_mut()
                     .iter_mut()
                     .zip(stream.0.iter())
@@ -479,7 +479,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> u64 {
                 let mut result = [0u8; 8];
-                for (i, &big) in self.core.core.0.state[Legacy::NONCE_INDEX..BLOCK_WORDS as usize]
+                for (i, &big) in self.core.core.0.state[14..BLOCK_WORDS as usize]
                     .iter()
                     .enumerate()
                 {
