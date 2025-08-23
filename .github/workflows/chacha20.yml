@@ -3,11 +3,13 @@ name: chacha20
 on:
   pull_request:
     paths:
+      - ".github/workflows/chacha20.yml"
       - "chacha20/**"
       - "Cargo.*"
   push:
     branches: master
     paths:
+      - ".github/workflows/chacha20.yml"
       - "chacha20/**"
       - "Cargo.*"
 
@@ -211,4 +213,4 @@ jobs:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
       - uses: RustCrypto/actions/cross-install@master
-      - run: RUSTFLAGS="${{ matrix.rustflags }}" cross test --package chacha20 --target ${{ matrix.target }}
+      - run: RUSTFLAGS="${{ matrix.rustflags }}" cross test --package chacha20 --target ${{ matrix.target }} --all-features

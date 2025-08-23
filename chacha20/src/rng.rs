@@ -1092,7 +1092,7 @@ pub(crate) mod tests {
             tester_array = [0u8; LEN];
             dest_pos = 0;
 
-            // test fill_bytes with lengths starting at N bytes, decreasing by 1,
+            // test fill_bytes with lengths starting at `N` bytes, decreasing by 1,
             // down to 1 byte
             for test_len in 1..=N {
                 let debug_start_word_pos = rng.get_word_pos();
