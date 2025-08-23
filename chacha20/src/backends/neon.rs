@@ -27,13 +27,13 @@ struct Backend<R: Rounds, V: Variant> {
 
 macro_rules! add_counter {
     ($a:expr, $b:expr, $variant:ty) => {
-        if size_of::<<$variant>::Counter>() == 8 {
-            vreinterpretq_u32_u64(vaddq_u64(
+        match size_of::<<$variant>::Counter>() {
+            4 => vaddq_u32($a, $b),
+            8 => vreinterpretq_u32_u64(vaddq_u64(
                 vreinterpretq_u64_u32($a),
                 vreinterpretq_u64_u32($b),
-            ))
-        } else {
-            vaddq_u32($a, $b)
+            )),
+            _ => unreachable!(),
         }
     };
 }
@@ -74,13 +74,13 @@ where
 
     f.call(&mut backend);
 
-    if size_of::<V::Counter>() == 8 {
-        vst1q_u64(
+    match size_of::<V::Counter>() {
+        4 => state[12] = vgetq_lane_u32(backend.state[3], 0),
+        8 => vst1q_u64(
             state.as_mut_ptr().offset(12) as *mut u64,
             vreinterpretq_u64_u32(backend.state[3]),
-        );
-    } else {
-        state[12] = vgetq_lane_u32(backend.state[3], 0);
+        ),
+        _ => unreachable!(),
     }
 }
 

@@ -40,19 +40,19 @@ where
         _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(2))),
     ];
     let mut c = _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(3)));
-    if size_of::<V::Counter>() == 8 {
-        c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 1, 0, 0));
-    } else {
-        c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 0));
-    }
+    c = match size_of::<V::Counter>() {
+        4 => _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 0)),
+        8 => _mm256_add_epi64(c, _mm256_set_epi64x(0, 1, 0, 0)),
+        _ => unreachable!()
+    };
     let mut ctr = [c; N];
     for i in 0..N {
         ctr[i] = c;
-        if size_of::<V::Counter>() == 8 {
-            c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 2, 0, 2));
-        } else {
-            c = _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 2, 0, 0, 0, 2));
-        }
+        c = match size_of::<V::Counter>() {
+            4 => _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 2, 0, 0, 0, 2)),
+            8 => _mm256_add_epi64(c, _mm256_set_epi64x(0, 2, 0, 2)),
+            _ => unreachable!(),
+        };
     }
     let mut backend = Backend::<R, V> {
         v,
@@ -63,8 +63,10 @@ where
     f.call(&mut backend);
 
     state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
-    if size_of::<V::Counter>() == 8 {
-        state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32;
+    match size_of::<V::Counter>() {
+        4 => {},
+        8 => state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32,
+        _ => unreachable!()
     }
 }
 
@@ -124,11 +126,11 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
         unsafe {
             let res = rounds::<R>(&self.v, &self.ctr);
             for c in self.ctr.iter_mut() {
-                if size_of::<V::Counter>() == 8 {
-                    *c = _mm256_add_epi64(*c, _mm256_set_epi64x(0, 1, 0, 1));
-                } else {
-                    *c = _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 1));
-                }
+                *c = match size_of::<V::Counter>() {
+                    4 => _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 1)),
+                    8 => _mm256_add_epi64(*c, _mm256_set_epi64x(0, 1, 0, 1)),
+                    _ => unreachable!()
+                };
             }
 
             let res0: [__m128i; 8] = core::mem::transmute(res[0]);
@@ -147,10 +149,10 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
 
             let pb = PAR_BLOCKS as i32;
             for c in self.ctr.iter_mut() {
-                if size_of::<V::Counter>() == 8 {
-                    *c = _mm256_add_epi64(*c, _mm256_set_epi64x(0, pb as i64, 0, pb as i64));
-                } else {
-                    *c = _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, pb, 0, 0, 0, pb));
+                *c = match size_of::<V::Counter>() {
+                    4 => _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, pb, 0, 0, 0, pb)),
+                    8 => _mm256_add_epi64(*c, _mm256_set_epi64x(0, pb as i64, 0, pb as i64)),
+                    _ => unreachable!()
                 }
             }
 
