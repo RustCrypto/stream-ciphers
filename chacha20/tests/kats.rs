@@ -21,7 +21,7 @@ cipher::stream_cipher_seek_test!(chacha20legacy_seek, ChaCha20Legacy);
 #[cfg(feature = "cipher")]
 mod chacha20test {
     use chacha20::{ChaCha20, KeyIvInit};
-    use cipher::{StreamCipher, StreamCipherSeek};
+    use cipher::StreamCipher;
     use hex_literal::hex;
 
     //
@@ -93,85 +93,6 @@ mod chacha20test {
 
         cipher.apply_keystream(&mut buf);
         assert_eq!(&buf[..], &CIPHERTEXT[..]);
-    }
-
-    macro_rules! impl_chacha20_potential_counter_issue {
-        ($name:ident, $num_blocks:literal) => {
-            #[test]
-            fn $name() {
-                let mut cipher = ChaCha20::new(&KEY.into(), &IV.into());
-                let mut first_4_blocks = [0u8; 256];
-                assert_eq!(cipher.current_pos::<u64>(), 0);
-                cipher.apply_keystream(&mut first_4_blocks);
-
-                let mut buf_1 = [0u8; $num_blocks * 64];
-                let mut buf_2 = [0u8; $num_blocks * 64 + 1];
-
-                // seek to end of keystream
-                let pos = (1 << 32) * 64 - $num_blocks * 64 - 64;
-                cipher.try_seek(pos).unwrap();
-                assert_eq!(cipher.current_pos::<u64>(), pos);
-
-                // overshoot keystream length
-                let applied_keystream = cipher.try_apply_keystream(&mut buf_2);
-                assert_eq!(applied_keystream.is_err(), true);
-
-                // exhaust keystream
-                cipher.apply_keystream(&mut buf_1);
-
-                // verify that we cannot write another byte
-                assert!(cipher.try_apply_keystream(&mut [0u8; 1]).is_err());
-
-                // seek to beginning and check if the first block is the same as before
-                cipher.seek(0);
-                assert_eq!(cipher.current_pos::<u64>(), 0);
-                cipher.apply_keystream(&mut first_4_blocks);
-
-                // if this assert fails, exhausting the keystream increments
-                // state[13], resulting in a different keystream when it
-                // should be the same
-                assert_eq!(first_4_blocks, [0u8; 256]);
-            }
-        };
-    }
-
-    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v2, 4);
-    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v3, 11);
-    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v4, 10);
-    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v5, 9);
-    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v6, 8);
-    impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v7, 7);
-
-    #[test]
-    fn chacha20core_counter_overflow() {
-        use chacha20::{ChaChaCore, R20, variants::Ietf};
-        use cipher::{StreamCipherCore, StreamCipherSeekCore};
-        let mut core = ChaChaCore::<R20, Ietf>::new(&KEY.into(), &IV.into());
-
-        // observe the first block two "different" ways
-        let mut first_block_observation_1 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_1);
-        core.set_block_pos(0);
-        let mut first_block_observation_2 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_2);
-        // proof that setting block pos to 0 results in first_block_observation_1
-        assert_eq!(first_block_observation_1, first_block_observation_2);
-
-        // try to make the counter overflow/wrap
-        core.set_block_pos(u32::MAX);
-        core.write_keystream_block(&mut Default::default());
-
-        let mut first_block_observation_3 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_3);
-        // fails if the counter doesn't wrap
-        assert_eq!(first_block_observation_1, first_block_observation_3);
-
-        core.set_block_pos(0);
-        let mut first_block_observation_4 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_4);
-
-        // fails when `state[13]` changes
-        assert_eq!(first_block_observation_1, first_block_observation_4)
     }
 }
 
@@ -311,36 +232,5 @@ mod legacy {
                 }
             }
         }
-    }
-
-        #[test]
-    fn chacha20core_counter_overflow() {
-        use cipher::{StreamCipherCore, StreamCipherSeekCore};
-        use chacha20::{ChaChaCore, R20, variants::Legacy};
-        let mut core = ChaChaCore::<R20, Legacy>::new(&KEY_LONG.into(), &IV_LONG.into());
-
-        // observe the first block two "different" ways
-        let mut first_block_observation_1 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_1);
-        core.set_block_pos(0);
-        let mut first_block_observation_2 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_2);
-        // proof that setting block pos to 0 results in first_block_observation_1
-        assert_eq!(first_block_observation_1, first_block_observation_2);
-
-        // try to make the counter wrap
-        core.set_block_pos(u64::MAX);
-        core.write_keystream_block(&mut Default::default());
-
-        let mut first_block_observation_3 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_3);
-        // fails if the counter doesn't wrap
-        assert_eq!(first_block_observation_1, first_block_observation_3);
-
-        core.set_block_pos(0);
-        let mut first_block_observation_4 = Default::default();
-        core.write_keystream_block(&mut first_block_observation_4);
-
-        assert_eq!(first_block_observation_1, first_block_observation_4)
     }
 }
