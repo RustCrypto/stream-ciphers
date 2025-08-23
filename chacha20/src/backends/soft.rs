@@ -48,13 +48,10 @@ impl<R: Rounds, V: Variant> Backend<'_, R, V> {
     pub(crate) fn gen_ks_blocks(&mut self, buffer: &mut [u32; 64]) {
         for i in 0..4 {
             let res = run_rounds::<R>(&self.0.state);
-            let no_carry = self.0.state[12].checked_add(1);
-            if let Some(v) = no_carry {
-                self.0.state[12] = v;
-            } else {
-                self.0.state[12] = 0;
-                self.0.state[13] = self.0.state[13].wrapping_add(1);
-            }
+            let mut ctr = u64::from(self.0.state[13]) << 32 | u64::from(self.0.state[12]);
+            ctr = ctr.wrapping_add(1);
+            self.0.state[12] = ctr as u32;
+            self.0.state[13] = (ctr >> 32) as u32;
 
             for (word, val) in buffer[i << 4..(i + 1) << 4].iter_mut().zip(res.iter()) {
                 *word = val.to_le();
