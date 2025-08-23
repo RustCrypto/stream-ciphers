@@ -28,14 +28,12 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<'_, R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         let res = run_rounds::<R>(&self.0.state);
-        let no_carry = self.0.state[12].checked_add(1);
-        if let Some(v) = no_carry {
-            self.0.state[12] = v;
-        } else {
-            self.0.state[12] = 0;
-            if size_of::<V::Counter>() == 8 {
-                self.0.state[13] = self.0.state[13].wrapping_add(1);
-            }
+        let mut ctr = u64::from(self.0.state[13]) << 32 | u64::from(self.0.state[12]);
+        ctr = ctr.wrapping_add(1);
+        self.0.state[12] = ctr as u32;
+        match size_of::<V::Counter>() == 8 {
+            true => self.0.state[13] = (ctr >> 32) as u32,
+            false => {}
         }
 
         for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
