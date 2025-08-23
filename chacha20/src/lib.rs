@@ -130,7 +130,7 @@ mod rng;
 #[cfg(feature = "xchacha")]
 mod xchacha;
 
-mod variants;
+pub mod variants;
 use variants::Variant;
 
 #[cfg(feature = "cipher")]

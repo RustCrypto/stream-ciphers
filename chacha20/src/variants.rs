@@ -1,21 +1,28 @@
-//! Distinguishing features of ChaCha variants.
+//! ChaCha variant-specific configurations.
 
-/// A trait that distinguishes some ChaCha variants
+/// A trait that distinguishes some ChaCha variants. Contains configurations
+/// for "Legacy" DJB variant and the IETF variant.
 pub trait Variant: Clone {
-    /// Where the nonce starts in the state array
+    /// Where the nonce starts in the state array.
     const NONCE_INDEX: usize;
+
+    /// The counter's type.
     #[cfg(feature = "cipher")]
     type Counter: cipher::StreamCipherCounter;
+
+    /// The counter's type.
     #[cfg(not(feature = "cipher"))]
     type Counter;
 
+    /// An intermediate helper type for using generics. Should be either
+    /// a `[u32; 1]` or a `[u32; 2]`.
     type CounterWords: AsRef<[u32]>;
 
-    /// Takes a slice of state[12..NONCE_INDEX] to convert it into
-    /// Self::Counter.
+    /// Takes a slice of `state[12..NONCE_INDEX]` to convert it into
+    /// `Self::Counter`.
     fn get_block_pos(counter_row: &[u32]) -> Self::Counter;
 
-    /// Breaks down the Self::Counter type into a u32 array for setting the
+    /// Breaks down the `Self::Counter` type into a u32 array for setting the
     /// block pos.
     fn set_block_pos_helper(value: Self::Counter) -> Self::CounterWords;
 
@@ -24,7 +31,7 @@ pub trait Variant: Clone {
 }
 
 #[derive(Clone)]
-/// The details pertaining to the IETF variant
+/// IETF ChaCha configuration to use a 32-bit counter and 96-bit nonce.
 pub struct Ietf();
 impl Variant for Ietf {
     const NONCE_INDEX: usize = 13;
@@ -45,6 +52,7 @@ impl Variant for Ietf {
     }
 }
 
+/// DJB variant specific features: 64-bit counter and 64-bit nonce.
 #[derive(Clone)]
 #[cfg(feature = "legacy")]
 pub struct Legacy();

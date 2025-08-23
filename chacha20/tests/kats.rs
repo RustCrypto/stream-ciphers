@@ -141,6 +141,38 @@ mod chacha20test {
     impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v5, 9);
     impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v6, 8);
     impl_chacha20_potential_counter_issue!(chacha20_potential_counter_issue_v7, 7);
+
+    #[test]
+    fn chacha20core_counter_overflow() {
+        use chacha20::{ChaChaCore, R20, variants::Ietf};
+        use cipher::{StreamCipherCore, StreamCipherSeekCore};
+        let mut core = ChaChaCore::<R20, Ietf>::new(&KEY.into(), &IV.into());
+
+        // observe the first block two "different" ways
+        let mut first_block_observation_1 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_1);
+        core.set_block_pos(0);
+        let mut first_block_observation_2 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_2);
+        // proof that setting block pos to 0 results in first_block_observation_1
+        assert_eq!(first_block_observation_1, first_block_observation_2);
+
+        // try to make the counter overflow/wrap
+        core.set_block_pos(u32::MAX);
+        core.write_keystream_block(&mut Default::default());
+
+        let mut first_block_observation_3 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_3);
+        // fails if the counter doesn't wrap
+        assert_eq!(first_block_observation_1, first_block_observation_3);
+
+        core.set_block_pos(0);
+        let mut first_block_observation_4 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_4);
+
+        // fails when `state[13]` changes
+        assert_eq!(first_block_observation_1, first_block_observation_4)
+    }
 }
 
 #[rustfmt::skip]
@@ -279,5 +311,37 @@ mod legacy {
                 }
             }
         }
+    }
+
+        #[test]
+    fn chacha20core_counter_overflow() {
+        use cipher::{StreamCipherCore, StreamCipherSeekCore};
+        use chacha20::{ChaChaCore, R20, variants::Legacy};
+        let mut core = ChaChaCore::<R20, Legacy>::new(&KEY_LONG.into(), &IV_LONG.into());
+
+        // observe the first block two "different" ways
+        let mut first_block_observation_1 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_1);
+        core.set_block_pos(0);
+        let mut first_block_observation_2 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_2);
+        // proof that setting block pos to 0 results in first_block_observation_1
+        assert_eq!(first_block_observation_1, first_block_observation_2);
+
+        // try to make the counter wrap
+        core.set_block_pos(u64::MAX);
+        core.write_keystream_block(&mut Default::default());
+
+        let mut first_block_observation_3 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_3);
+        // fails if the counter doesn't wrap
+        assert_eq!(first_block_observation_1, first_block_observation_3);
+
+        core.set_block_pos(0);
+        let mut first_block_observation_4 = Default::default();
+        core.write_keystream_block(&mut first_block_observation_4);
+
+        // fails when `state[13]` changes
+        assert_eq!(first_block_observation_1, first_block_observation_4)
     }
 }
