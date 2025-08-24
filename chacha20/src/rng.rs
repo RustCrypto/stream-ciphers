@@ -608,6 +608,8 @@ impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
 #[cfg(test)]
 pub(crate) mod tests {
 
+    use hex_literal::hex;
+
     use super::*;
 
     const KEY: [u8; 32] = [
@@ -1200,5 +1202,37 @@ pub(crate) mod tests {
             first_blocks_end_word_pos + (1 << 32) * BLOCK_WORDS as u128
         );
         assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
+    }
+
+    /// Test vector 8 from https://github.com/pyca/cryptography/blob/main/vectors/cryptography_vectors/ciphers/ChaCha20/counter-overflow.txt
+    #[test]
+    fn counter_overflow_1() {
+        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
+        let block_pos = 4294967295;
+        assert_eq!(block_pos, u32::MAX as u64);
+        rng.set_block_pos(4294967295);
+
+        let mut output = [0u8; 64 * 3];
+        rng.fill_bytes(&mut output);
+        let expected = hex!(
+            "ace4cd09e294d1912d4ad205d06f95d9c2f2bfcf453e8753f128765b62215f4d92c74f2f626c6a640c0b1284d839ec81f1696281dafc3e684593937023b58b1d3db41d3aa0d329285de6f225e6e24bd59c9a17006943d5c9b680e3873bdc683a5819469899989690c281cd17c96159af0682b5b903468a61f50228cf09622b5a46f0f6efee15c8f1b198cb49d92b990867905159440cc723916dc0012826981039ce1766aa2542b05db3bd809ab142489d5dbfe1273e7399637b4b3213768aaa"
+        );
+        assert_eq!(expected, output);
+    }
+
+    /// Test vector 9 from https://github.com/pyca/cryptography/blob/main/vectors/cryptography_vectors/ciphers/ChaCha20/counter-overflow.txt
+    #[test]
+    fn counter_wrap_1() {
+        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
+        let block_pos = 18446744073709551615;
+        assert_eq!(block_pos, u64::MAX);
+        rng.set_block_pos(block_pos);
+
+        let mut output = [0u8; 64 * 3];
+        rng.fill_bytes(&mut output);
+        let expected = hex!(
+            "d7918cd8620cf832532652c04c01a553092cfb32e7b3f2f5467ae9674a2e9eec17368ec8027a357c0c51e6ea747121fec45284be0f099d2b3328845607b1768976b8e0ada0f13d90405d6ae55386bd28bdd219b8a08ded1aa836efcc8b770dc7da41597c5157488d7724e03fb8d84a376a43b8f41518a11cc387b669b2ee65869f07e7be5551387a98ba977c732d080dcb0f29a048e3656912c6533e32ee7aed29b721769ce64e43d57133b074d839d531ed1f28510afb45ace10a1f4b794d6f"
+        );
+        assert_eq!(expected, output);
     }
 }
