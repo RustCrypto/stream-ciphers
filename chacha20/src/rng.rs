@@ -27,7 +27,7 @@ use crate::{
 use cfg_if::cfg_if;
 
 /// Number of 32-bit words per ChaCha block (fixed by algorithm definition).
-const BLOCK_WORDS: u8 = 16;
+pub(crate) const BLOCK_WORDS: u8 = 16;
 
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
@@ -590,10 +590,6 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn generate(&mut self, r: &mut Self::Results) {
                 self.0.generate(&mut r.0);
-                #[cfg(target_endian = "big")]
-                for word in r.0.iter_mut() {
-                    *word = word.to_le();
-                }
             }
         }
     };
