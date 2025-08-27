@@ -128,7 +128,7 @@ mod rng;
 #[cfg(feature = "xchacha")]
 mod xchacha;
 
-mod variants;
+pub mod variants;
 use variants::Variant;
 
 #[cfg(feature = "cipher")]
@@ -206,17 +206,24 @@ cfg_if! {
 }
 
 /// The ChaCha core function.
-#[cfg_attr(feature = "rng", derive(Clone))]
 pub struct ChaChaCore<R: Rounds, V: Variant> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
     /// CPU target feature tokens
     #[allow(dead_code)]
     tokens: Tokens,
-    /// Number of rounds to perform
-    rounds: PhantomData<R>,
-    /// the variant of the implementation
-    variant: PhantomData<V>,
+    /// Number of rounds to perform and the cipher variant
+    _pd: PhantomData<(R, V)>,
+}
+
+impl<R: Rounds, V: Variant> Clone for ChaChaCore<R, V> {
+    fn clone(&self) -> Self {
+        Self {
+            state: self.state,
+            tokens: self.tokens,
+            _pd: PhantomData,
+        }
+    }
 }
 
 impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
@@ -225,17 +232,21 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// directly.
     fn new(key: &[u8; 32], iv: &[u8]) -> Self {
         let mut state = [0u32; STATE_WORDS];
-        state[0..4].copy_from_slice(&CONSTANTS);
 
-        let key_chunks = key.chunks_exact(4);
-        for (val, chunk) in state[4..12].iter_mut().zip(key_chunks) {
-            *val = u32::from_le_bytes(chunk.try_into().unwrap());
+        let ctr_size = size_of::<V::Counter>() / size_of::<u32>();
+        let (const_dst, state_rem) = state.split_at_mut(4);
+        let (key_dst, state_rem) = state_rem.split_at_mut(8);
+        let (_ctr_dst, iv_dst) = state_rem.split_at_mut(ctr_size);
+
+        const_dst.copy_from_slice(&CONSTANTS);
+
+        for (src, dst) in key.chunks_exact(4).zip(key_dst) {
+            *dst = u32::from_le_bytes(src.try_into().unwrap());
         }
 
-        assert_eq!(iv.len(), 4 * (16 - V::NONCE_INDEX));
-        let iv_chunks = iv.as_ref().chunks_exact(4);
-        for (val, chunk) in state[V::NONCE_INDEX..16].iter_mut().zip(iv_chunks) {
-            *val = u32::from_le_bytes(chunk.try_into().unwrap());
+        assert_eq!(size_of_val(iv_dst), size_of_val(iv));
+        for (src, dst) in iv.chunks_exact(4).zip(iv_dst) {
+            *dst = u32::from_le_bytes(src.try_into().unwrap());
         }
 
         cfg_if! {
@@ -258,24 +269,23 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
         Self {
             state,
             tokens,
-            rounds: PhantomData,
-            variant: PhantomData,
+            _pd: PhantomData,
         }
     }
 }
 
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
-    type Counter = u32;
+    type Counter = V::Counter;
 
     #[inline(always)]
     fn get_block_pos(&self) -> Self::Counter {
-        self.state[12]
+        V::get_block_pos(&self.state[12..])
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        self.state[12] = pos
+        V::set_block_pos(&mut self.state[12..], pos);
     }
 }
 
@@ -283,8 +293,7 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
     #[inline(always)]
     fn remaining_blocks(&self) -> Option<usize> {
-        let rem = u32::MAX - self.get_block_pos();
-        rem.try_into().ok()
+        V::remaining_blocks(self.get_block_pos())
     }
 
     fn process_with_backend(
@@ -298,21 +307,21 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                 cfg_if! {
                     if #[cfg(chacha20_force_avx2)] {
                         unsafe {
-                            backends::avx2::inner::<R, _>(&mut self.state, f);
+                            backends::avx2::inner::<R, _, V>(&mut self.state, f);
                         }
                     } else if #[cfg(chacha20_force_sse2)] {
                         unsafe {
-                            backends::sse2::inner::<R, _>(&mut self.state, f);
+                            backends::sse2::inner::<R, _, V>(&mut self.state, f);
                         }
                     } else {
                         let (avx2_token, sse2_token) = self.tokens;
                         if avx2_token.get() {
                             unsafe {
-                                backends::avx2::inner::<R, _>(&mut self.state, f);
+                                backends::avx2::inner::<R, _, V>(&mut self.state, f);
                             }
                         } else if sse2_token.get() {
                             unsafe {
-                                backends::sse2::inner::<R, _>(&mut self.state, f);
+                                backends::sse2::inner::<R, _, V>(&mut self.state, f);
                             }
                         } else {
                             f.call(&mut backends::soft::Backend(self));
@@ -321,7 +330,7 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                 }
             } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
                 unsafe {
-                    backends::neon::inner::<R, _>(&mut self.state, f);
+                    backends::neon::inner::<R, _, V>(&mut self.state, f);
                 }
             } else {
                 f.call(&mut backends::soft::Backend(self));

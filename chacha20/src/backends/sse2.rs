@@ -1,8 +1,8 @@
 #![allow(unsafe_op_in_unsafe_fn)]
-use crate::Rounds;
+use crate::{Rounds, Variant};
 
 #[cfg(feature = "rng")]
-use crate::{ChaChaCore, Variant};
+use crate::{ChaChaCore};
 
 #[cfg(feature = "cipher")]
 use crate::{chacha::Block, STATE_WORDS};
@@ -23,13 +23,14 @@ const PAR_BLOCKS: usize = 4;
 #[inline]
 #[target_feature(enable = "sse2")]
 #[cfg(feature = "cipher")]
-pub(crate) unsafe fn inner<R, F>(state: &mut [u32; STATE_WORDS], f: F)
+pub(crate) unsafe fn inner<R, F, V>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
     F: StreamCipherClosure<BlockSize = U64>,
+    V: Variant,
 {
     let state_ptr = state.as_ptr() as *const __m128i;
-    let mut backend = Backend::<R> {
+    let mut backend = Backend::<R, V> {
         v: [
             _mm_loadu_si128(state_ptr.add(0)),
             _mm_loadu_si128(state_ptr.add(1)),
@@ -42,30 +43,37 @@ where
     f.call(&mut backend);
 
     state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
+    if size_of::<V::Counter>() == 8 {
+        state[13] = _mm_extract_epi32(backend.v[3], 1) as u32
+    }
 }
 
-struct Backend<R: Rounds> {
+struct Backend<R: Rounds, V: Variant> {
     v: [__m128i; 4],
-    _pd: PhantomData<R>,
+    _pd: PhantomData<(R, V)>,
 }
 
 #[cfg(feature = "cipher")]
-impl<R: Rounds> BlockSizeUser for Backend<R> {
+impl<R: Rounds, V: Variant> BlockSizeUser for Backend<R, V> {
     type BlockSize = U64;
 }
 
 #[cfg(feature = "cipher")]
-impl<R: Rounds> ParBlocksSizeUser for Backend<R> {
+impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<R, V> {
     type ParBlocksSize = U4;
 }
 
 #[cfg(feature = "cipher")]
-impl<R: Rounds> StreamCipherBackend for Backend<R> {
+impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         unsafe {
-            let res = rounds::<R>(&self.v);
-            self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, 1));
+            let res = rounds::<R, V>(&self.v);
+            self.v[3] = match size_of::<V::Counter>() {
+                4 => _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, 1)),
+                8 => _mm_add_epi64(self.v[3], _mm_set_epi64x(0, 1)),
+                _ => unreachable!()
+            };
 
             let block_ptr = block.as_mut_ptr() as *mut __m128i;
             for i in 0..4 {
@@ -76,8 +84,12 @@ impl<R: Rounds> StreamCipherBackend for Backend<R> {
     #[inline(always)]
     fn gen_par_ks_blocks(&mut self, blocks: &mut cipher::ParBlocks<Self>) {
         unsafe {
-            let res = rounds::<R>(&self.v);
-            self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32));
+            let res = rounds::<R, V>(&self.v);
+            self.v[3] = match size_of::<V::Counter>() {
+                4 => _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32)),
+                8 => _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64)),
+                _ => unreachable!()
+            };
 
             let blocks_ptr = blocks.as_mut_ptr() as *mut __m128i;
             for block in 0..PAR_BLOCKS {
@@ -98,7 +110,7 @@ where
     V: Variant,
 {
     let state_ptr = core.state.as_ptr() as *const __m128i;
-    let mut backend = Backend::<R> {
+    let mut backend = Backend::<R, V> {
         v: [
             _mm_loadu_si128(state_ptr.add(0)),
             _mm_loadu_si128(state_ptr.add(1)),
@@ -111,16 +123,17 @@ where
     backend.gen_ks_blocks(buffer);
 
     core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
+    core.state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
 }
 
 #[cfg(feature = "rng")]
-impl<R: Rounds> Backend<R> {
+impl<R: Rounds, V: Variant> Backend<R, V> {
     #[inline(always)]
     fn gen_ks_blocks(&mut self, block: &mut [u32; 64]) {
         const _: () = assert!(4 * PAR_BLOCKS * size_of::<__m128i>() == size_of::<[u32; 64]>());
         unsafe {
-            let res = rounds::<R>(&self.v);
-            self.v[3] = _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32));
+            let res = rounds::<R, V>(&self.v);
+            self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64));
 
             let blocks_ptr = block.as_mut_ptr() as *mut __m128i;
             for block in 0..PAR_BLOCKS {
@@ -134,10 +147,14 @@ impl<R: Rounds> Backend<R> {
 
 #[inline]
 #[target_feature(enable = "sse2")]
-unsafe fn rounds<R: Rounds>(v: &[__m128i; 4]) -> [[__m128i; 4]; PAR_BLOCKS] {
+unsafe fn rounds<R: Rounds, V: Variant>(v: &[__m128i; 4]) -> [[__m128i; 4]; PAR_BLOCKS] {
     let mut res = [*v; 4];
     for block in 1..PAR_BLOCKS {
-        res[block][3] = _mm_add_epi32(res[block][3], _mm_set_epi32(0, 0, 0, block as i32));
+        res[block][3] = match size_of::<V::Counter>() {
+            4 => _mm_add_epi32(res[block][3], _mm_set_epi32(0, 0, 0, block as i32)),
+            8 => _mm_add_epi64(res[block][3], _mm_set_epi64x(0, block as i64)),
+            _ => unreachable!()
+        }
     }
 
     for _ in 0..R::COUNT {
@@ -145,11 +162,15 @@ unsafe fn rounds<R: Rounds>(v: &[__m128i; 4]) -> [[__m128i; 4]; PAR_BLOCKS] {
     }
 
     for block in 0..PAR_BLOCKS {
-        for i in 0..4 {
+        for i in 0..3 {
             res[block][i] = _mm_add_epi32(res[block][i], v[i]);
         }
-        // add the counter since `v` is lacking updated counter values
-        res[block][3] = _mm_add_epi32(res[block][3], _mm_set_epi32(0, 0, 0, block as i32));
+        let ctr = match size_of::<V::Counter>() {
+            4 => _mm_add_epi32(v[3], _mm_set_epi32(0, 0, 0, block as i32)),
+            8 => _mm_add_epi64(v[3], _mm_set_epi64x(0, block as i64)),
+            _ => unreachable!()
+        };
+        res[block][3] = _mm_add_epi32(res[block][3], ctr);
     }
 
     res

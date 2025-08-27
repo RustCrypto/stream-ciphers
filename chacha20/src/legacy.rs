@@ -13,10 +13,6 @@ pub type LegacyNonce = Array<u8, U8>;
 use crate::variants::Legacy;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
-///
-/// **WARNING:** this implementation uses 32-bit counter, while the original
-/// implementation uses 64-bit counter. In other words, it does
-/// not allow encrypting of more than 256 GiB of data.
 pub type ChaCha20Legacy = StreamCipherCoreWrapper<ChaCha20LegacyCore>;
 
 /// /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
