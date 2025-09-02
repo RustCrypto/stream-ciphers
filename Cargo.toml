@@ -14,11 +14,3 @@ opt-level = 2
 [patch.crates-io]
 # https://github.com/RustCrypto/utils/pull/1187
 blobby = { git = "https://github.com/RustCrypto/utils" }
-# https://github.com/RustCrypto/traits/pull/1959
-# https://github.com/RustCrypto/traits/pull/1976
-cipher = { git = "https://github.com/RustCrypto/traits" }
-# https://github.com/RustCrypto/utils/pull/1201
-# https://github.com/RustCrypto/traits/pull/1976
-block-buffer = { git = "https://github.com/RustCrypto/utils" }
-# https://github.com/RustCrypto/traits/pull/1976
-inout = { git = "https://github.com/RustCrypto/utils" }
