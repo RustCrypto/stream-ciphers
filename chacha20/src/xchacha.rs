@@ -173,7 +173,7 @@ mod hchacha20_tests {
             "a0f9e4d58a74a853c12ec41326d3ecdc"
         );
 
-        let actual = hchacha::<R20>(KEY.as_ref(), INPUT.as_ref());
+        let actual = hchacha::<R20>(&KEY.into(), &INPUT.into());
         assert_eq!(actual.as_slice(), &OUTPUT);
     }
 }
