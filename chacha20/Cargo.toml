@@ -1,6 +1,6 @@
 [package]
 name = "chacha20"
-version = "0.10.0-rc.0"
+version = "0.10.0-rc.1"
 authors = ["RustCrypto Developers"]
 edition = "2024"
 rust-version = "1.85"
@@ -51,9 +51,9 @@ rustdoc-args = ["--cfg", "docsrs"]
 [lints.rust.unexpected_cfgs]
 level = "warn"
 check-cfg = [
-  'cfg(chacha20_force_soft)',
-  'cfg(chacha20_force_sse2)',
-  'cfg(chacha20_force_avx2)',
+    'cfg(chacha20_force_soft)',
+    'cfg(chacha20_force_sse2)',
+    'cfg(chacha20_force_avx2)',
 ]
 
 [lints.clippy]
