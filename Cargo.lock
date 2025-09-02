@@ -52,7 +52,7 @@ checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
 
 [[package]]
 name = "chacha20"
-version = "0.10.0-rc.0"
+version = "0.10.0-rc.1"
 dependencies = [
  "cfg-if",
  "cipher",
@@ -361,7 +361,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "salsa20"
-version = "0.11.0-rc.0"
+version = "0.11.0-rc.1"
 dependencies = [
  "cfg-if",
  "cipher",
