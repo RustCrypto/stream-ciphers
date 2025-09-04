@@ -53,13 +53,13 @@ impl Variant for Ietf {
 }
 
 /// DJB variant specific features: 64-bit counter and 64-bit nonce.
-#[cfg(feature = "legacy")]
+#[cfg(any(feature = "legacy", feature = "rng"))]
 pub enum Legacy {}
 
-#[cfg(feature = "legacy")]
+#[cfg(any(feature = "legacy", feature = "rng"))]
 impl sealed::Sealed for Legacy {}
 
-#[cfg(feature = "legacy")]
+#[cfg(any(feature = "legacy", feature = "rng"))]
 impl Variant for Legacy {
     type Counter = u64;
 
