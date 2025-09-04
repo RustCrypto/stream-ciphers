@@ -133,8 +133,8 @@ impl From<u64> for StreamId {
 ///
 /// Can be constructed from any of the following:
 /// * `u64`
-/// * `[u8; 8]`
 /// * `[u32; 2]`
+/// * `[u8; 8]`
 ///
 /// The arrays should be in little endian order.
 pub struct BlockPos([u32; Self::LEN]);
@@ -408,9 +408,9 @@ macro_rules! impl_chacha_rng {
 
             /// Set the offset from the start of the stream, in 32-bit words.
             ///
-            /// As with `get_word_pos`, we use a 36-bit number. When given a `u64`, we use
-            /// the least significant 4 bits as the RNG's index, and the 32 bits before it
-            /// as the block position.
+            /// As with `get_word_pos`, we use a 68-bit number. Since the generator
+            /// simply cycles at the end of its period (1 ZiB), we ignore the upper
+            /// 60 bits.
             #[inline]
             pub fn set_word_pos(&mut self, word_offset: u128) {
                 let index = (word_offset & 0b1111) as usize;
@@ -427,8 +427,8 @@ macro_rules! impl_chacha_rng {
             ///
             /// This method takes any of the following:
             /// * `u64`
-            /// * `[u8; 8]`
             /// * `[u32; 2]`
+            /// * `[u8; 8]`
             ///
             /// Note: the arrays should be in little endian order.
             #[inline]
@@ -450,8 +450,8 @@ macro_rules! impl_chacha_rng {
             /// Set the stream number. The lower 64 bits are used and the rest are
             /// discarded. This method takes any of the following:
             /// * `u64`
-            /// * `[u8; 8]`
             /// * `[u32; 2]`
+            /// * `[u8; 8]`
             ///
             /// Note: the arrays should be in little endian order.
             ///
