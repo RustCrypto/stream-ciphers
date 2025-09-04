@@ -447,7 +447,7 @@ macro_rules! impl_chacha_rng {
                 self.core.core.0.state[12] as u64 | ((self.core.core.0.state[13] as u64) << 32)
             }
 
-            /// Set the stream number. The lower 96 bits are used and the rest are
+            /// Set the stream number. The lower 64 bits are used and the rest are
             /// discarded. This method takes any of the following:
             /// * `u64`
             /// * `[u8; 8]`
@@ -455,7 +455,7 @@ macro_rules! impl_chacha_rng {
             ///
             /// Note: the arrays should be in little endian order.
             ///
-            /// This is initialized to zero; 2<sup>96</sup> unique streams of output
+            /// This is initialized to zero; 2<sup>64</sup> unique streams of output
             /// are available per seed/key. In theory a 96-bit nonce can be used by
             /// passing the last 64-bits to this function and using the first 32-bits as
             /// the most significant half of the 64-bit counter, which may be set
