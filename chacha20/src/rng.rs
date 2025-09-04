@@ -84,9 +84,9 @@ impl Debug for Seed {
 /// A wrapper for `stream_id`.
 ///
 /// Can be constructed from any of the following:
-/// * `[u32; 3]`
-/// * `[u8; 12]`
-/// * `u128`
+/// * `u64`
+/// * `[u32; 2]`
+/// * `[u8; 8]`
 ///
 /// The arrays should be in little endian order.
 pub struct StreamId([u32; Self::LEN]);
@@ -102,8 +102,7 @@ impl StreamId {
 impl From<[u32; Self::LEN]> for StreamId {
     #[inline]
     fn from(value: [u32; Self::LEN]) -> Self {
-        let result = value.map(|v| v.to_le());
-        Self(result)
+        Self(value)
     }
 }
 
@@ -116,7 +115,7 @@ impl From<[u8; Self::BYTES]> for StreamId {
             .iter_mut()
             .zip(value.chunks_exact(size_of::<u32>()))
         {
-            *cur = u32::from_le_bytes(chunk.try_into().unwrap()).to_le();
+            *cur = u32::from_le_bytes(chunk.try_into().unwrap());
         }
         result
     }
@@ -138,26 +137,43 @@ impl From<u64> for StreamId {
 /// * `[u32; 2]`
 ///
 /// The arrays should be in little endian order.
-pub struct BlockPos([u32; 2]);
+pub struct BlockPos([u32; Self::LEN]);
+
+impl BlockPos {
+    /// Amount of raw bytes backing a `BlockPos` instance.
+    const BYTES: usize = size_of::<Self>();
+
+    /// The length of the array contained within `StreamId`.
+    const LEN: usize = 2;
+}
+
+impl From<[u32; Self::LEN]> for BlockPos {
+    #[inline]
+    fn from(value: [u32; Self::LEN]) -> Self {
+        Self(value)
+    }
+}
+
+impl From<[u8; Self::BYTES]> for BlockPos {
+    #[inline]
+    fn from(value: [u8; Self::BYTES]) -> Self {
+        let mut result = Self(Default::default());
+        for (cur, chunk) in result
+            .0
+            .iter_mut()
+            .zip(value.chunks_exact(size_of::<u32>()))
+        {
+            *cur = u32::from_le_bytes(chunk.try_into().unwrap());
+        }
+        result
+    }
+}
 
 impl From<u64> for BlockPos {
     #[inline]
     fn from(value: u64) -> Self {
-        Self([value as u32, (value >> 32) as u32])
-    }
-}
-
-impl From<[u8; 8]> for BlockPos {
-    #[inline]
-    fn from(value: [u8; 8]) -> Self {
-        u64::from_le_bytes(value).into()
-    }
-}
-
-impl From<[u32; 2]> for BlockPos {
-    #[inline]
-    fn from(value: [u32; 2]) -> Self {
-        Self(value)
+        let result: [u8; Self::BYTES] = value.to_le_bytes()[..Self::BYTES].try_into().unwrap();
+        result.into()
     }
 }
 
@@ -463,13 +479,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                for (n, val) in self.core.core.0.state[14..BLOCK_WORDS as usize]
-                    .as_mut()
-                    .iter_mut()
-                    .zip(stream.0.iter())
-                {
-                    *n = val.to_le();
-                }
+                self.core.core.0.state[14..].copy_from_slice(&stream.0);
                 if self.core.index() != BUFFER_SIZE {
                     self.core.generate_and_set(self.core.index());
                 }
