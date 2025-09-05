@@ -81,32 +81,33 @@ impl Debug for Seed {
     }
 }
 
-/// A wrapper for `stream_id`.
-///
-/// Can be constructed from any of the following:
+/// A wrapper around 64 bits of data that can be constructed from any of the
+/// following:
 /// * `u64`
 /// * `[u32; 2]`
 /// * `[u8; 8]`
 ///
-/// The arrays should be in little endian order.
-pub struct StreamId([u32; Self::LEN]);
+/// The arrays should be in little endian order. You should not need to use
+/// this directly, as the methods in this crate that use this type call
+/// `.into()` for you, so you only need to supply any of the above types.
+pub struct U32x2([u32; Self::LEN]);
 
-impl StreamId {
-    /// Amount of raw bytes backing a `StreamId` instance.
+impl U32x2 {
+    /// Amount of raw bytes backing a `U32x2` instance.
     const BYTES: usize = size_of::<Self>();
 
-    /// The length of the array contained within `StreamId`.
+    /// The length of the array contained within `U32x2`.
     const LEN: usize = 2;
 }
 
-impl From<[u32; Self::LEN]> for StreamId {
+impl From<[u32; Self::LEN]> for U32x2 {
     #[inline]
     fn from(value: [u32; Self::LEN]) -> Self {
         Self(value)
     }
 }
 
-impl From<[u8; Self::BYTES]> for StreamId {
+impl From<[u8; Self::BYTES]> for U32x2 {
     #[inline]
     fn from(value: [u8; Self::BYTES]) -> Self {
         let mut result = Self(Default::default());
@@ -121,13 +122,23 @@ impl From<[u8; Self::BYTES]> for StreamId {
     }
 }
 
-impl From<u64> for StreamId {
+impl From<u64> for U32x2 {
     #[inline]
     fn from(value: u64) -> Self {
         let result: [u8; Self::BYTES] = value.to_le_bytes()[..Self::BYTES].try_into().unwrap();
         result.into()
     }
 }
+
+/// A wrapper for `stream_id`.
+///
+/// Can be constructed from any of the following:
+/// * `u64`
+/// * `[u32; 2]`
+/// * `[u8; 8]`
+///
+/// The arrays should be in little endian order.
+pub type StreamId = U32x2;
 
 /// A wrapper for `block_pos`.
 ///
@@ -137,45 +148,7 @@ impl From<u64> for StreamId {
 /// * `[u8; 8]`
 ///
 /// The arrays should be in little endian order.
-pub struct BlockPos([u32; Self::LEN]);
-
-impl BlockPos {
-    /// Amount of raw bytes backing a `BlockPos` instance.
-    const BYTES: usize = size_of::<Self>();
-
-    /// The length of the array contained within `StreamId`.
-    const LEN: usize = 2;
-}
-
-impl From<[u32; Self::LEN]> for BlockPos {
-    #[inline]
-    fn from(value: [u32; Self::LEN]) -> Self {
-        Self(value)
-    }
-}
-
-impl From<[u8; Self::BYTES]> for BlockPos {
-    #[inline]
-    fn from(value: [u8; Self::BYTES]) -> Self {
-        let mut result = Self(Default::default());
-        for (cur, chunk) in result
-            .0
-            .iter_mut()
-            .zip(value.chunks_exact(size_of::<u32>()))
-        {
-            *cur = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-        result
-    }
-}
-
-impl From<u64> for BlockPos {
-    #[inline]
-    fn from(value: u64) -> Self {
-        let result: [u8; Self::BYTES] = value.to_le_bytes()[..Self::BYTES].try_into().unwrap();
-        result.into()
-    }
-}
+pub type BlockPos = U32x2;
 
 /// The results buffer that zeroizes on drop when the `zeroize` feature is enabled.
 #[derive(Clone)]
