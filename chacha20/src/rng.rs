@@ -1197,6 +1197,25 @@ pub(crate) mod tests {
             "ace4cd09e294d1912d4ad205d06f95d9c2f2bfcf453e8753f128765b62215f4d92c74f2f626c6a640c0b1284d839ec81f1696281dafc3e684593937023b58b1d3db41d3aa0d329285de6f225e6e24bd59c9a17006943d5c9b680e3873bdc683a5819469899989690c281cd17c96159af0682b5b903468a61f50228cf09622b5a46f0f6efee15c8f1b198cb49d92b990867905159440cc723916dc0012826981039ce1766aa2542b05db3bd809ab142489d5dbfe1273e7399637b4b3213768aaa"
         );
         assert_eq!(expected, output);
+
+        // testing the final PARBLOCK in each backend to ensure and enforce that
+        // the final PARBLOCK uses correct addition. There is another test that
+        // will fail in this scenario, `counter_wrapping_64_bit_counter`, but it
+        // does not provide as descriptive of an error, it just provides clues:
+        //
+        // i = 128
+        // a = 45
+        // b = 101
+        rng.set_block_pos(u32::MAX as u64 - 1);
+        let mut skipped_block = [0u8; 64];
+        rng.fill_bytes(&mut skipped_block);
+        output = [0u8; 64 * 3];
+        rng.fill_bytes(&mut output);
+
+        assert!(
+            expected.eq(&output),
+            "The fourth PARBLOCK for this backend is not using 64-bit counter addition properly"
+        );
     }
 
     /// Test vector 9 from https://github.com/pyca/cryptography/blob/main/vectors/cryptography_vectors/ciphers/ChaCha20/counter-overflow.txt
