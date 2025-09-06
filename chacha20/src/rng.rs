@@ -1183,39 +1183,71 @@ pub(crate) mod tests {
         assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
     }
 
+    /// Counts how many bytes were incorrect, and returns:
+    ///
+    /// (`index_of_first_incorrect_word`, `num_incorrect_bytes`)
+    fn count_incorrect_bytes(expected: &[u8], output: &[u8]) -> (Option<usize>, u32) {
+        assert_eq!(expected.len(), output.len());
+        let mut num_incorrect_bytes = 0;
+        let mut index_of_first_incorrect_word = None;
+        expected
+            .iter()
+            .enumerate()
+            .zip(output.iter())
+            .for_each(|((i, a), b)| {
+                if a.ne(b) {
+                    if index_of_first_incorrect_word.is_none() {
+                        index_of_first_incorrect_word = Some(i / 4)
+                    }
+                    num_incorrect_bytes += 1;
+                }
+            });
+        (index_of_first_incorrect_word, num_incorrect_bytes)
+    }
+
     /// Test vector 8 from https://github.com/pyca/cryptography/blob/main/vectors/cryptography_vectors/ciphers/ChaCha20/counter-overflow.txt
     #[test]
-    fn counter_overflow_1() {
+    fn counter_overflow_and_diagnostics() {
         let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
         let block_pos = 4294967295;
         assert_eq!(block_pos, u32::MAX as u64);
         rng.set_block_pos(4294967295);
 
-        let mut output = [0u8; 64 * 3];
-        rng.fill_bytes(&mut output);
-        let expected = hex!(
-            "ace4cd09e294d1912d4ad205d06f95d9c2f2bfcf453e8753f128765b62215f4d92c74f2f626c6a640c0b1284d839ec81f1696281dafc3e684593937023b58b1d3db41d3aa0d329285de6f225e6e24bd59c9a17006943d5c9b680e3873bdc683a5819469899989690c281cd17c96159af0682b5b903468a61f50228cf09622b5a46f0f6efee15c8f1b198cb49d92b990867905159440cc723916dc0012826981039ce1766aa2542b05db3bd809ab142489d5dbfe1273e7399637b4b3213768aaa"
+        let mut output = [0u8; 64 * 4];
+        rng.fill_bytes(&mut output[..64 * 3]);
+        let block_before_overflow = hex!(
+            "ace4cd09e294d1912d4ad205d06f95d9c2f2bfcf453e8753f128765b62215f4d92c74f2f626c6a640c0b1284d839ec81f1696281dafc3e684593937023b58b1d"
         );
-        assert_eq!(expected, output);
-
-        // testing the final PARBLOCK in each backend to ensure and enforce that
-        // the final PARBLOCK uses correct addition. There is another test that
-        // will fail in this scenario, `counter_wrapping_64_bit_counter`, but it
-        // does not provide as descriptive of an error, it just provides clues:
-        //
-        // i = 128
-        // a = 45
-        // b = 101
-        rng.set_block_pos(u32::MAX as u64 - 1);
-        let mut skipped_block = [0u8; 64];
-        rng.fill_bytes(&mut skipped_block);
-        output = [0u8; 64 * 3];
-        rng.fill_bytes(&mut output);
-
+        let first_block_after_overflow = hex!(
+            "3db41d3aa0d329285de6f225e6e24bd59c9a17006943d5c9b680e3873bdc683a5819469899989690c281cd17c96159af0682b5b903468a61f50228cf09622b5a"
+        );
+        let second_block_after_overflow = hex!(
+            "46f0f6efee15c8f1b198cb49d92b990867905159440cc723916dc0012826981039ce1766aa2542b05db3bd809ab142489d5dbfe1273e7399637b4b3213768aaa"
+        );
         assert!(
-            expected.eq(&output),
-            "The fourth PARBLOCK for this backend is not using 64-bit counter addition properly"
+            output[..64].eq(&block_before_overflow),
+            "The first parblock was incorrect before overflow, indicating that ChaCha was not implemented correctly for this backend. Check the rounds() fn or the functions that it calls"
         );
+
+        rng.set_block_pos(u32::MAX as u64 - 1);
+        let mut skipped_blocks = [0u8; 64 * 3];
+        rng.fill_bytes(&mut skipped_blocks);
+        rng.fill_bytes(&mut output[64 * 3..]);
+
+        output.chunks_exact(64).enumerate().skip(1).zip(&[first_block_after_overflow, second_block_after_overflow, second_block_after_overflow]).for_each(|((i, a), b)| {
+            let (index_of_first_incorrect_word, num_incorrect_bytes) = count_incorrect_bytes(a, b);
+            let msg = if num_incorrect_bytes == 0 {
+                "The block was correct and this will not be shown"
+            } else if num_incorrect_bytes > 32 {
+                "Most of the block was incorrect, indicating an issue with the counter using 32-bit addition towards the beginning of fn rounds()"
+            } else if num_incorrect_bytes <= 8 && matches!(index_of_first_incorrect_word, Some(12 | 13)) {
+                "When the state was added to the results/res buffer at the end of fn rounds, the counter was probably incremented in 32-bit fashion for this parblock"
+            } else {
+                // this is probably unreachable in the event of a failed assertion, but it depends on the seed
+                "Some of the block was incorrect"
+            };
+            assert!(a.eq(b), "PARBLOCK #{} uses incorrect counter addition\nDiagnostic = {}\nnum_incorrect_bytes = {}\nindex_of_first_incorrect_word = {:?}", i + 1, msg, num_incorrect_bytes, index_of_first_incorrect_word);
+        });
     }
 
     /// Test vector 9 from https://github.com/pyca/cryptography/blob/main/vectors/cryptography_vectors/ciphers/ChaCha20/counter-overflow.txt
