@@ -1,3 +1,5 @@
+#![cfg(any(feature = "cipher", feature = "rng"))]
+
 use cfg_if::cfg_if;
 
 cfg_if! {
