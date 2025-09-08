@@ -144,6 +144,7 @@ pub use legacy::{ChaCha20Legacy, LegacyNonce};
 pub use xchacha::{XChaCha8, XChaCha12, XChaCha20, XNonce, hchacha};
 
 /// State initialization constant ("expand 32-byte k")
+#[cfg(any(feature = "cipher", feature = "rng"))]
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// Number of 32-bit words in the ChaCha state
@@ -230,6 +231,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// Constructs a ChaChaCore with the specified key, iv, and amount of rounds.
     /// You must ensure that the iv is of the correct size when using this method
     /// directly.
+    #[cfg(any(feature = "cipher", feature = "rng"))]
     fn new(key: &[u8; 32], iv: &[u8]) -> Self {
         let mut state = [0u32; STATE_WORDS];
 
