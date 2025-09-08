@@ -51,6 +51,6 @@ fn salsa20_ecrypt16() {
         let mut buf = [0u8; 64];
         c.apply_keystream(&mut buf);
 
-        assert_eq!(buf, expected);
+        assert_eq!(buf, tv.expected);
     }
 }
