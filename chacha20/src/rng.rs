@@ -13,7 +13,7 @@ use rand_core::{
     block::{BlockRng, BlockRngCore, CryptoBlockRng},
 };
 
-#[cfg(feature = "serde1")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[cfg(feature = "zeroize")]
@@ -32,7 +32,7 @@ pub(crate) const BLOCK_WORDS: u8 = 16;
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
 #[derive(PartialEq, Eq, Default, Clone)]
-#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Seed([u8; 32]);
 
 impl AsRef<[u8; 32]> for Seed {
@@ -500,7 +500,7 @@ macro_rules! impl_chacha_rng {
 
         impl Eq for $ChaChaXRng {}
 
-        #[cfg(feature = "serde1")]
+        #[cfg(feature = "serde")]
         impl Serialize for $ChaChaXRng {
             fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
             where
@@ -509,7 +509,7 @@ macro_rules! impl_chacha_rng {
                 $abst::$ChaChaXRng::from(self).serialize(s)
             }
         }
-        #[cfg(feature = "serde1")]
+        #[cfg(feature = "serde")]
         impl<'de> Deserialize<'de> for $ChaChaXRng {
             fn deserialize<D>(d: D) -> Result<Self, D::Error>
             where
@@ -528,14 +528,14 @@ macro_rules! impl_chacha_rng {
         }
 
         mod $abst {
-            #[cfg(feature = "serde1")]
+            #[cfg(feature = "serde")]
             use serde::{Deserialize, Serialize};
 
             // The abstract state of a ChaCha stream, independent of implementation choices. The
             // comparison and serialization of this object is considered a semver-covered part of
             // the API.
             #[derive(Debug, PartialEq, Eq)]
-            #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+            #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
             pub(crate) struct $ChaChaXRng {
                 seed: crate::rng::Seed,
                 stream: u64,
@@ -661,12 +661,12 @@ pub(crate) mod tests {
         assert_eq!(rng.get_word_pos(), 8888);
     }
 
-    #[cfg(feature = "serde1")]
+    #[cfg(feature = "serde")]
     use super::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng};
 
     type ChaChaRng = ChaCha20Rng;
 
-    #[cfg(feature = "serde1")]
+    #[cfg(feature = "serde")]
     #[test]
     fn test_chacha_serde_roundtrip() {
         let seed = [
@@ -704,7 +704,7 @@ pub(crate) mod tests {
     // However testing for equivalence of serialized data is difficult, and there shouldn't be any
     // reason we need to violate the stronger-than-needed condition, e.g. by changing the field
     // definition order.
-    #[cfg(feature = "serde1")]
+    #[cfg(feature = "serde")]
     #[test]
     fn test_chacha_serde_format_stability() {
         let j = r#"{"seed":[4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8],"stream":27182818284,"word_pos":314159265359}"#;

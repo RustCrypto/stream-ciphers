@@ -35,13 +35,12 @@ cipher = { version = "0.5.0-rc.1", features = ["dev"] }
 hex-literal = "1"
 proptest = "1"
 rand_chacha = "0.9"
-serde_json = "1.0" # Only to test serde1
+serde_json = "1.0" # Only to test serde
 
 [features]
 default = ["cipher"]
 legacy = ["cipher"]
 rng = ["rand_core"]
-serde1 = ["serde"]
 xchacha = ["cipher"]
 
 [package.metadata.docs.rs]
