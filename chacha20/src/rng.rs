@@ -13,9 +13,6 @@ use rand_core::{
     block::{BlockRng, BlockRngCore, CryptoBlockRng},
 };
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -32,7 +29,6 @@ pub(crate) const BLOCK_WORDS: u8 = 16;
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
 #[derive(PartialEq, Eq, Default, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Seed([u8; 32]);
 
 impl AsRef<[u8; 32]> for Seed {
@@ -500,25 +496,6 @@ macro_rules! impl_chacha_rng {
 
         impl Eq for $ChaChaXRng {}
 
-        #[cfg(feature = "serde")]
-        impl Serialize for $ChaChaXRng {
-            fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
-            where
-                S: Serializer,
-            {
-                $abst::$ChaChaXRng::from(self).serialize(s)
-            }
-        }
-        #[cfg(feature = "serde")]
-        impl<'de> Deserialize<'de> for $ChaChaXRng {
-            fn deserialize<D>(d: D) -> Result<Self, D::Error>
-            where
-                D: Deserializer<'de>,
-            {
-                $abst::$ChaChaXRng::deserialize(d).map(|x| Self::from(&x))
-            }
-        }
-
         impl From<$ChaChaXCore> for $ChaChaXRng {
             fn from(core: $ChaChaXCore) -> Self {
                 $ChaChaXRng {
@@ -528,14 +505,10 @@ macro_rules! impl_chacha_rng {
         }
 
         mod $abst {
-            #[cfg(feature = "serde")]
-            use serde::{Deserialize, Serialize};
-
             // The abstract state of a ChaCha stream, independent of implementation choices. The
             // comparison and serialization of this object is considered a semver-covered part of
             // the API.
             #[derive(Debug, PartialEq, Eq)]
-            #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
             pub(crate) struct $ChaChaXRng {
                 seed: crate::rng::Seed,
                 stream: u64,
@@ -661,57 +634,7 @@ pub(crate) mod tests {
         assert_eq!(rng.get_word_pos(), 8888);
     }
 
-    #[cfg(feature = "serde")]
-    use super::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng};
-
     type ChaChaRng = ChaCha20Rng;
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn test_chacha_serde_roundtrip() {
-        let seed = [
-            1, 0, 52, 0, 0, 0, 0, 0, 1, 0, 10, 0, 22, 32, 0, 0, 2, 0, 55, 49, 0, 11, 0, 0, 3, 0, 0,
-            0, 0, 0, 2, 92,
-        ];
-        let mut rng1 = ChaCha20Rng::from_seed(seed);
-        let mut rng2 = ChaCha12Rng::from_seed(seed);
-        let mut rng3 = ChaCha8Rng::from_seed(seed);
-
-        let encoded1 = serde_json::to_string(&rng1).unwrap();
-        let encoded2 = serde_json::to_string(&rng2).unwrap();
-        let encoded3 = serde_json::to_string(&rng3).unwrap();
-
-        let mut decoded1: ChaCha20Rng = serde_json::from_str(&encoded1).unwrap();
-        let mut decoded2: ChaCha12Rng = serde_json::from_str(&encoded2).unwrap();
-        let mut decoded3: ChaCha8Rng = serde_json::from_str(&encoded3).unwrap();
-
-        assert_eq!(rng1, decoded1);
-        assert_eq!(rng2, decoded2);
-        assert_eq!(rng3, decoded3);
-
-        assert_eq!(rng1.next_u32(), decoded1.next_u32());
-        assert_eq!(rng2.next_u32(), decoded2.next_u32());
-        assert_eq!(rng3.next_u32(), decoded3.next_u32());
-    }
-
-    // This test validates that:
-    // 1. a hard-coded serialization demonstrating the format at time of initial release can still
-    //    be deserialized to a ChaChaRng
-    // 2. re-serializing the resultant object produces exactly the original string
-    //
-    // Condition 2 is stronger than necessary: an equivalent serialization (e.g. with field order
-    // permuted, or whitespace differences) would also be admissible, but would fail this test.
-    // However testing for equivalence of serialized data is difficult, and there shouldn't be any
-    // reason we need to violate the stronger-than-needed condition, e.g. by changing the field
-    // definition order.
-    #[cfg(feature = "serde")]
-    #[test]
-    fn test_chacha_serde_format_stability() {
-        let j = r#"{"seed":[4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8,15,16,23,42,4,8],"stream":27182818284,"word_pos":314159265359}"#;
-        let r: ChaChaRng = serde_json::from_str(j).unwrap();
-        let j1 = serde_json::to_string(&r).unwrap();
-        assert_eq!(j, j1);
-    }
 
     #[test]
     fn test_chacha_construction() {
