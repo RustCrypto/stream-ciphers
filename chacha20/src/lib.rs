@@ -209,22 +209,13 @@ cfg_if! {
 /// The ChaCha core function.
 pub struct ChaChaCore<R: Rounds, V: Variant> {
     /// Internal state of the core function
+    #[cfg(any(feature = "cipher", feature = "rng"))]
     state: [u32; STATE_WORDS],
     /// CPU target feature tokens
     #[allow(dead_code)]
     tokens: Tokens,
     /// Number of rounds to perform and the cipher variant
     _pd: PhantomData<(R, V)>,
-}
-
-impl<R: Rounds, V: Variant> Clone for ChaChaCore<R, V> {
-    fn clone(&self) -> Self {
-        Self {
-            state: self.state,
-            tokens: self.tokens,
-            _pd: PhantomData,
-        }
-    }
 }
 
 impl<R: Rounds, V: Variant> ChaChaCore<R, V> {

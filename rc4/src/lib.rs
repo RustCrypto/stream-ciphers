@@ -119,7 +119,6 @@ impl StreamCipherBackend for Backend<'_> {
     }
 }
 
-#[derive(Clone)]
 struct Rc4State {
     state: [u8; 256],
     i: u8,

@@ -300,14 +300,12 @@ macro_rules! impl_chacha_rng {
         ///
         /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](
         ///       http://www.ecrypt.eu.org/stream/)
-        #[derive(Clone)]
         pub struct $ChaChaXRng {
             /// The ChaChaCore struct
             pub core: BlockRng<$ChaChaXCore>,
         }
 
         /// The ChaCha core random number generator
-        #[derive(Clone)]
         pub struct $ChaChaXCore(ChaChaCore<$rounds, Legacy>);
 
         impl SeedableRng for $ChaChaXCore {
@@ -951,26 +949,26 @@ pub(crate) mod tests {
             0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 7,
             0, 0, 0,
         ];
-        let mut rng = ChaChaRng::from_seed(seed);
-        let mut clone = rng.clone();
+        let mut rng1 = ChaChaRng::from_seed(seed);
+        let mut rng2 = ChaChaRng::from_seed(seed);
         for _ in 0..16 {
-            assert_eq!(rng.next_u64(), clone.next_u64());
+            assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
 
-        rng.set_stream(51);
-        assert_eq!(rng.get_stream(), 51);
-        assert_eq!(clone.get_stream(), 0);
+        rng1.set_stream(51);
+        assert_eq!(rng1.get_stream(), 51);
+        assert_eq!(rng2.get_stream(), 0);
         let mut fill_1 = [0u8; 7];
-        rng.fill_bytes(&mut fill_1);
+        rng1.fill_bytes(&mut fill_1);
         let mut fill_2 = [0u8; 7];
-        clone.fill_bytes(&mut fill_2);
+        rng2.fill_bytes(&mut fill_2);
         assert_ne!(fill_1, fill_2);
         for _ in 0..7 {
-            assert!(rng.next_u64() != clone.next_u64());
+            assert!(rng1.next_u64() != rng2.next_u64());
         }
-        clone.set_stream(51); // switch part way through block
+        rng2.set_stream(51); // switch part way through block
         for _ in 7..16 {
-            assert_eq!(rng.next_u64(), clone.next_u64());
+            assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
     }
 
@@ -1110,8 +1108,9 @@ pub(crate) mod tests {
     fn test_trait_objects() {
         use rand_core::CryptoRng;
 
-        let mut rng1 = ChaChaRng::from_seed(Default::default());
-        let rng2 = &mut rng1.clone() as &mut dyn CryptoRng;
+        let seed = Default::default();
+        let mut rng1 = ChaChaRng::from_seed(seed);
+        let rng2 = &mut ChaChaRng::from_seed(seed) as &mut dyn CryptoRng;
         for _ in 0..1000 {
             assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
