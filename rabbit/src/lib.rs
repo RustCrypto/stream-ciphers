@@ -96,7 +96,6 @@ pub type RabbitKeyOnly = StreamCipherCoreWrapper<RabbitKeyOnlyCore>;
 pub type Rabbit = StreamCipherCoreWrapper<RabbitCore>;
 
 /// RFC 4503. 2.2.  Inner State (page 2).
-#[derive(Clone)]
 struct State {
     /// State variables
     x: [u32; 8],
@@ -262,7 +261,6 @@ impl core::ops::Drop for State {
 }
 
 /// Core state of the Rabbit stream cipher initialized only with key.
-#[derive(Clone)]
 pub struct RabbitKeyOnlyCore {
     state: State,
 }
@@ -301,7 +299,6 @@ impl StreamCipherCore for RabbitKeyOnlyCore {
 impl ZeroizeOnDrop for RabbitKeyOnlyCore {}
 
 /// Core state of the Rabbit stream cipher initialized with key and IV.
-#[derive(Clone)]
 pub struct RabbitCore {
     state: State,
 }
