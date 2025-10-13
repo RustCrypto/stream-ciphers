@@ -240,7 +240,7 @@ macro_rules! impl_chacha_rng {
         /// rounds is the minimum potentially secure configuration, and 20 rounds is widely used as a
         /// conservative choice.
         ///
-        /// We use a 64-bit counter and 64-bit stream identifier as in Bernstein's implementation[^3]
+        /// We use a 64-bit counter and 64-bit stream identifier as in Bernstein's implementation
         /// except that we use a stream identifier in place of a nonce. A 64-bit counter over 64-byte
         /// (16 word) blocks allows 1 ZiB of output before cycling, and the stream identifier allows
         /// 2<sup>64</sup> unique streams of output per seed. Both counter and stream are initialized
@@ -291,11 +291,9 @@ macro_rules! impl_chacha_rng {
         ///
         /// The other Rngs from this crate are initialized similarly.
         ///
-        /// [^1]: D. J. Bernstein, [*ChaCha, a variant of Salsa20*](
-        ///       https://cr.yp.to/chacha.html)
+        /// [^1]: D. J. Bernstein, [*ChaCha, a variant of Salsa20*](https://cr.yp.to/chacha.html)
         ///
-        /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](
-        ///       http://www.ecrypt.eu.org/stream/)
+        /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](http://www.ecrypt.eu.org/stream/)
         pub struct $ChaChaXRng {
             /// The ChaChaCore struct
             pub core: BlockRng<$ChaChaXCore>,
