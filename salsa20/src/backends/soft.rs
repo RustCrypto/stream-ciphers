@@ -24,8 +24,9 @@ impl<R: Unsigned> StreamCipherBackend for Backend<'_, R> {
 
         self.0.set_block_pos(self.0.get_block_pos() + 1);
 
-        for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
-            chunk.copy_from_slice(&val.to_le_bytes());
+        for i in 0..16 {
+            block[i * 4..(i + 1) * 4]
+                .copy_from_slice(&res[crate::DATA_LAYOUT_INVERSE[i]].to_le_bytes());
         }
     }
 }
@@ -39,6 +40,10 @@ pub(crate) fn quarter_round(
     d: usize,
     state: &mut [u32; STATE_WORDS],
 ) {
+    let a = crate::DATA_LAYOUT_INVERSE[a];
+    let b = crate::DATA_LAYOUT_INVERSE[b];
+    let c = crate::DATA_LAYOUT_INVERSE[c];
+    let d = crate::DATA_LAYOUT_INVERSE[d];
     state[b] ^= state[a].wrapping_add(state[d]).rotate_left(7);
     state[c] ^= state[b].wrapping_add(state[a]).rotate_left(9);
     state[d] ^= state[c].wrapping_add(state[b]).rotate_left(13);

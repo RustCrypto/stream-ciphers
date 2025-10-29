@@ -90,28 +90,32 @@ impl<R: Unsigned> ZeroizeOnDrop for XSalsaCore<R> {}
 ///
 /// It produces 256-bits of output suitable for use as a Salsa20 key
 pub fn hsalsa<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
+    const KEY_IDX: [usize; 8] = [0, 5, 10, 15, 6, 7, 8, 9];
+
     #[inline(always)]
     fn to_u32(chunk: &[u8]) -> u32 {
         u32::from_le_bytes(chunk.try_into().unwrap())
     }
 
-    let mut state = [0u32; 16];
-    state[0] = CONSTANTS[0];
-    state[1..5]
+    let mut t = [0u32; 16];
+    t[0] = CONSTANTS[0];
+    t[1..5]
         .iter_mut()
         .zip(key[0..16].chunks_exact(4))
         .for_each(|(v, chunk)| *v = to_u32(chunk));
-    state[5] = CONSTANTS[1];
-    state[6..10]
+    t[5] = CONSTANTS[1];
+    t[6..10]
         .iter_mut()
         .zip(input.chunks_exact(4))
         .for_each(|(v, chunk)| *v = to_u32(chunk));
-    state[10] = CONSTANTS[2];
-    state[11..15]
+    t[10] = CONSTANTS[2];
+    t[11..15]
         .iter_mut()
         .zip(key[16..].chunks_exact(4))
         .for_each(|(v, chunk)| *v = to_u32(chunk));
-    state[15] = CONSTANTS[3];
+    t[15] = CONSTANTS[3];
+
+    let mut state = core::array::from_fn(|i| t[crate::DATA_LAYOUT[i]]);
 
     // 20 rounds consisting of 10 column rounds and 10 diagonal rounds
     for _ in 0..R::USIZE {
@@ -129,10 +133,10 @@ pub fn hsalsa<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> 
     }
 
     let mut output = Array::default();
-    let key_idx: [usize; 8] = [0, 5, 10, 15, 6, 7, 8, 9];
 
-    for (i, chunk) in output.chunks_exact_mut(4).enumerate() {
-        chunk.copy_from_slice(&state[key_idx[i]].to_le_bytes());
+    for i in 0..8 {
+        output[i * 4..(i + 1) * 4]
+            .copy_from_slice(&state[crate::DATA_LAYOUT_INVERSE[KEY_IDX[i]]].to_le_bytes());
     }
 
     output

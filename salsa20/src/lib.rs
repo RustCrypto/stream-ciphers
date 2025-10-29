@@ -118,6 +118,25 @@ const STATE_WORDS: usize = 16;
 /// State initialization constant ("expand 32-byte k")
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
+const DATA_LAYOUT: [usize; 16] = [0, 5, 10, 15, 4, 9, 14, 3, 12, 1, 6, 11, 8, 13, 2, 7];
+
+const DATA_LAYOUT_INVERSE: [usize; 16] = {
+    let mut index = [0; 16];
+    let mut i = 0;
+    while i < 16 {
+        let mut inverse = 0;
+        while inverse < 16 {
+            if DATA_LAYOUT[inverse] == i {
+                index[i] = inverse;
+                break;
+            }
+            inverse += 1;
+        }
+        i += 1;
+    }
+    index
+};
+
 /// The Salsa20 core function.
 pub struct SalsaCore<R: Unsigned> {
     /// Internal state of the core function
@@ -133,7 +152,7 @@ impl<R: Unsigned> SalsaCore<R> {
     /// Other users generally should not use this method.
     pub fn from_raw_state(state: [u32; STATE_WORDS]) -> Self {
         Self {
-            state,
+            state: core::array::from_fn(|i| state[DATA_LAYOUT[i]]),
             rounds: PhantomData,
         }
     }
@@ -177,7 +196,7 @@ impl<R: Unsigned> KeyIvInit for SalsaCore<R> {
         state[15] = CONSTANTS[3];
 
         Self {
-            state,
+            state: core::array::from_fn(|i| state[DATA_LAYOUT[i]]),
             rounds: PhantomData,
         }
     }
@@ -199,13 +218,14 @@ impl<R: Unsigned> StreamCipherSeekCore for SalsaCore<R> {
 
     #[inline(always)]
     fn get_block_pos(&self) -> u64 {
-        (self.state[8] as u64) + ((self.state[9] as u64) << 32)
+        (self.state[DATA_LAYOUT_INVERSE[8]] as u64)
+            + ((self.state[DATA_LAYOUT_INVERSE[9]] as u64) << 32)
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: u64) {
-        self.state[8] = (pos & 0xffff_ffff) as u32;
-        self.state[9] = ((pos >> 32) & 0xffff_ffff) as u32;
+        self.state[DATA_LAYOUT_INVERSE[8]] = (pos & 0xffff_ffff) as u32;
+        self.state[DATA_LAYOUT_INVERSE[9]] = ((pos >> 32) & 0xffff_ffff) as u32;
     }
 }
 
