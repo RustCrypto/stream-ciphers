@@ -99,5 +99,5 @@ dual licensed as above, without any additional terms or conditions.
 [5]: https://en.wikipedia.org/wiki/Authenticated_encryption
 [6]: https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305
 [7]: https://github.com/RustCrypto/AEADs
-[8]: https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/
+[8]: https://web.archive.org/web/20240108154854/https://research.nccgroup.com/wp-content/uploads/2020/02/NCC_Group_MobileCoin_RustCrypto_AESGCM_ChaCha20Poly1305_Implementation_Review_2020-02-12_v1.0.pdf
 [9]: https://www.mobilecoin.com/
