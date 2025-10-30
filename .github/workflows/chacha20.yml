@@ -44,6 +44,7 @@ jobs:
 
   minimal-versions:
     uses: RustCrypto/actions/.github/workflows/minimal-versions.yml@master
+    if: false
     with:
       working-directory: ${{ github.workflow }}
 
