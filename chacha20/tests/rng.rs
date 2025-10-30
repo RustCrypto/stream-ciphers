@@ -3,6 +3,7 @@
 #![cfg(feature = "rand_core")]
 
 use proptest::prelude::*;
+use rand_chacha::rand_core::{RngCore as OldRngCore, SeedableRng as OldSeedableRng};
 use rand_core::{RngCore, SeedableRng};
 
 // Number of reads to perform from the RNG in equivalence tests
