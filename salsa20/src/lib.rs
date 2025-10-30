@@ -78,8 +78,8 @@ pub use cipher;
 use cipher::{
     Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure,
     StreamCipherCore, StreamCipherCoreWrapper, StreamCipherSeekCore,
-    array::{Array, typenum::Unsigned},
-    consts::{U4, U6, U8, U10, U24, U32, U64},
+    array::{Array, ArraySize, typenum::Unsigned},
+    consts::{U1, U4, U6, U8, U10, U24, U32, U64},
 };
 use core::marker::PhantomData;
 
@@ -138,11 +138,60 @@ const DATA_LAYOUT_INVERSE: [usize; 16] = {
 };
 
 /// The Salsa20 core function.
+#[repr(C)]
+#[repr(align(16))]
 pub struct SalsaCore<R: Unsigned> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
     /// Number of rounds to perform
     rounds: PhantomData<R>,
+}
+
+#[expect(unused)]
+const STATIC_ASSERT_CORE_IS_64_BYTES: [(); size_of::<SalsaCore<U10>>()] = [(); 64];
+
+/// Salsa20 chaining operations.
+pub trait SalsaChaining: BlockSizeUser<BlockSize = U64> {
+    /// Number of lanes
+    type LaneCount: ArraySize;
+
+    /// Permutation table for shuffling the natural order state into the internal order.
+    const ALTN_DATA_LAYOUT: [usize; STATE_WORDS];
+
+    /// Shuffle the state into the internal data layout.
+    fn shuffle_state_into_altn(state: &mut [u32; STATE_WORDS]) {
+        for i in 0..STATE_WORDS {
+            state[i] = state[Self::ALTN_DATA_LAYOUT[i]];
+        }
+    }
+
+    /// Shuffle the state from the internal data layout.
+    fn shuffle_state_from_altn(state: &mut [u32; STATE_WORDS]) {
+        const INVERSE_ALTN_DATA_LAYOUT: [usize; STATE_WORDS] = {
+            let mut index = [0; 16];
+            let mut i = 0;
+            while i < 16 {
+                let mut inverse = 0;
+                while inverse < 16 {
+                    if DATA_LAYOUT[inverse] == i {
+                        index[i] = inverse;
+                        break;
+                    }
+                    inverse += 1;
+                }
+                i += 1;
+            }
+            index
+        };
+        for i in 0..STATE_WORDS {
+            state[i] = state[INVERSE_ALTN_DATA_LAYOUT[i]];
+        }
+    }
+
+    /// Instantiate new Salsa core from raw state in internal order.
+    fn from_raw_state_cv(state: Array<[u32; STATE_WORDS], Self::LaneCount>) -> Self;
+    /// Generate keystream block in internal order.
+    fn write_keystream_block_cv(&mut self, block: Array<&mut [u32; STATE_WORDS], Self::LaneCount>);
 }
 
 impl<R: Unsigned> SalsaCore<R> {
@@ -155,6 +204,34 @@ impl<R: Unsigned> SalsaCore<R> {
             state: core::array::from_fn(|i| state[DATA_LAYOUT[i]]),
             rounds: PhantomData,
         }
+    }
+}
+
+impl<R: Unsigned> SalsaChaining for SalsaCore<R> {
+    type LaneCount = U1;
+
+    const ALTN_DATA_LAYOUT: [usize; STATE_WORDS] = DATA_LAYOUT;
+
+    /// Create new Salsa core from raw state with alternative data layout.
+    ///
+    /// This method is mainly intended for the `scrypt` crate.
+    /// Other users generally should not use this method.
+    fn from_raw_state_cv(state: Array<[u32; STATE_WORDS], Self::LaneCount>) -> Self {
+        Self {
+            state: state[0],
+            rounds: PhantomData,
+        }
+    }
+
+    /// Generate keystream block with alternative data layout.
+    ///
+    /// This method is used to generate keystream blocks with alternative data layout.
+    fn write_keystream_block_cv(
+        &mut self,
+        mut block: Array<&mut [u32; STATE_WORDS], Self::LaneCount>,
+    ) {
+        let mut backend = backends::Backend::<'_, R>::from(self);
+        backend.gen_ks_block_altn(&mut block[0]);
     }
 }
 
@@ -209,7 +286,7 @@ impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
         rem.try_into().ok()
     }
     fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
-        f.call(&mut backends::soft::Backend(self));
+        f.call(&mut backends::Backend::<'_, R>::from(self));
     }
 }
 

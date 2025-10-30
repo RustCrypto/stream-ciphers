@@ -8,7 +8,7 @@ use cipher::{
     consts::{U4, U6, U10, U16, U24, U32, U64},
 };
 
-use crate::backends::soft::quarter_round;
+use crate::backends::quarter_round;
 
 #[cfg(feature = "zeroize")]
 use cipher::zeroize::ZeroizeOnDrop;
