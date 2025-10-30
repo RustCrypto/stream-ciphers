@@ -4,6 +4,7 @@
 
 use proptest::prelude::*;
 use rand_core::{RngCore, SeedableRng};
+use rand_chacha::rand_core::{RngCore as OldRngCore, SeedableRng as OldSeedableRng};
 
 // Number of reads to perform from the RNG in equivalence tests
 const NREADS: usize = 16;
