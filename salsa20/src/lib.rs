@@ -138,8 +138,7 @@ const DATA_LAYOUT_INVERSE: [usize; 16] = {
 };
 
 /// The Salsa20 core function.
-#[repr(C)]
-#[repr(align(16))]
+#[repr(transparent)]
 pub struct SalsaCore<R: Unsigned> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
@@ -158,6 +157,24 @@ pub trait SalsaChaining: BlockSizeUser<BlockSize = U64> {
     /// Permutation table for shuffling the natural order state into the internal order.
     const ALTN_DATA_LAYOUT: [usize; STATE_WORDS];
 
+    /// Inverse permutation table.
+    const INVERSE_ALTN_DATA_LAYOUT: [usize; STATE_WORDS] = {
+        let mut index = [0; 16];
+        let mut i = 0;
+        while i < 16 {
+            let mut inverse = 0;
+            while inverse < 16 {
+                if Self::ALTN_DATA_LAYOUT[inverse] == i {
+                    index[i] = inverse;
+                    break;
+                }
+                inverse += 1;
+            }
+            i += 1;
+        }
+        index
+    };
+
     /// Shuffle the state into the internal data layout.
     fn shuffle_state_into_altn(state: &mut [u32; STATE_WORDS]) {
         for i in 0..STATE_WORDS {
@@ -167,29 +184,14 @@ pub trait SalsaChaining: BlockSizeUser<BlockSize = U64> {
 
     /// Shuffle the state from the internal data layout.
     fn shuffle_state_from_altn(state: &mut [u32; STATE_WORDS]) {
-        const INVERSE_ALTN_DATA_LAYOUT: [usize; STATE_WORDS] = {
-            let mut index = [0; 16];
-            let mut i = 0;
-            while i < 16 {
-                let mut inverse = 0;
-                while inverse < 16 {
-                    if DATA_LAYOUT[inverse] == i {
-                        index[i] = inverse;
-                        break;
-                    }
-                    inverse += 1;
-                }
-                i += 1;
-            }
-            index
-        };
         for i in 0..STATE_WORDS {
-            state[i] = state[INVERSE_ALTN_DATA_LAYOUT[i]];
+            state[i] = state[Self::INVERSE_ALTN_DATA_LAYOUT[i]];
         }
     }
 
     /// Instantiate new Salsa core from raw state in internal order.
     fn from_raw_state_cv(state: Array<[u32; STATE_WORDS], Self::LaneCount>) -> Self;
+
     /// Generate keystream block in internal order.
     fn write_keystream_block_cv(&mut self, block: Array<&mut [u32; STATE_WORDS], Self::LaneCount>);
 }
@@ -231,7 +233,7 @@ impl<R: Unsigned> SalsaChaining for SalsaCore<R> {
         mut block: Array<&mut [u32; STATE_WORDS], Self::LaneCount>,
     ) {
         let mut backend = backends::Backend::<'_, R>::from(self);
-        backend.gen_ks_block_altn(&mut block[0]);
+        backend.gen_ks_block_altn(block[0]);
     }
 }
 

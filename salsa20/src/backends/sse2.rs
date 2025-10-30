@@ -52,10 +52,10 @@ fn run_rounds_sse2<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS
     use core::arch::x86_64::*;
     unsafe {
         let [a_save, b_save, d_save, c_save] = [
-            _mm_load_si128(state.as_ptr().add(0).cast()),
-            _mm_load_si128(state.as_ptr().add(4).cast()),
-            _mm_load_si128(state.as_ptr().add(8).cast()),
-            _mm_load_si128(state.as_ptr().add(12).cast()),
+            _mm_loadu_si128(state.as_ptr().add(0).cast()),
+            _mm_loadu_si128(state.as_ptr().add(4).cast()),
+            _mm_loadu_si128(state.as_ptr().add(8).cast()),
+            _mm_loadu_si128(state.as_ptr().add(12).cast()),
         ];
         let [mut a, mut b, mut c, mut d] = [a_save, b_save, c_save, d_save];
 
