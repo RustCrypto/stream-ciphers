@@ -185,7 +185,12 @@ cfg_if! {
         type Tokens = ();
     } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
         cfg_if! {
-            if #[cfg(chacha20_force_avx2)] {
+            if #[cfg(chacha20_force_avx512)] {
+                #[cfg(not(target_feature = "avx512f"))]
+                compile_error!("You must enable `avx512f` target feature with \
+                    `chacha20_force_avx512` configuration option");
+                type Tokens = ();
+            } else if #[cfg(chacha20_force_avx2)] {
                 #[cfg(not(target_feature = "avx2"))]
                 compile_error!("You must enable `avx2` target feature with \
                     `chacha20_force_avx2` configuration option");
@@ -248,7 +253,9 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                 let tokens = ();
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
-                    if #[cfg(chacha20_force_avx2)] {
+                    if #[cfg(chacha20_force_avx512)] {
+                        let tokens = ();
+                    } else if #[cfg(chacha20_force_avx2)] {
                         let tokens = ();
                     } else if #[cfg(chacha20_force_sse2)] {
                         let tokens = ();
@@ -299,7 +306,11 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                 f.call(&mut backends::soft::Backend(self));
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
-                    if #[cfg(chacha20_force_avx2)] {
+                    if #[cfg(chacha20_force_avx512)] {
+                        unsafe {
+                            backends::avx512::inner::<R, _, V>(&mut self.state, f);
+                        }
+                    } else if #[cfg(chacha20_force_avx2)] {
                         unsafe {
                             backends::avx2::inner::<R, _, V>(&mut self.state, f);
                         }

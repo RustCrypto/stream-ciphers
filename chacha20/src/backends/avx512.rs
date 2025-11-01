@@ -85,25 +85,29 @@ where
 }
 
 #[inline]
-#[target_feature(enable = "avx512")]
+#[target_feature(enable = "avx512f")]
 #[cfg(feature = "rng")]
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
     V: Variant,
 {
+    use core::slice;
+
+    use crate::rng::BLOCK_WORDS;
+
     let state_ptr = core.state.as_ptr() as *const __m128i;
     let v = [
-        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(0))),
-        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(1))),
-        _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(2))),
+        _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(0))),
+        _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(1))),
+        _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(2))),
     ];
-    let mut c = _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(3)));
-    c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 1, 0, 0));
-    let mut ctr = [c; N];
-    for i in 0..N {
+    let mut c = _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(3)));
+    c = _mm512_add_epi64(c, _mm512_set_epi64(0, 3, 0, 2, 0, 1, 0, 0));
+    let mut ctr = [c; MAX_N];
+    for i in 0..MAX_N {
         ctr[i] = c;
-        c = _mm256_add_epi64(c, _mm256_set_epi64x(0, 2, 0, 2));
+        c = _mm512_add_epi64(c, _mm512_set_epi64(0, 4, 0, 4, 0, 4, 0, 4));
     }
     let mut backend = Backend::<R, V> {
         v,
@@ -111,10 +115,16 @@ where
         _pd: PhantomData,
     };
 
-    backend.rng_gen_par_ks_blocks(buffer);
+    let buffer = slice::from_raw_parts_mut(
+        buffer.as_mut_ptr().cast::<Block>(),
+        buffer.len() / BLOCK_WORDS as usize,
+    );
+    backend.gen_par_ks_blocks_inner::<4, { 4 / BLOCKS_PER_VECTOR }>(buffer.try_into().unwrap());
 
-    core.state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
-    core.state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32;
+    core.state[12] =
+        _mm256_extract_epi32::<0>(_mm512_extracti32x8_epi32::<0>(backend.ctr[0])) as u32;
+    core.state[13] =
+        _mm256_extract_epi32::<1>(_mm512_extracti32x8_epi32::<0>(backend.ctr[0])) as u32;
 }
 
 struct Backend<R: Rounds, V: Variant> {
@@ -229,31 +239,6 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
 
         for block in blocks {
             self.gen_ks_block(block);
-        }
-    }
-}
-
-#[cfg(feature = "rng")]
-impl<R: Rounds, V: Variant> Backend<R, V> {
-    #[inline(always)]
-    fn rng_gen_par_ks_blocks(&mut self, blocks: &mut [u32; 64]) {
-        unsafe {
-            let vs = rounds::<R>(&self.v, &self.ctr);
-
-            let pb = PAR_BLOCKS as i32;
-            for c in self.ctr.iter_mut() {
-                *c = _mm256_add_epi64(*c, _mm256_set_epi64x(0, pb as i64, 0, pb as i64));
-            }
-
-            let mut block_ptr = blocks.as_mut_ptr() as *mut __m128i;
-            for v in vs {
-                let t: [__m128i; 8] = core::mem::transmute(v);
-                for i in 0..4 {
-                    _mm_storeu_si128(block_ptr.add(i), t[2 * i]);
-                    _mm_storeu_si128(block_ptr.add(4 + i), t[2 * i + 1]);
-                }
-                block_ptr = block_ptr.add(8);
-            }
         }
     }
 }
