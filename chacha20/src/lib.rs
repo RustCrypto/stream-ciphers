@@ -196,9 +196,10 @@ cfg_if! {
                     `chacha20_force_sse2` configuration option");
                 type Tokens = ();
             } else {
+                cpufeatures::new!(avx512_cpuid, "avx512f");
                 cpufeatures::new!(avx2_cpuid, "avx2");
                 cpufeatures::new!(sse2_cpuid, "sse2");
-                type Tokens = (avx2_cpuid::InitToken, sse2_cpuid::InitToken);
+                type Tokens = (avx512_cpuid::InitToken, avx2_cpuid::InitToken, sse2_cpuid::InitToken);
             }
         }
     } else {
@@ -252,7 +253,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                     } else if #[cfg(chacha20_force_sse2)] {
                         let tokens = ();
                     } else {
-                        let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
+                        let tokens = (avx512_cpuid::init(), avx2_cpuid::init(), sse2_cpuid::init());
                     }
                 }
             } else {
@@ -307,8 +308,12 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                             backends::sse2::inner::<R, _, V>(&mut self.state, f);
                         }
                     } else {
-                        let (avx2_token, sse2_token) = self.tokens;
-                        if avx2_token.get() {
+                        let (avx512_token, avx2_token, sse2_token) = self.tokens;
+                        if avx512_token.get() {
+                            unsafe {
+                                backends::avx512::inner::<R, _, V>(&mut self.state, f);
+                            }
+                        } else if avx2_token.get() {
                             unsafe {
                                 backends::avx2::inner::<R, _, V>(&mut self.state, f);
                             }

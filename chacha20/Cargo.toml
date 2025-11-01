@@ -3,7 +3,7 @@ name = "chacha20"
 version = "0.10.0-rc.2"
 authors = ["RustCrypto Developers"]
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 documentation = "https://docs.rs/chacha20"
 readme = "README.md"
 repository = "https://github.com/RustCrypto/stream-ciphers"
@@ -20,7 +20,9 @@ rand_core-compatible RNGs based on those ciphers.
 
 [dependencies]
 cfg-if = "1"
-cipher = { version = "0.5.0-rc.1", optional = true, features = ["stream-wrapper"] }
+cipher = { version = "0.5.0-rc.1", optional = true, features = [
+    "stream-wrapper",
+] }
 rand_core = { version = "0.10.0-rc.1", optional = true, default-features = false }
 
 # `zeroize` is an explicit dependency because this crate may be used without the `cipher` crate
@@ -51,6 +53,7 @@ check-cfg = [
     'cfg(chacha20_force_soft)',
     'cfg(chacha20_force_sse2)',
     'cfg(chacha20_force_avx2)',
+    'cfg(chacha20_force_avx512)',
 ]
 
 [lints.clippy]

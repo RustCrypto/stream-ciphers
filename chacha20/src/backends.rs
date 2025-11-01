@@ -13,6 +13,7 @@ cfg_if! {
                 pub(crate) mod sse2;
             } else {
                 pub(crate) mod soft;
+                pub(crate) mod avx512;
                 pub(crate) mod avx2;
                 pub(crate) mod sse2;
             }
