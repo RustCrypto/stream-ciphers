@@ -11,7 +11,7 @@ use crate::{STATE_WORDS, chacha::Block};
 #[cfg(feature = "cipher")]
 use cipher::{
     BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
-    consts::{U4, U64},
+    consts::{U8, U64},
 };
 
 #[cfg(target_arch = "x86")]
@@ -20,7 +20,7 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 
 /// Number of blocks processed in parallel.
-const PAR_BLOCKS: usize = 4;
+const PAR_BLOCKS: usize = 8;
 /// Number of `__m512i` to store parallel blocks.
 const N: usize = PAR_BLOCKS / 4;
 
@@ -125,7 +125,7 @@ impl<R: Rounds, V: Variant> BlockSizeUser for Backend<R, V> {
 
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<R, V> {
-    type ParBlocksSize = U4;
+    type ParBlocksSize = U8;
 }
 
 #[cfg(feature = "cipher")]
