@@ -11,7 +11,7 @@ use crate::{STATE_WORDS, chacha::Block};
 #[cfg(feature = "cipher")]
 use cipher::{
     BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
-    consts::{U8, U64},
+    consts::{U16, U64},
 };
 
 #[cfg(target_arch = "x86")]
@@ -19,10 +19,15 @@ use core::arch::x86::*;
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
-/// Number of blocks processed in parallel.
-const PAR_BLOCKS: usize = 8;
-/// Number of `__m512i` to store parallel blocks.
-const N: usize = PAR_BLOCKS / 4;
+/// Maximum number of blocks processed in parallel.
+/// We also support 8 and 4 in gen_tail_blocks.
+const MAX_PAR_BLOCKS: usize = 16;
+
+/// Divisor to compute `N`, the number of __m512i needed
+/// to represent a number of parallel blocks.
+const BLOCKS_PER_VECTOR: usize = 4;
+
+const MAX_N: usize = MAX_PAR_BLOCKS / BLOCKS_PER_VECTOR;
 
 #[inline]
 #[target_feature(enable = "avx512f")]
@@ -48,8 +53,8 @@ where
         8 => _mm512_add_epi64(c, _mm512_set_epi64(0, 3, 0, 2, 0, 1, 0, 0)),
         _ => unreachable!(),
     };
-    let mut ctr = [c; N];
-    for i in 0..N {
+    let mut ctr = [c; MAX_N];
+    for i in 0..MAX_N {
         ctr[i] = c;
         c = match size_of::<V::Counter>() {
             4 => _mm512_add_epi32(
@@ -80,7 +85,7 @@ where
 }
 
 #[inline]
-#[target_feature(enable = "avx2")]
+#[target_feature(enable = "avx512")]
 #[cfg(feature = "rng")]
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
@@ -114,7 +119,7 @@ where
 
 struct Backend<R: Rounds, V: Variant> {
     v: [__m512i; 3],
-    ctr: [__m512i; N],
+    ctr: [__m512i; MAX_N],
     _pd: PhantomData<(R, V)>,
 }
 
@@ -125,7 +130,53 @@ impl<R: Rounds, V: Variant> BlockSizeUser for Backend<R, V> {
 
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<R, V> {
-    type ParBlocksSize = U8;
+    type ParBlocksSize = U16;
+}
+
+#[cfg(feature = "cipher")]
+impl<R: Rounds, V: Variant> Backend<R, V> {
+    fn gen_par_ks_blocks_inner<const PAR_BLOCKS: usize, const N: usize>(
+        &mut self,
+        blocks: &mut [cipher::Block<Self>; PAR_BLOCKS],
+    ) {
+        assert!(PAR_BLOCKS.is_multiple_of(BLOCKS_PER_VECTOR));
+
+        unsafe {
+            let vs = rounds::<N, R>(&self.v, &self.ctr[..N].try_into().unwrap());
+
+            let pb = blocks.len() as i32;
+            for c in self.ctr.iter_mut() {
+                *c = match size_of::<V::Counter>() {
+                    4 => _mm512_add_epi32(
+                        *c,
+                        _mm512_set_epi32(0, 0, 0, pb, 0, 0, 0, pb, 0, 0, 0, pb, 0, 0, 0, pb),
+                    ),
+                    8 => _mm512_add_epi64(
+                        *c,
+                        _mm512_set_epi64(0, pb as i64, 0, pb as i64, 0, pb as i64, 0, pb as i64),
+                    ),
+                    _ => unreachable!(),
+                }
+            }
+
+            let mut block_ptr = blocks.as_mut_ptr() as *mut __m128i;
+            for (vi, v) in vs.into_iter().enumerate() {
+                let t: [__m128i; 16] = core::mem::transmute(v);
+                for i in 0..BLOCKS_PER_VECTOR {
+                    _mm_storeu_si128(block_ptr.add(i), t[4 * i]);
+                    _mm_storeu_si128(block_ptr.add(4 + i), t[4 * i + 1]);
+                    _mm_storeu_si128(block_ptr.add(8 + i), t[4 * i + 2]);
+                    _mm_storeu_si128(block_ptr.add(12 + i), t[4 * i + 3]);
+                }
+
+                if vi == PAR_BLOCKS / BLOCKS_PER_VECTOR - 1 {
+                    break;
+                }
+
+                block_ptr = block_ptr.add(16);
+            }
+        }
+    }
 }
 
 #[cfg(feature = "cipher")]
@@ -133,7 +184,7 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block) {
         unsafe {
-            let res = rounds::<R>(&self.v, &self.ctr);
+            let res = rounds::<1, R>(&self.v, self.ctr[..1].try_into().unwrap());
             for c in self.ctr.iter_mut() {
                 *c = match size_of::<V::Counter>() {
                     4 => _mm512_add_epi32(
@@ -155,35 +206,29 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
 
     #[inline(always)]
     fn gen_par_ks_blocks(&mut self, blocks: &mut ParBlocks<Self>) {
-        unsafe {
-            let vs = rounds::<R>(&self.v, &self.ctr);
+        self.gen_par_ks_blocks_inner::<MAX_PAR_BLOCKS, MAX_N>(
+            blocks.as_mut_slice().try_into().unwrap(),
+        );
+    }
 
-            let pb = PAR_BLOCKS as i32;
-            for c in self.ctr.iter_mut() {
-                *c = match size_of::<V::Counter>() {
-                    4 => _mm512_add_epi32(
-                        *c,
-                        _mm512_set_epi32(0, 0, 0, pb, 0, 0, 0, pb, 0, 0, 0, pb, 0, 0, 0, pb),
-                    ),
-                    8 => _mm512_add_epi64(
-                        *c,
-                        _mm512_set_epi64(0, pb as i64, 0, pb as i64, 0, pb as i64, 0, pb as i64),
-                    ),
-                    _ => unreachable!(),
-                }
-            }
+    #[inline(always)]
+    fn gen_tail_blocks(&mut self, mut blocks: &mut [cipher::Block<Self>]) {
+        while blocks.len() >= 8 {
+            self.gen_par_ks_blocks_inner::<8, { 8 / BLOCKS_PER_VECTOR }>(
+                (&mut blocks[..8]).try_into().unwrap(),
+            );
+            blocks = &mut blocks[8..];
+        }
 
-            let mut block_ptr = blocks.as_mut_ptr() as *mut __m128i;
-            for v in vs {
-                let t: [__m128i; 16] = core::mem::transmute(v);
-                for i in 0..4 {
-                    _mm_storeu_si128(block_ptr.add(i), t[4 * i]);
-                    _mm_storeu_si128(block_ptr.add(4 + i), t[4 * i + 1]);
-                    _mm_storeu_si128(block_ptr.add(8 + i), t[4 * i + 2]);
-                    _mm_storeu_si128(block_ptr.add(12 + i), t[4 * i + 3]);
-                }
-                block_ptr = block_ptr.add(16);
-            }
+        while blocks.len() >= 4 {
+            self.gen_par_ks_blocks_inner::<4, { 4 / BLOCKS_PER_VECTOR }>(
+                (&mut blocks[..4]).try_into().unwrap(),
+            );
+            blocks = &mut blocks[4..];
+        }
+
+        for block in blocks {
+            self.gen_ks_block(block);
         }
     }
 }
@@ -215,7 +260,10 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
 
 #[inline]
 #[target_feature(enable = "avx512f")]
-unsafe fn rounds<R: Rounds>(v: &[__m512i; 3], c: &[__m512i; N]) -> [[__m512i; 4]; N] {
+unsafe fn rounds<const N: usize, R: Rounds>(
+    v: &[__m512i; 3],
+    c: &[__m512i; N],
+) -> [[__m512i; 4]; N] {
     let mut vs: [[__m512i; 4]; N] = [[_mm512_setzero_si512(); 4]; N];
     for i in 0..N {
         vs[i] = [v[0], v[1], v[2], c[i]];
@@ -235,8 +283,8 @@ unsafe fn rounds<R: Rounds>(v: &[__m512i; 3], c: &[__m512i; N]) -> [[__m512i; 4]
 }
 
 #[inline]
-#[target_feature(enable = "avx2")]
-unsafe fn double_quarter_round(v: &mut [[__m512i; 4]; N]) {
+#[target_feature(enable = "avx512f")]
+unsafe fn double_quarter_round<const N: usize>(v: &mut [[__m512i; 4]; N]) {
     add_xor_rot(v);
     rows_to_cols(v);
     add_xor_rot(v);
@@ -280,7 +328,7 @@ unsafe fn double_quarter_round(v: &mut [[__m512i; 4]; N]) {
 /// - https://github.com/floodyberry/chacha-opt/blob/0ab65cb99f5016633b652edebaf3691ceb4ff753/chacha_blocks_ssse3-64.S#L639-L643
 #[inline]
 #[target_feature(enable = "avx512f")]
-unsafe fn rows_to_cols(vs: &mut [[__m512i; 4]; N]) {
+unsafe fn rows_to_cols<const N: usize>(vs: &mut [[__m512i; 4]; N]) {
     // c >>>= 32; d >>>= 64; a >>>= 96;
     for [a, _, c, d] in vs {
         *c = _mm512_shuffle_epi32::<0b_00_11_10_01>(*c); // _MM_SHUFFLE(0, 3, 2, 1)
@@ -308,7 +356,7 @@ unsafe fn rows_to_cols(vs: &mut [[__m512i; 4]; N]) {
 /// reversing the transformation of [`rows_to_cols`].
 #[inline]
 #[target_feature(enable = "avx512f")]
-unsafe fn cols_to_rows(vs: &mut [[__m512i; 4]; N]) {
+unsafe fn cols_to_rows<const N: usize>(vs: &mut [[__m512i; 4]; N]) {
     // c <<<= 32; d <<<= 64; a <<<= 96;
     for [a, _, c, d] in vs {
         *c = _mm512_shuffle_epi32::<0b_10_01_00_11>(*c); // _MM_SHUFFLE(2, 1, 0, 3)
@@ -319,7 +367,7 @@ unsafe fn cols_to_rows(vs: &mut [[__m512i; 4]; N]) {
 
 #[inline]
 #[target_feature(enable = "avx512f")]
-unsafe fn add_xor_rot(vs: &mut [[__m512i; 4]; N]) {
+unsafe fn add_xor_rot<const N: usize>(vs: &mut [[__m512i; 4]; N]) {
     // a += b; d ^= a; d <<<= (16, 16, 16, 16);
     for [a, b, _, d] in vs.iter_mut() {
         *a = _mm512_add_epi32(*a, *b);
