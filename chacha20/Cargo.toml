@@ -3,7 +3,7 @@ name = "chacha20"
 version = "0.10.0-rc.2"
 authors = ["RustCrypto Developers"]
 edition = "2024"
-rust-version = "1.89"
+rust-version = "1.85"
 documentation = "https://docs.rs/chacha20"
 readme = "README.md"
 repository = "https://github.com/RustCrypto/stream-ciphers"
@@ -49,6 +49,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [lints.rust.unexpected_cfgs]
 level = "warn"
 check-cfg = [
+    'cfg(chacha20_avx512)',
     'cfg(chacha20_force_soft)',
     'cfg(chacha20_force_sse2)',
     'cfg(chacha20_force_avx2)',
