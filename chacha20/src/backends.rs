@@ -9,6 +9,9 @@ cfg_if! {
         cfg_if! {
             if #[cfg(all(chacha20_avx512, chacha20_force_avx512))] {
                 pub(crate) mod avx512;
+                // AVX-2 backend needed for RNG if enabled
+                #[cfg(feature = "rng")]
+                pub(crate) mod avx2;
             } else if #[cfg(chacha20_force_avx2)] {
                 pub(crate) mod avx2;
             } else if #[cfg(chacha20_force_sse2)] {
