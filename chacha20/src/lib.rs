@@ -186,7 +186,7 @@ cfg_if! {
     } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
         cfg_if! {
             if #[cfg(chacha20_force_avx512)] {
-                #[cfg(not(target_feature = "avx512f"))]
+                #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512vl")))]
                 compile_error!("You must enable `avx512f` target feature with \
                     `chacha20_force_avx512` configuration option");
                 type Tokens = ();
@@ -201,7 +201,7 @@ cfg_if! {
                     `chacha20_force_sse2` configuration option");
                 type Tokens = ();
             } else {
-                cpufeatures::new!(avx512_cpuid, "avx512f");
+                cpufeatures::new!(avx512_cpuid, "avx512f", "avx512vl");
                 cpufeatures::new!(avx2_cpuid, "avx2");
                 cpufeatures::new!(sse2_cpuid, "sse2");
                 type Tokens = (avx512_cpuid::InitToken, avx2_cpuid::InitToken, sse2_cpuid::InitToken);
