@@ -61,7 +61,7 @@ dependencies = [
  "hex-literal",
  "proptest",
  "rand_chacha",
- "rand_core 0.10.0-rc.1",
+ "rand_core 0.10.0-rc-2",
  "zeroize",
 ]
 
@@ -287,8 +287,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.10.0-rc.1"
-source = "git+https://github.com/rust-random/rand?branch=push-spqltotzmryv#74ad09bb14bcacf7f13080803d120803865f34e5"
+version = "0.10.0-rc-2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "104a23e4e8b77312a823b6b5613edbac78397e2f34320bc7ac4277013ec4478e"
 
 [[package]]
 name = "rand_xorshift"
