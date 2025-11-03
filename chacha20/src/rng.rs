@@ -189,11 +189,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                 backends::soft::Backend(self).gen_ks_blocks(buffer);
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
-                    if #[cfg(chacha20_force_avx512)] {
-                        unsafe {
-                            backends::avx512::rng_inner::<R, V>(self, buffer);
-                        }
-                    } else if #[cfg(chacha20_force_avx2)] {
+                    if #[cfg(chacha20_force_avx2)] {
                         unsafe {
                             backends::avx2::rng_inner::<R, V>(self, buffer);
                         }
@@ -202,12 +198,8 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                             backends::sse2::rng_inner::<R, V>(self, buffer);
                         }
                     } else {
-                        let (avx512_token, avx2_token, sse2_token) = self.tokens;
-                        if avx512_token.get() {
-                            unsafe {
-                                backends::avx512::rng_inner::<R, V>(self, buffer);
-                            }
-                        } else if avx2_token.get() {
+                        let (_avx512_token, avx2_token, sse2_token) = self.tokens;
+                        if avx2_token.get() {
                             unsafe {
                                 backends::avx2::rng_inner::<R, V>(self, buffer);
                             }

@@ -2,9 +2,6 @@
 use crate::{Rounds, Variant};
 use core::marker::PhantomData;
 
-#[cfg(feature = "rng")]
-use crate::ChaChaCore;
-
 #[cfg(feature = "cipher")]
 use crate::{STATE_WORDS, chacha::Block};
 
@@ -57,49 +54,6 @@ where
     if size_of::<V::Counter>() == 8 {
         state[13] = _mm_extract_epi32::<1>(backend.ctr) as u32;
     }
-}
-
-#[inline]
-#[target_feature(enable = "avx512f")]
-#[cfg(feature = "rng")]
-pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
-where
-    R: Rounds,
-    V: Variant,
-{
-    use core::slice;
-
-    use crate::rng::BLOCK_WORDS;
-
-    let state_ptr = core.state.as_ptr() as *const __m128i;
-    let v = [
-        _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(0))),
-        _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(1))),
-        _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(2))),
-    ];
-    let mut c = _mm512_broadcast_i32x4(_mm_loadu_si128(state_ptr.add(3)));
-    c = _mm512_add_epi64(c, _mm512_set_epi64(0, 3, 0, 2, 0, 1, 0, 0));
-    let mut ctr = [c; MAX_N];
-    for i in 0..MAX_N {
-        ctr[i] = c;
-        c = _mm512_add_epi64(c, _mm512_set_epi64(0, 4, 0, 4, 0, 4, 0, 4));
-    }
-    let mut backend = Backend::<R, V> {
-        v,
-        ctr,
-        _pd: PhantomData,
-    };
-
-    let buffer = slice::from_raw_parts_mut(
-        buffer.as_mut_ptr().cast::<Block>(),
-        buffer.len() / BLOCK_WORDS as usize,
-    );
-    backend.gen_par_ks_blocks_inner::<4, { 4 / BLOCKS_PER_VECTOR }>(buffer.try_into().unwrap());
-
-    core.state[12] =
-        _mm256_extract_epi32::<0>(_mm512_extracti32x8_epi32::<0>(backend.ctr[0])) as u32;
-    core.state[13] =
-        _mm256_extract_epi32::<1>(_mm512_extracti32x8_epi32::<0>(backend.ctr[0])) as u32;
 }
 
 struct Backend<R: Rounds, V: Variant> {

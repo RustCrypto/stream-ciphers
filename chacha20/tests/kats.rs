@@ -98,6 +98,7 @@ mod chacha20test {
 
 // Long input test to check the full parallel AVX-512 implementation.
 // Test data generated from random byte strings.
+#[cfg(feature = "cipher")]
 mod chacha20test_long {
     use chacha20::{ChaCha20, KeyIvInit};
     use cipher::StreamCipher;
