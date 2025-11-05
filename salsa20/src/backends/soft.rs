@@ -7,7 +7,15 @@ use cipher::{
     consts::{U1, U64},
 };
 
+use super::quarter_round;
+
 pub(crate) struct Backend<'a, R: Unsigned>(pub(crate) &'a mut SalsaCore<R>);
+
+impl<'a, R: Unsigned> From<&'a mut SalsaCore<R>> for Backend<'a, R> {
+    fn from(core: &'a mut SalsaCore<R>) -> Self {
+        Backend(core)
+    }
+}
 
 impl<R: Unsigned> BlockSizeUser for Backend<'_, R> {
     type BlockSize = U64;
@@ -17,6 +25,17 @@ impl<R: Unsigned> ParBlocksSizeUser for Backend<'_, R> {
     type ParBlocksSize = U1;
 }
 
+impl<R: Unsigned> Backend<'_, R> {
+    #[inline(always)]
+    pub(crate) fn gen_ks_block_altn(&mut self, block: &mut [u32; STATE_WORDS]) {
+        let res = run_rounds::<R>(&self.0.state);
+
+        self.0.set_block_pos(self.0.get_block_pos() + 1);
+
+        block.copy_from_slice(&res);
+    }
+}
+
 impl<R: Unsigned> StreamCipherBackend for Backend<'_, R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
@@ -24,25 +43,11 @@ impl<R: Unsigned> StreamCipherBackend for Backend<'_, R> {
 
         self.0.set_block_pos(self.0.get_block_pos() + 1);
 
-        for (chunk, val) in block.chunks_exact_mut(4).zip(res.iter()) {
-            chunk.copy_from_slice(&val.to_le_bytes());
+        for i in 0..16 {
+            block[i * 4..(i + 1) * 4]
+                .copy_from_slice(&res[crate::DATA_LAYOUT_INVERSE[i]].to_le_bytes());
         }
     }
-}
-
-#[inline]
-#[allow(clippy::many_single_char_names)]
-pub(crate) fn quarter_round(
-    a: usize,
-    b: usize,
-    c: usize,
-    d: usize,
-    state: &mut [u32; STATE_WORDS],
-) {
-    state[b] ^= state[a].wrapping_add(state[d]).rotate_left(7);
-    state[c] ^= state[b].wrapping_add(state[a]).rotate_left(9);
-    state[d] ^= state[c].wrapping_add(state[b]).rotate_left(13);
-    state[a] ^= state[d].wrapping_add(state[c]).rotate_left(18);
 }
 
 #[inline(always)]
