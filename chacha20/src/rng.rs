@@ -10,7 +10,7 @@ use core::fmt::Debug;
 
 use rand_core::{
     CryptoRng, RngCore, SeedableRng,
-    block::{BlockRng, BlockRngCore, CryptoBlockRng},
+    block::{BlockRng, CryptoGenerator, Generator},
 };
 
 #[cfg(feature = "zeroize")]
@@ -145,35 +145,6 @@ pub type StreamId = U32x2;
 ///
 /// The arrays should be in little endian order.
 pub type BlockPos = U32x2;
-
-/// The results buffer that zeroizes on drop when the `zeroize` feature is enabled.
-#[derive(Clone)]
-pub struct BlockRngResults([u32; BUFFER_SIZE]);
-
-impl AsRef<[u32]> for BlockRngResults {
-    fn as_ref(&self) -> &[u32] {
-        &self.0
-    }
-}
-
-impl AsMut<[u32]> for BlockRngResults {
-    fn as_mut(&mut self) -> &mut [u32] {
-        &mut self.0
-    }
-}
-
-impl Default for BlockRngResults {
-    fn default() -> Self {
-        Self([0u32; BUFFER_SIZE])
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Drop for BlockRngResults {
-    fn drop(&mut self) {
-        self.0.zeroize();
-    }
-}
 
 const BUFFER_SIZE: usize = 64;
 
@@ -323,18 +294,18 @@ macro_rules! impl_chacha_rng {
         impl RngCore for $ChaChaXRng {
             #[inline]
             fn next_u32(&mut self) -> u32 {
-                self.core.next_u32()
+                self.core.next_word()
             }
             #[inline]
             fn next_u64(&mut self) -> u64 {
-                self.core.next_u64()
+                self.core.next_u64_from_u32()
             }
             #[inline]
             fn fill_bytes(&mut self, dest: &mut [u8]) {
                 self.core.fill_bytes(dest)
             }
         }
-        impl CryptoBlockRng for $ChaChaXCore {}
+        impl CryptoGenerator for $ChaChaXCore {}
         impl CryptoRng for $ChaChaXRng {}
 
         #[cfg(feature = "zeroize")]
@@ -535,13 +506,17 @@ macro_rules! impl_chacha_rng {
             }
         }
 
-        impl BlockRngCore for $ChaChaXCore {
-            type Item = u32;
-            type Results = BlockRngResults;
+        impl Generator for $ChaChaXCore {
+            type Output = [u32; BUFFER_SIZE];
 
             #[inline]
-            fn generate(&mut self, r: &mut Self::Results) {
-                self.0.generate(&mut r.0);
+            fn generate(&mut self, r: &mut Self::Output) {
+                self.0.generate(r);
+            }
+
+            #[cfg(feature = "zeroize")]
+            fn drop(&mut self, output: &mut Self::Output) {
+                output.zeroize();
             }
         }
     };
