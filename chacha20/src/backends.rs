@@ -7,12 +7,19 @@ cfg_if! {
         pub(crate) mod soft;
     } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
         cfg_if! {
-            if #[cfg(chacha20_force_avx2)] {
+            if #[cfg(all(chacha20_avx512, chacha20_force_avx512))] {
+                pub(crate) mod avx512;
+                // AVX-2 backend needed for RNG if enabled
+                #[cfg(feature = "rng")]
+                pub(crate) mod avx2;
+            } else if #[cfg(chacha20_force_avx2)] {
                 pub(crate) mod avx2;
             } else if #[cfg(chacha20_force_sse2)] {
                 pub(crate) mod sse2;
             } else {
                 pub(crate) mod soft;
+                #[cfg(chacha20_avx512)]
+                pub(crate) mod avx512;
                 pub(crate) mod avx2;
                 pub(crate) mod sse2;
             }

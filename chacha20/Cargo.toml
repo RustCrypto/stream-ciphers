@@ -34,6 +34,7 @@ cipher = { version = "0.5.0-rc.2", features = ["dev"] }
 hex-literal = "1"
 proptest = "1"
 rand_chacha = "0.9"
+hex = "0.4"
 
 [features]
 default = ["cipher"]
@@ -48,9 +49,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 [lints.rust.unexpected_cfgs]
 level = "warn"
 check-cfg = [
+    'cfg(chacha20_avx512)',
     'cfg(chacha20_force_soft)',
     'cfg(chacha20_force_sse2)',
     'cfg(chacha20_force_avx2)',
+    'cfg(chacha20_force_avx512)',
 ]
 
 [lints.clippy]
