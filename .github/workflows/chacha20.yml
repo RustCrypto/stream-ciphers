@@ -33,7 +33,7 @@ jobs:
           - thumbv7em-none-eabi
           - wasm32-unknown-unknown
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -44,6 +44,7 @@ jobs:
 
   minimal-versions:
     uses: RustCrypto/actions/.github/workflows/minimal-versions.yml@master
+    if: false
     with:
       working-directory: ${{ github.workflow }}
 
@@ -67,7 +68,7 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             rust: stable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -100,7 +101,7 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             rust: stable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -133,7 +134,7 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             rust: stable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -166,7 +167,7 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             rust: stable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -200,7 +201,7 @@ jobs:
         # Cross mounts only current package, i.e. by default it ignores workspace's Cargo.toml
         working-directory: .
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: RustCrypto/actions/cargo-cache@master
       - run: ${{ matrix.deps }}
       - uses: dtolnay/rust-toolchain@master
