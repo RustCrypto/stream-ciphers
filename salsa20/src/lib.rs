@@ -174,16 +174,20 @@ pub trait SalsaChaining: BlockSizeUser<BlockSize = U64> {
 
     /// Shuffle the state into the internal data layout.
     fn shuffle_state_into_altn(state: &mut [u32; STATE_WORDS]) {
+        let mut new_state = [0u32; STATE_WORDS];
         for i in 0..STATE_WORDS {
-            state[i] = state[Self::ALTN_DATA_LAYOUT[i]];
+            new_state[i] = state[Self::ALTN_DATA_LAYOUT[i]];
         }
+        state.copy_from_slice(&new_state);
     }
 
     /// Shuffle the state from the internal data layout.
     fn shuffle_state_from_altn(state: &mut [u32; STATE_WORDS]) {
+        let mut new_state = [0u32; STATE_WORDS];
         for i in 0..STATE_WORDS {
-            state[i] = state[Self::INVERSE_ALTN_DATA_LAYOUT[i]];
+            new_state[i] = state[Self::INVERSE_ALTN_DATA_LAYOUT[i]];
         }
+        state.copy_from_slice(&new_state);
     }
 
     /// Instantiate new Salsa core from raw state in internal order.

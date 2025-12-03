@@ -1,9 +1,11 @@
 //! Salsa20 tests
 
+use cipher::consts::U10;
 use cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
 use hex_literal::hex;
-use salsa20::Salsa20;
+use salsa20::SalsaCore;
 use salsa20::XSalsa20;
+use salsa20::{Salsa20, SalsaChaining};
 
 cipher::stream_cipher_seek_test!(salsa20_seek, Salsa20);
 cipher::stream_cipher_seek_test!(xsalsa20_seek, XSalsa20);
@@ -174,6 +176,26 @@ fn xsalsa20_encrypt_hello_world() {
     cipher.apply_keystream(&mut buf);
 
     assert_eq!(buf, EXPECTED_XSALSA20_HELLO_WORLD);
+}
+
+#[test]
+fn salsa20_alternate_data_layout_shuffle() {
+    use cipher::StreamCipherCore;
+    let state: [u32; 16] = core::array::from_fn(|i| i as u32);
+    let mut altn_state = state;
+    SalsaCore::<U10>::shuffle_state_into_altn(&mut altn_state);
+
+    let mut state_core = SalsaCore::<U10>::from_raw_state(state);
+    let mut altn_state_core = SalsaCore::<U10>::from_raw_state_cv(altn_state);
+    let mut b1 = Default::default();
+    let mut b2 = Default::default();
+    state_core.write_keystream_block(&mut b1);
+    altn_state_core.write_keystream_block(&mut b2);
+    assert_eq!(b1, b2);
+
+    SalsaCore::<U10>::shuffle_state_from_altn(&mut altn_state);
+
+    assert_eq!(state, altn_state);
 }
 
 // Regression test for https://github.com/RustCrypto/stream-ciphers/issues/445
