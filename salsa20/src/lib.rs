@@ -78,8 +78,8 @@ pub use cipher;
 use cipher::{
     Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure,
     StreamCipherCore, StreamCipherCoreWrapper, StreamCipherSeekCore,
-    array::{Array, ArraySize, typenum::Unsigned},
-    consts::{U1, U4, U6, U8, U10, U24, U32, U64},
+    array::{Array, typenum::Unsigned},
+    consts::{U4, U6, U8, U10, U24, U32, U64},
 };
 use core::marker::PhantomData;
 
@@ -151,9 +151,6 @@ const STATIC_ASSERT_CORE_IS_64_BYTES: [(); size_of::<SalsaCore<U10>>()] = [(); 6
 
 /// Salsa20 chaining operations.
 pub trait SalsaChaining: BlockSizeUser<BlockSize = U64> {
-    /// Number of lanes
-    type LaneCount: ArraySize;
-
     /// Permutation table for shuffling the natural order state into the internal order.
     const ALTN_DATA_LAYOUT: [usize; STATE_WORDS];
 
@@ -190,10 +187,10 @@ pub trait SalsaChaining: BlockSizeUser<BlockSize = U64> {
     }
 
     /// Instantiate new Salsa core from raw state in internal order.
-    fn from_raw_state_cv(state: Array<[u32; STATE_WORDS], Self::LaneCount>) -> Self;
+    fn from_raw_state_cv(state: [u32; STATE_WORDS]) -> Self;
 
     /// Generate keystream block in internal order.
-    fn write_keystream_block_cv(&mut self, block: Array<&mut [u32; STATE_WORDS], Self::LaneCount>);
+    fn write_keystream_block_cv(&mut self, block: &mut [u32; STATE_WORDS]);
 }
 
 impl<R: Unsigned> SalsaCore<R> {
@@ -210,17 +207,15 @@ impl<R: Unsigned> SalsaCore<R> {
 }
 
 impl<R: Unsigned> SalsaChaining for SalsaCore<R> {
-    type LaneCount = U1;
-
     const ALTN_DATA_LAYOUT: [usize; STATE_WORDS] = DATA_LAYOUT;
 
     /// Create new Salsa core from raw state with alternative data layout.
     ///
     /// This method is mainly intended for the `scrypt` crate.
     /// Other users generally should not use this method.
-    fn from_raw_state_cv(state: Array<[u32; STATE_WORDS], Self::LaneCount>) -> Self {
+    fn from_raw_state_cv(state: [u32; STATE_WORDS]) -> Self {
         Self {
-            state: state[0],
+            state,
             rounds: PhantomData,
         }
     }
@@ -228,12 +223,9 @@ impl<R: Unsigned> SalsaChaining for SalsaCore<R> {
     /// Generate keystream block with alternative data layout.
     ///
     /// This method is used to generate keystream blocks with alternative data layout.
-    fn write_keystream_block_cv(
-        &mut self,
-        mut block: Array<&mut [u32; STATE_WORDS], Self::LaneCount>,
-    ) {
+    fn write_keystream_block_cv(&mut self, block: &mut [u32; STATE_WORDS]) {
         let mut backend = backends::Backend::<'_, R>::from(self);
-        backend.gen_ks_block_altn(block[0]);
+        backend.gen_ks_block_altn(block);
     }
 }
 

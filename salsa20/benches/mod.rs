@@ -2,7 +2,7 @@
 
 use cipher::{
     Array,
-    consts::{U1, U4, U64},
+    consts::{U4, U64},
 };
 extern crate test;
 
@@ -34,27 +34,27 @@ cipher::stream_cipher_bench!(
 );
 
 #[bench]
-fn salsa8_bench1_ks_altn(b: &mut test::Bencher) {
+fn salsa8_bench1_chaining_altn(b: &mut test::Bencher) {
     use salsa20::SalsaChaining;
     use std::hash::{BuildHasher, Hasher};
 
     let seed = std::hash::RandomState::new().build_hasher().finish();
 
-    let mut buf: Array<[u32; 16], U1> = [[0u32; 16]].into();
-    buf[0][0] = seed as u32;
-    buf[0][1] = (seed >> 32) as u32;
+    let mut buf = [0u32; 16];
+    buf[0] = seed as u32;
+    buf[1] = (seed >> 32) as u32;
 
     b.iter(|| {
         let mut cipher = salsa20::SalsaCore::<U4>::from_raw_state_cv(buf);
-        cipher.write_keystream_block_cv([&mut buf[0]].into());
+        cipher.write_keystream_block_cv(&mut buf);
         test::black_box(&buf);
     });
 
-    b.bytes = buf[0].len() as u64 * core::mem::size_of::<u32>() as u64;
+    b.bytes = buf.len() as u64 * core::mem::size_of::<u32>() as u64;
 }
 
 #[bench]
-fn salsa8_bench1_ks(b: &mut test::Bencher) {
+fn salsa8_bench1_chaining(b: &mut test::Bencher) {
     use cipher::StreamCipherCore;
     use std::hash::{BuildHasher, Hasher};
 

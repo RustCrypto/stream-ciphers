@@ -2,7 +2,7 @@
 
 use crate::{Block, STATE_WORDS, SalsaCore, Unsigned};
 use cipher::{
-    BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherSeekCore,
+    Array, BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherSeekCore,
     consts::{U1, U64},
 };
 
@@ -25,18 +25,17 @@ impl<R: Unsigned> ParBlocksSizeUser for Backend<'_, R> {
 impl<R: Unsigned> Backend<'_, R> {
     #[inline(always)]
     pub(crate) fn gen_ks_block_altn(&mut self, block: &mut [u32; STATE_WORDS]) {
-        let res = run_rounds_sse2::<R>(&self.0.state);
+        unsafe { run_rounds_sse2_ptr::<R>(block.as_mut_ptr().cast(), &self.0.state) };
 
         self.0.set_block_pos(self.0.get_block_pos() + 1);
-
-        block.copy_from_slice(&res);
     }
 }
 
 impl<R: Unsigned> StreamCipherBackend for Backend<'_, R> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
-        let res = run_rounds_sse2::<R>(&self.0.state);
+        let mut res = [0u32; STATE_WORDS];
+        unsafe { run_rounds_sse2_ptr::<R>(res.as_mut_ptr().cast(), &self.0.state) };
 
         self.0.set_block_pos(self.0.get_block_pos() + 1);
 
@@ -48,7 +47,11 @@ impl<R: Unsigned> StreamCipherBackend for Backend<'_, R> {
 }
 
 #[inline(always)]
-fn run_rounds_sse2<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS] {
+/// Run the Salsa20 rounds using SSE2 instructions.
+///
+/// Input: state in internal order
+/// Output: out in internal order, does not have to be aligned on any boundary
+unsafe fn run_rounds_sse2_ptr<R: Unsigned>(out: *mut Array<u8, U64>, state: &[u32; STATE_WORDS]) {
     use core::arch::x86_64::*;
     unsafe {
         let [a_save, b_save, d_save, c_save] = [
@@ -101,11 +104,9 @@ fn run_rounds_sse2<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS
             (b, d) = (d, b);
         }
 
-        let mut res = [0u32; STATE_WORDS];
-        _mm_storeu_si128(res.as_mut_ptr().add(0).cast(), _mm_add_epi32(a, a_save));
-        _mm_storeu_si128(res.as_mut_ptr().add(4).cast(), _mm_add_epi32(b, b_save));
-        _mm_storeu_si128(res.as_mut_ptr().add(8).cast(), _mm_add_epi32(d, d_save));
-        _mm_storeu_si128(res.as_mut_ptr().add(12).cast(), _mm_add_epi32(c, c_save));
-        res
+        _mm_storeu_si128(out.byte_add(0).cast(), _mm_add_epi32(a, a_save));
+        _mm_storeu_si128(out.byte_add(16).cast(), _mm_add_epi32(b, b_save));
+        _mm_storeu_si128(out.byte_add(32).cast(), _mm_add_epi32(d, d_save));
+        _mm_storeu_si128(out.byte_add(48).cast(), _mm_add_epi32(c, c_save));
     }
 }
