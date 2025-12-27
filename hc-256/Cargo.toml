@@ -13,10 +13,10 @@ categories = ["cryptography", "no-std"]
 description = "Pure Rust implementation of the HC-256 stream cipher"
 
 [dependencies]
-cipher = { version = "0.5.0-rc.2", features = ["stream-wrapper"] }
+cipher = { version = "0.5.0-rc.3", features = ["stream-wrapper"] }
 
 [dev-dependencies]
-cipher = { version = "0.5.0-rc.2", features = ["dev"] }
+cipher = { version = "0.5.0-rc.3", features = ["dev"] }
 hex-literal = "1"
 
 [features]
