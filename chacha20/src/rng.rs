@@ -349,8 +349,8 @@ macro_rules! impl_chacha_rng {
             /// 60 bits.
             #[inline]
             pub fn set_word_pos(&mut self, word_offset: u128) {
-                let index = (word_offset & 0b1111) as usize;
-                let counter = word_offset >> 4;
+                let index = (word_offset % BLOCK_WORDS as u128) as usize;
+                let counter = word_offset / BLOCK_WORDS as u128;
                 //self.set_block_pos(counter as u64);
                 self.core.core.0.state[12] = counter as u32;
                 self.core.core.0.state[13] = (counter >> 32) as u32;
@@ -383,8 +383,19 @@ macro_rules! impl_chacha_rng {
                 self.core.core.0.state[12] as u64 | ((self.core.core.0.state[13] as u64) << 32)
             }
 
-            /// Set the stream number. The lower 64 bits are used and the rest are
-            /// discarded. This method takes any of the following:
+            /// Sets the stream number, resetting the `index`. Here's another way to
+            /// express this operation:
+            ///
+            /// ```ignore
+            /// fn set_stream(&mut self, stream_id: Into<StreamId>) {
+            ///     self.stream = stream_id.into();
+            ///     self.word_pos = self.word_pos & !15;
+            ///     // or
+            ///     self.word_pos = (self.word_pos / 16) * 16
+            /// }
+            /// ```
+            ///
+            /// This method takes any of the following:
             /// * `u64`
             /// * `[u32; 2]`
             /// * `[u8; 8]`
@@ -417,7 +428,7 @@ macro_rules! impl_chacha_rng {
                 let stream: StreamId = stream.into();
                 self.core.core.0.state[14..].copy_from_slice(&stream.0);
                 if self.core.index() != BUFFER_SIZE {
-                    self.core.generate_and_set(self.core.index());
+                    self.core.reset();
                 }
             }
 
@@ -864,6 +875,11 @@ pub(crate) mod tests {
         }
         rng2.set_stream(51); // switch part way through block
         for _ in 7..16 {
+            assert_ne!(rng1.next_u64(), rng2.next_u64());
+        }
+        rng1.set_stream(51);
+        rng2.set_stream(51);
+        for _ in 0..16 {
             assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
     }
@@ -1018,10 +1034,28 @@ pub(crate) mod tests {
         rng.set_stream([3, 3333]);
         let expected = 1152671828;
         assert_eq!(rng.next_u32(), expected);
-        rng.set_stream(1234567);
-        let expected = 3110319182;
+        let mut word_pos = rng.get_word_pos();
+        assert_eq!(word_pos, 1);
+
+        rng.set_word_pos(0);
         assert_eq!(rng.next_u32(), expected);
+
+        rng.set_stream(1234567);
+        for _ in 0..word_pos {
+            rng.next_u32();
+        }
+        word_pos = rng.get_word_pos();
+        let test = rng.next_u32();
+        rng.set_word_pos(word_pos);
+        let expected = 3110319182;
+        assert_eq!(test, expected);
+        assert_eq!(rng.next_u32(), expected);
+
+        word_pos = rng.get_word_pos();
         rng.set_stream([1, 2, 3, 4, 5, 6, 7, 8]);
+        rng.next_u32();
+        rng.next_u32();
+        rng.set_word_pos(word_pos);
         let expected = 3790367479;
         assert_eq!(rng.next_u32(), expected);
     }
