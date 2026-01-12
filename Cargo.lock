@@ -288,8 +288,7 @@ dependencies = [
 [[package]]
 name = "rand_core"
 version = "0.10.0-rc-3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f66ee92bc15280519ef199a274fe0cafff4245d31bc39aaa31c011ad56cb1f05"
+source = "git+https://github.com/rust-random/rand_core?branch=push-xzmlvzwurnrl#8935760efbe9a2323ebb37cce60efc7c837c3bfe"
 
 [[package]]
 name = "rand_xorshift"
