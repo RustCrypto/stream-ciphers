@@ -344,9 +344,9 @@ macro_rules! impl_chacha_rng {
                 word_pos & ((1 << 68) - 1)
             }
 
-            /// Set the offset from the start of the stream, in 32-bit words. **This 
-            /// value will be erased when calling `set_stream()`, so call 
-            /// `set_stream()` before calling `set_word_pos()`** if you intend on 
+            /// Set the offset from the start of the stream, in 32-bit words. **This
+            /// value will be erased when calling `set_stream()`, so call
+            /// `set_stream()` before calling `set_word_pos()`** if you intend on
             /// using both of them together.
             ///
             /// As with `get_word_pos`, we use a 68-bit number. Since the generator
@@ -362,9 +362,9 @@ macro_rules! impl_chacha_rng {
                 self.core.reset_and_skip(index);
             }
 
-            /// Sets the block pos and resets the RNG's index. **This value will be 
-            /// erased when calling `set_stream()`, so call `set_stream()` before 
-            /// calling `set_block_pos()`** if you intend on using both of them 
+            /// Sets the block pos and resets the RNG's index. **This value will be
+            /// erased when calling `set_stream()`, so call `set_stream()` before
+            /// calling `set_block_pos()`** if you intend on using both of them
             /// together.
             ///
             /// The word pos will be equal to `block_pos * 16 words per block`.
@@ -388,7 +388,8 @@ macro_rules! impl_chacha_rng {
             #[inline]
             #[allow(unused)]
             pub fn get_block_pos(&self) -> u64 {
-                let counter = self.core.core.0.state[12] as u64 | ((self.core.core.0.state[13] as u64) << 32);
+                let counter =
+                    self.core.core.0.state[12] as u64 | ((self.core.core.0.state[13] as u64) << 32);
                 if self.core.word_offset() != 0 {
                     counter - 4 + self.core.word_offset() as u64 / 16
                 } else {
@@ -397,7 +398,7 @@ macro_rules! impl_chacha_rng {
             }
 
             /// Sets the stream number, resetting the `index` and `block_pos` to 0,
-            /// effectively setting the `word_pos` to 0 as well. Consider storing 
+            /// effectively setting the `word_pos` to 0 as well. Consider storing
             /// the `word_pos` prior to calling this method.
             ///
             /// This method takes any of the following:
@@ -427,7 +428,7 @@ macro_rules! impl_chacha_rng {
             /// // confirm that state is set correctly
             /// assert_eq!(rng.get_block_pos(), 1 << 32);
             /// assert_eq!(rng.get_stream(), (3 << 32) + 2);
-            /// 
+            ///
             /// // restoring `word_pos`/`index` after calling `set_stream`:
             /// let word_pos = rng.get_word_pos();
             /// rng.set_stream(4);
@@ -1079,7 +1080,6 @@ pub(crate) mod tests {
         assert!(rng.next_u32() == expected);
         rng.set_word_pos(word_pos);
         assert_eq!(rng.next_u32(), test);
-
 
         word_pos = rng.get_word_pos();
         assert_eq!(word_pos, 2);
