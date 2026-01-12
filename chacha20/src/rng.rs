@@ -336,7 +336,7 @@ macro_rules! impl_chacha_rng {
                 let mut block_counter = (u64::from(self.core.core.0.state[13]) << 32)
                     | u64::from(self.core.core.0.state[12]);
                 if self.core.word_offset() != 0 {
-                    block_counter = block_counter.wrapping_sub(4);
+                    block_counter = block_counter.wrapping_sub(BUF_BLOCKS as u64);
                 }
                 let word_pos =
                     block_counter as u128 * BLOCK_WORDS as u128 + self.core.word_offset() as u128;
@@ -391,7 +391,7 @@ macro_rules! impl_chacha_rng {
                 let counter =
                     self.core.core.0.state[12] as u64 | ((self.core.core.0.state[13] as u64) << 32);
                 if self.core.word_offset() != 0 {
-                    counter - 4 + self.core.word_offset() as u64 / 16
+                    counter - BUF_BLOCKS as u64 + self.core.word_offset() as u64 / 16
                 } else {
                     counter
                 }
