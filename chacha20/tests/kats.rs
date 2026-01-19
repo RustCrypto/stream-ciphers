@@ -506,9 +506,7 @@ mod rng_tests {
         assert_eq!(rng.get_word_pos(), 0);
         let expected = 1152671828;
         assert_eq!(rng.next_u32(), expected);
-        let mut word_pos = rng.get_word_pos();
-
-        assert_eq!(word_pos, 1);
+        assert_eq!(rng.get_word_pos(), 1);
 
         rng.set_stream(1234567);
         // these `word_pos == 0` might need to be changed if set_stream changes again
@@ -532,7 +530,6 @@ mod rng_tests {
         rng.set_word_pos(130); // old set_stream added another 64 to the word_pos
         let expected = 3790367479;
         assert_eq!(rng.next_u32(), expected);
-        rng.set_word_pos(word_pos);
     }
 
     /// Test vector 9 from https://github.com/pyca/cryptography/blob/main/vectors/cryptography_vectors/ciphers/ChaCha20/counter-overflow.txt
