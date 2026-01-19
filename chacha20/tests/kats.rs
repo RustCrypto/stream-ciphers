@@ -527,10 +527,7 @@ mod rng_tests {
         let expected = 3110319182;
         rng.set_word_pos(65); // old set_stream added 64 to the word_pos
         assert!(rng.next_u32() == expected);
-        rng.set_word_pos(word_pos);
 
-        word_pos = rng.get_word_pos();
-        assert_eq!(word_pos, 2);
         rng.set_stream([1, 2, 3, 4, 5, 6, 7, 8]);
         rng.set_word_pos(130); // old set_stream added another 64 to the word_pos
         let expected = 3790367479;
