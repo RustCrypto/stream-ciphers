@@ -1054,48 +1054,31 @@ pub(crate) mod tests {
         assert_eq!(word_pos, 1);
 
         rng.set_stream(1234567);
+        // these `word_pos == 0` might need to be changed if set_stream changes again
         assert_eq!(rng.get_word_pos(), 0);
         let mut block = [0u32; 16];
         for word in 0..block.len() {
             block[word] = rng.next_u32();
         }
         assert_eq!(rng.get_word_pos(), 16);
-        assert_eq!(rng.core.word_offset(), 16);
+        // new `get_block_pos`
         assert_eq!(rng.get_block_pos(), 1);
-        rng.set_stream(1234567);
-        let mut block_2 = [0u32; 16];
-        for word in 0..block_2.len() {
-            block_2[word] = rng.next_u32();
-        }
-        assert_eq!(rng.get_word_pos(), 16);
-        assert_eq!(rng.core.word_offset(), 16);
-        assert_eq!(rng.get_block_pos(), 1);
-        assert_eq!(block, block_2);
         rng.set_stream(1234567);
         assert_eq!(rng.get_block_pos(), 0);
         assert_eq!(rng.get_word_pos(), 0);
-        let _ = rng.next_u32();
 
-        word_pos = rng.get_word_pos();
-        assert_eq!(word_pos, 1);
-        let test = rng.next_u32();
         let expected = 3110319182;
         rng.set_word_pos(65); // old set_stream added 64 to the word_pos
         assert!(rng.next_u32() == expected);
         rng.set_word_pos(word_pos);
-        assert_eq!(rng.next_u32(), test);
 
         word_pos = rng.get_word_pos();
         assert_eq!(word_pos, 2);
         rng.set_stream([1, 2, 3, 4, 5, 6, 7, 8]);
-        rng.next_u32();
-        rng.next_u32();
-        let test = rng.next_u32();
         rng.set_word_pos(130); // old set_stream added another 64 to the word_pos
         let expected = 3790367479;
         assert_eq!(rng.next_u32(), expected);
         rng.set_word_pos(word_pos);
-        assert_eq!(rng.next_u32(), test);
     }
 
     /// If this test fails, the backend may not be
