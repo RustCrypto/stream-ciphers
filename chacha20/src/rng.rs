@@ -6,10 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use core::fmt::Debug;
+use core::{convert::Infallible, fmt::Debug};
 
 use rand_core::{
-    CryptoRng, RngCore, SeedableRng,
+    SeedableRng, TryCryptoRng, TryRngCore,
     block::{BlockRng, CryptoGenerator, Generator},
 };
 
@@ -291,22 +291,25 @@ macro_rules! impl_chacha_rng {
                 }
             }
         }
-        impl RngCore for $ChaChaXRng {
+        impl TryRngCore for $ChaChaXRng {
+            type Error = Infallible;
+
             #[inline]
-            fn next_u32(&mut self) -> u32 {
-                self.core.next_word()
+            fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+                Ok(self.core.next_word())
             }
             #[inline]
-            fn next_u64(&mut self) -> u64 {
-                self.core.next_u64_from_u32()
+            fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+                Ok(self.core.next_u64_from_u32())
             }
             #[inline]
-            fn fill_bytes(&mut self, dest: &mut [u8]) {
-                self.core.fill_bytes(dest)
+            fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+                self.core.fill_bytes(dest);
+                Ok(())
             }
         }
         impl CryptoGenerator for $ChaChaXCore {}
-        impl CryptoRng for $ChaChaXRng {}
+        impl TryCryptoRng for $ChaChaXRng {}
 
         #[cfg(feature = "zeroize")]
         impl ZeroizeOnDrop for $ChaChaXCore {}
@@ -552,6 +555,7 @@ impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
 pub(crate) mod tests {
 
     use hex_literal::hex;
+    use rand_core::RngCore;
 
     use super::*;
 
@@ -1031,7 +1035,7 @@ pub(crate) mod tests {
 
         let seed = Default::default();
         let mut rng1 = ChaChaRng::from_seed(seed);
-        let rng2 = &mut ChaChaRng::from_seed(seed) as &mut dyn CryptoRng;
+        let mut rng2 = &mut ChaChaRng::from_seed(seed) as &mut dyn CryptoRng;
         for _ in 0..1000 {
             assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
