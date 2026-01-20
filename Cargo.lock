@@ -61,15 +61,15 @@ dependencies = [
  "hex-literal",
  "proptest",
  "rand_chacha",
- "rand_core 0.10.0-rc-4",
+ "rand_core 0.10.0-rc-5",
  "zeroize",
 ]
 
 [[package]]
 name = "cipher"
-version = "0.5.0-rc.4"
+version = "0.5.0-rc.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "118a99a35f72e30b718e8eb5ea6ba24652d08415260a4a32b838f76aa4e3284a"
+checksum = "b557bad79bc426785757001b5d732f323ae965363983d758295c1a1935496880"
 dependencies = [
  "blobby",
  "block-buffer",
@@ -89,9 +89,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-common"
-version = "0.2.0-rc.10"
+version = "0.2.0-rc.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f4fc0003068acd7e9cb6659fd956dc4d671f102a06cc115990b9e7bb5745c25"
+checksum = "7d2bcc93d5cde6659e8649fc412894417ebc14dee54cfc6ee439c683a4a58342"
 dependencies = [
  "hybrid-array",
 ]
@@ -287,9 +287,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.10.0-rc-4"
+version = "0.10.0-rc-5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43bb1e3655c24705492d72208c9bacdefe07c30c14b8f7664c556a3e1953b72c"
+checksum = "05a06e03bd1f2ae861ab9e7498b6c64ed3dadb9ce175c0464a2522a5f23c0045"
 
 [[package]]
 name = "rand_xorshift"
