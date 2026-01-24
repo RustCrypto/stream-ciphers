@@ -9,7 +9,7 @@
 use core::{convert::Infallible, fmt::Debug};
 
 use rand_core::{
-    SeedableRng, TryCryptoRng, TryRngCore,
+    SeedableRng, TryCryptoRng, TryRng,
     block::{BlockRng, CryptoGenerator, Generator},
 };
 
@@ -226,14 +226,14 @@ macro_rules! impl_chacha_rng {
         /// counter   counter   stream_id stream_id
         /// ```
         /// This implementation uses an output buffer of sixteen `u32` words, and uses
-        /// [`BlockRng`] to implement the [`RngCore`] methods.
+        /// [`BlockRng`] to implement the [`Rng`] methods.
         ///
         /// # Example for `ChaCha20Rng`
         ///
         /// ```rust
         /// use chacha20::ChaCha20Rng;
         /// // use rand_core traits
-        /// use rand_core::{SeedableRng, RngCore};
+        /// use rand_core::{SeedableRng, Rng};
         ///
         /// // the following inputs are examples and are neither
         /// // recommended nor suggested values
@@ -291,7 +291,7 @@ macro_rules! impl_chacha_rng {
                 }
             }
         }
-        impl TryRngCore for $ChaChaXRng {
+        impl TryRng for $ChaChaXRng {
             type Error = Infallible;
 
             #[inline]
@@ -419,7 +419,7 @@ macro_rules! impl_chacha_rng {
             ///
             /// ```
             /// use chacha20::ChaCha20Rng;
-            /// use rand_core::{SeedableRng, RngCore};
+            /// use rand_core::{SeedableRng, Rng};
             ///
             /// let seed = [2u8; 32];
             /// let mut rng = ChaCha20Rng::from_seed(seed);
@@ -555,7 +555,7 @@ impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
 pub(crate) mod tests {
 
     use hex_literal::hex;
-    use rand_core::RngCore;
+    use rand_core::Rng;
 
     use super::*;
 
