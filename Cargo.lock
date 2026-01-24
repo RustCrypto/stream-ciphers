@@ -53,7 +53,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "chacha20"
-version = "0.10.0-rc.8"
+version = "0.10.0-rc.9"
 dependencies = [
  "cfg-if",
  "cipher",
@@ -67,9 +67,9 @@ dependencies = [
 
 [[package]]
 name = "cipher"
-version = "0.5.0-rc.5"
+version = "0.5.0-rc.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b557bad79bc426785757001b5d732f323ae965363983d758295c1a1935496880"
+checksum = "eba4d87abf4032a6d927f84b71af5086128a3349b929b4501c51a0fe0981a937"
 dependencies = [
  "blobby",
  "block-buffer",
@@ -89,9 +89,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-common"
-version = "0.2.0-rc.11"
+version = "0.2.0-rc.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d2bcc93d5cde6659e8649fc412894417ebc14dee54cfc6ee439c683a4a58342"
+checksum = "c7722afd27468475c9b6063dc03a57ef2ca833816981619f8ebe64d38d207eef"
 dependencies = [
  "hybrid-array",
 ]
