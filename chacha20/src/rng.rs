@@ -195,7 +195,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
 }
 
 macro_rules! impl_chacha_rng {
-    ($ChaChaXRng:ident, $ChaChaXCore:ident, $rounds:ident, $abst:ident) => {
+    ($ChaChaXRng:ident, $rounds:ident, $abst:ident) => {
         /// A cryptographically secure random number generator that uses the ChaCha algorithm.
         ///
         /// ChaCha is a stream cipher designed by Daniel J. Bernstein[^1], that we use as an RNG. It is
@@ -267,13 +267,10 @@ macro_rules! impl_chacha_rng {
         /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](http://www.ecrypt.eu.org/stream/)
         pub struct $ChaChaXRng {
             /// The ChaChaCore struct
-            pub core: BlockRng<$ChaChaXCore>,
+            pub core: BlockRng<ChaChaCore<$rounds, Legacy>>,
         }
 
-        /// The ChaCha core random number generator
-        pub type $ChaChaXCore = ChaChaCore<$rounds, Legacy>;
-
-        impl SeedableRng for $ChaChaXCore {
+        impl SeedableRng for ChaChaCore<$rounds, Legacy> {
             type Seed = Seed;
 
             #[inline]
@@ -287,7 +284,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 Self {
-                    core: BlockRng::new($ChaChaXCore::from_seed(seed.into())),
+                    core: BlockRng::new(ChaChaCore::<$rounds, Legacy>::from_seed(seed.into())),
                 }
             }
         }
@@ -308,7 +305,7 @@ macro_rules! impl_chacha_rng {
                 Ok(())
             }
         }
-        impl CryptoGenerator for $ChaChaXCore {}
+        impl CryptoGenerator for ChaChaCore<$rounds, Legacy> {}
         impl TryCryptoRng for $ChaChaXRng {}
 
         #[cfg(feature = "zeroize")]
@@ -483,8 +480,8 @@ macro_rules! impl_chacha_rng {
 
         impl Eq for $ChaChaXRng {}
 
-        impl From<$ChaChaXCore> for $ChaChaXRng {
-            fn from(core: $ChaChaXCore) -> Self {
+        impl From<ChaChaCore<$rounds, Legacy>> for $ChaChaXRng {
+            fn from(core: ChaChaCore<$rounds, Legacy>) -> Self {
                 $ChaChaXRng {
                     core: BlockRng::new(core),
                 }
@@ -526,7 +523,7 @@ macro_rules! impl_chacha_rng {
             }
         }
 
-        impl Generator for $ChaChaXCore {
+        impl Generator for ChaChaCore<$rounds, Legacy> {
             type Output = [u32; BUFFER_SIZE];
 
             #[inline]
@@ -542,11 +539,11 @@ macro_rules! impl_chacha_rng {
     };
 }
 
-impl_chacha_rng!(ChaCha8Rng, ChaCha8Core, R8, abst8);
+impl_chacha_rng!(ChaCha8Rng, R8, abst8);
 
-impl_chacha_rng!(ChaCha12Rng, ChaCha12Core, R12, abst12);
+impl_chacha_rng!(ChaCha12Rng, R12, abst12);
 
-impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
+impl_chacha_rng!(ChaCha20Rng, R20, abst20);
 
 #[cfg(test)]
 pub(crate) mod tests {
