@@ -267,8 +267,7 @@ macro_rules! impl_chacha_rng {
         ///
         /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](http://www.ecrypt.eu.org/stream/)
         pub struct $ChaChaXRng {
-            /// The ChaChaCore struct
-            pub core: BlockRng<ChaChaCore<$rounds, Legacy>>,
+            core: BlockRng<ChaChaCore<$rounds, Legacy>>,
         }
 
         impl SeedableRng for ChaChaCore<$rounds, Legacy> {
@@ -480,14 +479,6 @@ macro_rules! impl_chacha_rng {
         }
 
         impl Eq for $ChaChaXRng {}
-
-        impl From<ChaChaCore<$rounds, Legacy>> for $ChaChaXRng {
-            fn from(core: ChaChaCore<$rounds, Legacy>) -> Self {
-                $ChaChaXRng {
-                    core: BlockRng::new(core),
-                }
-            }
-        }
 
         mod $abst {
             // The abstract state of a ChaCha stream, independent of implementation choices. The
