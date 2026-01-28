@@ -225,8 +225,9 @@ macro_rules! impl_chacha_rng {
         /// seed      seed      seed      seed
         /// counter   counter   stream_id stream_id
         /// ```
-        /// This implementation uses an output buffer of sixteen `u32` words, and uses
-        /// [`BlockRng`] to implement the [`Rng`] methods.
+        /// This implementation uses an output buffer of sixteen `u32` words, using
+        /// [`rand_core::block::BlockRng`] over [`ChaChaCore`] to implement
+        /// [`rand_core::Rng`].
         ///
         /// # Example for `ChaCha20Rng`
         ///
