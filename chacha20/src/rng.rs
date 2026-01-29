@@ -385,8 +385,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             #[allow(unused)]
             pub fn get_block_pos(&self) -> u64 {
-                let counter =
-                    self.core.core.state[12] as u64 | ((self.core.core.state[13] as u64) << 32);
+                let counter = self.core.get_block_pos();
                 if self.core.word_offset() != 0 {
                     counter - BUF_BLOCKS as u64 + self.core.word_offset() as u64 / 16
                 } else {

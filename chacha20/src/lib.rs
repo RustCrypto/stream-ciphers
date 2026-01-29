@@ -265,6 +265,16 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
             _pd: PhantomData,
         }
     }
+
+    #[inline(always)]
+    fn get_block_pos(&self) -> V::Counter {
+        V::get_block_pos(&self.state[12..])
+    }
+
+    #[inline(always)]
+    fn set_block_pos(&mut self, pos: V::Counter) {
+        V::set_block_pos(&mut self.state[12..], pos);
+    }
 }
 
 #[cfg(feature = "cipher")]
@@ -273,12 +283,12 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 
     #[inline(always)]
     fn get_block_pos(&self) -> Self::Counter {
-        V::get_block_pos(&self.state[12..])
+        self.get_block_pos()
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        V::set_block_pos(&mut self.state[12..], pos);
+        self.set_block_pos(pos)
     }
 }
 
