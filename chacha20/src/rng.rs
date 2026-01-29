@@ -77,33 +77,32 @@ impl Debug for Seed {
     }
 }
 
-/// A wrapper around 64 bits of data that can be constructed from any of the
-/// following:
+/// A wrapper for `stream_id` (64-bits).
+///
+/// Can be constructed from any of the following:
 /// * `u64`
 /// * `[u32; 2]`
 /// * `[u8; 8]`
 ///
-/// The arrays should be in little endian order. You should not need to use
-/// this directly, as the methods in this crate that use this type call
-/// `.into()` for you, so you only need to supply any of the above types.
-pub struct U32x2([u32; Self::LEN]);
+/// The arrays should be in little endian order.
+pub struct StreamId([u32; Self::LEN]);
 
-impl U32x2 {
-    /// Amount of raw bytes backing a `U32x2` instance.
+impl StreamId {
+    /// Amount of raw bytes backing a `StreamId` instance.
     const BYTES: usize = size_of::<Self>();
 
-    /// The length of the array contained within `U32x2`.
+    /// The length of the array contained within `StreamId`.
     const LEN: usize = 2;
 }
 
-impl From<[u32; Self::LEN]> for U32x2 {
+impl From<[u32; Self::LEN]> for StreamId {
     #[inline]
     fn from(value: [u32; Self::LEN]) -> Self {
         Self(value)
     }
 }
 
-impl From<[u8; Self::BYTES]> for U32x2 {
+impl From<[u8; Self::BYTES]> for StreamId {
     #[inline]
     fn from(value: [u8; Self::BYTES]) -> Self {
         let mut result = Self(Default::default());
@@ -118,33 +117,13 @@ impl From<[u8; Self::BYTES]> for U32x2 {
     }
 }
 
-impl From<u64> for U32x2 {
+impl From<u64> for StreamId {
     #[inline]
     fn from(value: u64) -> Self {
         let result: [u8; Self::BYTES] = value.to_le_bytes()[..Self::BYTES].try_into().unwrap();
         result.into()
     }
 }
-
-/// A wrapper for `stream_id`.
-///
-/// Can be constructed from any of the following:
-/// * `u64`
-/// * `[u32; 2]`
-/// * `[u8; 8]`
-///
-/// The arrays should be in little endian order.
-pub type StreamId = U32x2;
-
-/// A wrapper for `block_pos`.
-///
-/// Can be constructed from any of the following:
-/// * `u64`
-/// * `[u32; 2]`
-/// * `[u8; 8]`
-///
-/// The arrays should be in little endian order.
-pub type BlockPos = U32x2;
 
 const BUFFER_SIZE: usize = 64;
 
