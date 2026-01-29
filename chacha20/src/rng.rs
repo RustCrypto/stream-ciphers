@@ -365,27 +365,18 @@ macro_rules! impl_chacha_rng {
             /// together.
             ///
             /// The word pos will be equal to `block_pos * 16 words per block`.
-            ///
-            /// This method takes any of the following:
-            /// * `u64`
-            /// * `[u32; 2]`
-            /// * `[u8; 8]`
-            ///
-            /// Note: the arrays should be in little endian order.
             #[inline]
             #[allow(unused)]
-            pub fn set_block_pos<B: Into<BlockPos>>(&mut self, block_pos: B) {
+            pub fn set_block_pos(&mut self, block_pos: u64) {
                 self.core.reset_and_skip(0);
-                let block_pos = block_pos.into().0;
-                self.core.core.state[12] = block_pos[0];
-                self.core.core.state[13] = block_pos[1]
+                self.core.core.set_block_pos(block_pos);
             }
 
             /// Get the block pos.
             #[inline]
             #[allow(unused)]
             pub fn get_block_pos(&self) -> u64 {
-                let counter = self.core.get_block_pos();
+                let counter = self.core.core.get_block_pos();
                 if self.core.word_offset() != 0 {
                     counter - BUF_BLOCKS as u64 + self.core.word_offset() as u64 / 16
                 } else {
@@ -419,7 +410,7 @@ macro_rules! impl_chacha_rng {
             ///
             /// // set state[12] to 0, state[13] to 1, state[14] to 2, state[15] to 3
             /// rng.set_stream([2u32, 3u32]);
-            /// rng.set_block_pos([0u32, 1u32]);
+            /// rng.set_block_pos(0x1_0000_0000_u64);
             ///
             /// // confirm that state is set correctly
             /// assert_eq!(rng.get_block_pos(), 1 << 32);
@@ -599,15 +590,11 @@ pub(crate) mod tests {
         rng.set_stream(11111111);
         assert_eq!(rng.get_stream(), 11111111);
 
-        // test set_block_pos with u32
+        // test set_block_pos with u64
         rng.set_block_pos(58392);
         assert_eq!(rng.get_block_pos(), 58392);
         // test word_pos = 16 * block_pos
         assert_eq!(rng.get_word_pos(), 58392 * 16);
-
-        // test set_block_pos with [u8; 8]
-        rng.set_block_pos([77, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(rng.get_block_pos(), 77);
 
         // test set_word_pos with u64
         rng.set_word_pos(8888);
@@ -735,7 +722,7 @@ pub(crate) mod tests {
 
         // Test block 2 by using `set_block_pos` and [u8; 8]
         let mut rng4 = ChaChaRng::from_seed(seed);
-        rng4.set_block_pos([2, 0, 0, 0, 0, 0, 0, 0]);
+        rng4.set_block_pos(2);
         results = [0u32; 16];
         for i in results.iter_mut() {
             *i = rng4.next_u32();
@@ -806,7 +793,7 @@ pub(crate) mod tests {
 
         let stream_id = hex!("0000004a00000000");
         rng.set_stream(stream_id);
-        rng.set_block_pos(hex!("0000000000000009"));
+        rng.set_block_pos(u64::from_le_bytes(hex!("0000000000000009")));
 
         // The test vectors omit the first 64-bytes of the keystream
         let mut discard_first_64 = [0u8; 64];
@@ -1096,7 +1083,7 @@ pub(crate) mod tests {
         let first_blocks_end_block_counter = rng.get_block_pos();
 
         // get first four blocks after wrapping
-        rng.set_block_pos([u32::MAX, u32::MAX]);
+        rng.set_block_pos(u64::MAX);
         let mut result = [0u8; 64 * 5];
         rng.fill_bytes(&mut result);
         assert_eq!(first_blocks_end_word_pos, rng.get_word_pos());
