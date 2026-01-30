@@ -266,11 +266,13 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
         }
     }
 
+    #[cfg(any(feature = "cipher", feature = "rng"))]
     #[inline(always)]
     fn get_block_pos(&self) -> V::Counter {
         V::get_block_pos(&self.state[12..])
     }
 
+    #[cfg(any(feature = "cipher", feature = "rng"))]
     #[inline(always)]
     fn set_block_pos(&mut self, pos: V::Counter) {
         V::set_block_pos(&mut self.state[12..], pos);
