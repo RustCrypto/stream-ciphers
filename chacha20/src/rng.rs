@@ -10,7 +10,7 @@ use core::{convert::Infallible, fmt::Debug};
 
 use rand_core::{
     SeedableRng, TryCryptoRng, TryRng,
-    block::{BlockRng, CryptoGenerator, Generator},
+    block::{BlockRng, Generator},
 };
 
 #[cfg(feature = "zeroize")]
