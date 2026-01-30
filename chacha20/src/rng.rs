@@ -284,7 +284,7 @@ macro_rules! impl_chacha_rng {
                 Ok(())
             }
         }
-        impl CryptoGenerator for ChaChaCore<$rounds, Legacy> {}
+
         impl TryCryptoRng for $ChaChaXRng {}
 
         #[cfg(feature = "zeroize")]
