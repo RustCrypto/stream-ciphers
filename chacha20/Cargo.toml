@@ -33,7 +33,6 @@ cpufeatures = "0.2"
 cipher = { version = "0.5.0-rc.6", features = ["dev"] }
 hex-literal = "1"
 proptest = "1"
-rand_chacha = "0.9"
 
 [features]
 default = ["cipher"]
