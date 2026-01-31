@@ -2,7 +2,7 @@
 
 use chacha20::{
     ChaCha20Rng,
-    rand_core::{RngCore, SeedableRng},
+    rand_core::{Rng, SeedableRng},
 };
 use hex_literal::hex;
 
@@ -120,7 +120,7 @@ fn test_chacha_true_values_c() {
 
     // Test block 2 by using `set_block_pos` and [u8; 8]
     let mut rng4 = ChaCha20Rng::from_seed(seed);
-    rng4.set_block_pos([2, 0, 0, 0, 0, 0, 0, 0]);
+    rng4.set_block_pos(2);
     results = [0u32; 16];
     for i in results.iter_mut() {
         *i = rng4.next_u32();
@@ -197,7 +197,7 @@ fn test_chacha_nonce() {
 
     let stream_id = hex!("0000004a00000000");
     rng.set_stream(stream_id);
-    rng.set_block_pos(hex!("0000000000000009"));
+    rng.set_block_pos(u64::from_le_bytes(hex!("0000000000000009")));
 
     // The test vectors omit the first 64-bytes of the keystream
     let mut discard_first_64 = [0u8; 64];
