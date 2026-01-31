@@ -9,8 +9,8 @@
 use core::{convert::Infallible, fmt::Debug};
 
 use rand_core::{
-    SeedableRng, TryCryptoRng, TryRngCore,
-    block::{BlockRng, CryptoGenerator, Generator},
+    SeedableRng, TryCryptoRng, TryRng,
+    block::{BlockRng, Generator},
 };
 
 #[cfg(feature = "zeroize")]
@@ -77,33 +77,32 @@ impl Debug for Seed {
     }
 }
 
-/// A wrapper around 64 bits of data that can be constructed from any of the
-/// following:
+/// A wrapper for `stream_id` (64-bits).
+///
+/// Can be constructed from any of the following:
 /// * `u64`
 /// * `[u32; 2]`
 /// * `[u8; 8]`
 ///
-/// The arrays should be in little endian order. You should not need to use
-/// this directly, as the methods in this crate that use this type call
-/// `.into()` for you, so you only need to supply any of the above types.
-pub struct U32x2([u32; Self::LEN]);
+/// The arrays should be in little endian order.
+pub struct StreamId([u32; Self::LEN]);
 
-impl U32x2 {
-    /// Amount of raw bytes backing a `U32x2` instance.
+impl StreamId {
+    /// Amount of raw bytes backing a `StreamId` instance.
     const BYTES: usize = size_of::<Self>();
 
-    /// The length of the array contained within `U32x2`.
+    /// The length of the array contained within `StreamId`.
     const LEN: usize = 2;
 }
 
-impl From<[u32; Self::LEN]> for U32x2 {
+impl From<[u32; Self::LEN]> for StreamId {
     #[inline]
     fn from(value: [u32; Self::LEN]) -> Self {
         Self(value)
     }
 }
 
-impl From<[u8; Self::BYTES]> for U32x2 {
+impl From<[u8; Self::BYTES]> for StreamId {
     #[inline]
     fn from(value: [u8; Self::BYTES]) -> Self {
         let mut result = Self(Default::default());
@@ -118,33 +117,13 @@ impl From<[u8; Self::BYTES]> for U32x2 {
     }
 }
 
-impl From<u64> for U32x2 {
+impl From<u64> for StreamId {
     #[inline]
     fn from(value: u64) -> Self {
         let result: [u8; Self::BYTES] = value.to_le_bytes()[..Self::BYTES].try_into().unwrap();
         result.into()
     }
 }
-
-/// A wrapper for `stream_id`.
-///
-/// Can be constructed from any of the following:
-/// * `u64`
-/// * `[u32; 2]`
-/// * `[u8; 8]`
-///
-/// The arrays should be in little endian order.
-pub type StreamId = U32x2;
-
-/// A wrapper for `block_pos`.
-///
-/// Can be constructed from any of the following:
-/// * `u64`
-/// * `[u32; 2]`
-/// * `[u8; 8]`
-///
-/// The arrays should be in little endian order.
-pub type BlockPos = U32x2;
 
 const BUFFER_SIZE: usize = 64;
 
@@ -195,7 +174,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
 }
 
 macro_rules! impl_chacha_rng {
-    ($ChaChaXRng:ident, $ChaChaXCore:ident, $rounds:ident, $abst:ident) => {
+    ($ChaChaXRng:ident, $rounds:ident, $abst:ident) => {
         /// A cryptographically secure random number generator that uses the ChaCha algorithm.
         ///
         /// ChaCha is a stream cipher designed by Daniel J. Bernstein[^1], that we use as an RNG. It is
@@ -225,15 +204,16 @@ macro_rules! impl_chacha_rng {
         /// seed      seed      seed      seed
         /// counter   counter   stream_id stream_id
         /// ```
-        /// This implementation uses an output buffer of sixteen `u32` words, and uses
-        /// [`BlockRng`] to implement the [`RngCore`] methods.
+        /// This implementation uses an output buffer of sixteen `u32` words, using
+        /// [`rand_core::block::BlockRng`] over [`ChaChaCore`] to implement
+        /// [`rand_core::Rng`].
         ///
         /// # Example for `ChaCha20Rng`
         ///
         /// ```rust
         /// use chacha20::ChaCha20Rng;
         /// // use rand_core traits
-        /// use rand_core::{SeedableRng, RngCore};
+        /// use rand_core::{SeedableRng, Rng};
         ///
         /// // the following inputs are examples and are neither
         /// // recommended nor suggested values
@@ -266,19 +246,15 @@ macro_rules! impl_chacha_rng {
         ///
         /// [^2]: [eSTREAM: the ECRYPT Stream Cipher Project](http://www.ecrypt.eu.org/stream/)
         pub struct $ChaChaXRng {
-            /// The ChaChaCore struct
-            pub core: BlockRng<$ChaChaXCore>,
+            core: BlockRng<ChaChaCore<$rounds, Legacy>>,
         }
 
-        /// The ChaCha core random number generator
-        pub struct $ChaChaXCore(ChaChaCore<$rounds, Legacy>);
-
-        impl SeedableRng for $ChaChaXCore {
+        impl SeedableRng for ChaChaCore<$rounds, Legacy> {
             type Seed = Seed;
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                Self(ChaChaCore::<$rounds, Legacy>::new(seed.as_ref(), &[0u8; 8]))
+                ChaChaCore::<$rounds, Legacy>::new(seed.as_ref(), &[0u8; 8])
             }
         }
         impl SeedableRng for $ChaChaXRng {
@@ -287,11 +263,11 @@ macro_rules! impl_chacha_rng {
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
                 Self {
-                    core: BlockRng::new($ChaChaXCore::from_seed(seed.into())),
+                    core: BlockRng::new(ChaChaCore::<$rounds, Legacy>::from_seed(seed.into())),
                 }
             }
         }
-        impl TryRngCore for $ChaChaXRng {
+        impl TryRng for $ChaChaXRng {
             type Error = Infallible;
 
             #[inline]
@@ -308,11 +284,8 @@ macro_rules! impl_chacha_rng {
                 Ok(())
             }
         }
-        impl CryptoGenerator for $ChaChaXCore {}
-        impl TryCryptoRng for $ChaChaXRng {}
 
-        #[cfg(feature = "zeroize")]
-        impl ZeroizeOnDrop for $ChaChaXCore {}
+        impl TryCryptoRng for $ChaChaXRng {}
 
         #[cfg(feature = "zeroize")]
         impl ZeroizeOnDrop for $ChaChaXRng {}
@@ -336,8 +309,8 @@ macro_rules! impl_chacha_rng {
             /// byte-offset.
             #[inline]
             pub fn get_word_pos(&self) -> u128 {
-                let mut block_counter = (u64::from(self.core.core.0.state[13]) << 32)
-                    | u64::from(self.core.core.0.state[12]);
+                let mut block_counter = (u64::from(self.core.core.state[13]) << 32)
+                    | u64::from(self.core.core.state[12]);
                 if self.core.word_offset() != 0 {
                     block_counter = block_counter.wrapping_sub(BUF_BLOCKS as u64);
                 }
@@ -360,8 +333,8 @@ macro_rules! impl_chacha_rng {
                 let index = (word_offset % BLOCK_WORDS as u128) as usize;
                 let counter = word_offset / BLOCK_WORDS as u128;
                 //self.set_block_pos(counter as u64);
-                self.core.core.0.state[12] = counter as u32;
-                self.core.core.0.state[13] = (counter >> 32) as u32;
+                self.core.core.state[12] = counter as u32;
+                self.core.core.state[13] = (counter >> 32) as u32;
                 self.core.reset_and_skip(index);
             }
 
@@ -371,28 +344,18 @@ macro_rules! impl_chacha_rng {
             /// together.
             ///
             /// The word pos will be equal to `block_pos * 16 words per block`.
-            ///
-            /// This method takes any of the following:
-            /// * `u64`
-            /// * `[u32; 2]`
-            /// * `[u8; 8]`
-            ///
-            /// Note: the arrays should be in little endian order.
             #[inline]
             #[allow(unused)]
-            pub fn set_block_pos<B: Into<BlockPos>>(&mut self, block_pos: B) {
+            pub fn set_block_pos(&mut self, block_pos: u64) {
                 self.core.reset_and_skip(0);
-                let block_pos = block_pos.into().0;
-                self.core.core.0.state[12] = block_pos[0];
-                self.core.core.0.state[13] = block_pos[1]
+                self.core.core.set_block_pos(block_pos);
             }
 
             /// Get the block pos.
             #[inline]
             #[allow(unused)]
             pub fn get_block_pos(&self) -> u64 {
-                let counter =
-                    self.core.core.0.state[12] as u64 | ((self.core.core.0.state[13] as u64) << 32);
+                let counter = self.core.core.get_block_pos();
                 if self.core.word_offset() != 0 {
                     counter - BUF_BLOCKS as u64 + self.core.word_offset() as u64 / 16
                 } else {
@@ -419,14 +382,14 @@ macro_rules! impl_chacha_rng {
             ///
             /// ```
             /// use chacha20::ChaCha20Rng;
-            /// use rand_core::{SeedableRng, RngCore};
+            /// use rand_core::{SeedableRng, Rng};
             ///
             /// let seed = [2u8; 32];
             /// let mut rng = ChaCha20Rng::from_seed(seed);
             ///
             /// // set state[12] to 0, state[13] to 1, state[14] to 2, state[15] to 3
             /// rng.set_stream([2u32, 3u32]);
-            /// rng.set_block_pos([0u32, 1u32]);
+            /// rng.set_block_pos(0x1_0000_0000_u64);
             ///
             /// // confirm that state is set correctly
             /// assert_eq!(rng.get_block_pos(), 1 << 32);
@@ -440,7 +403,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                self.core.core.0.state[14..].copy_from_slice(&stream.0);
+                self.core.core.state[14..].copy_from_slice(&stream.0);
                 self.set_block_pos(0);
             }
 
@@ -448,7 +411,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_stream(&self) -> u64 {
                 let mut result = [0u8; 8];
-                for (i, &big) in self.core.core.0.state[14..BLOCK_WORDS as usize]
+                for (i, &big) in self.core.core.state[14..BLOCK_WORDS as usize]
                     .iter()
                     .enumerate()
                 {
@@ -465,7 +428,7 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn get_seed(&self) -> [u8; 32] {
                 let mut result = [0u8; 32];
-                for (i, &big) in self.core.core.0.state[4..12].iter().enumerate() {
+                for (i, &big) in self.core.core.state[4..12].iter().enumerate() {
                     let index = i * 4;
                     result[index + 0] = big as u8;
                     result[index + 1] = (big >> 8) as u8;
@@ -485,14 +448,6 @@ macro_rules! impl_chacha_rng {
         }
 
         impl Eq for $ChaChaXRng {}
-
-        impl From<$ChaChaXCore> for $ChaChaXRng {
-            fn from(core: $ChaChaXCore) -> Self {
-                $ChaChaXRng {
-                    core: BlockRng::new(core),
-                }
-            }
-        }
 
         mod $abst {
             // The abstract state of a ChaCha stream, independent of implementation choices. The
@@ -529,12 +484,12 @@ macro_rules! impl_chacha_rng {
             }
         }
 
-        impl Generator for $ChaChaXCore {
+        impl Generator for ChaChaCore<$rounds, Legacy> {
             type Output = [u32; BUFFER_SIZE];
 
             #[inline]
             fn generate(&mut self, r: &mut Self::Output) {
-                self.0.generate(r);
+                self.generate(r);
             }
 
             #[cfg(feature = "zeroize")]
@@ -545,15 +500,15 @@ macro_rules! impl_chacha_rng {
     };
 }
 
-impl_chacha_rng!(ChaCha8Rng, ChaCha8Core, R8, abst8);
+impl_chacha_rng!(ChaCha8Rng, R8, abst8);
 
-impl_chacha_rng!(ChaCha12Rng, ChaCha12Core, R12, abst12);
+impl_chacha_rng!(ChaCha12Rng, R12, abst12);
 
-impl_chacha_rng!(ChaCha20Rng, ChaCha20Core, R20, abst20);
+impl_chacha_rng!(ChaCha20Rng, R20, abst20);
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use rand_core::RngCore;
+    use rand_core::Rng;
 
     use super::*;
 
@@ -594,15 +549,11 @@ pub(crate) mod tests {
         rng.set_stream(11111111);
         assert_eq!(rng.get_stream(), 11111111);
 
-        // test set_block_pos with u32
+        // test set_block_pos with u64
         rng.set_block_pos(58392);
         assert_eq!(rng.get_block_pos(), 58392);
         // test word_pos = 16 * block_pos
         assert_eq!(rng.get_word_pos(), 58392 * 16);
-
-        // test set_block_pos with [u8; 8]
-        rng.set_block_pos([77, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(rng.get_block_pos(), 77);
 
         // test set_word_pos with u64
         rng.set_word_pos(8888);
@@ -668,7 +619,7 @@ pub(crate) mod tests {
     #[test]
     fn test_chacha_word_pos_zero() {
         let mut rng = ChaChaRng::from_seed(Default::default());
-        assert_eq!(rng.core.core.0.state[12], 0);
+        assert_eq!(rng.core.core.state[12], 0);
         assert_eq!(rng.core.word_offset(), 0);
         assert_eq!(rng.get_word_pos(), 0);
         rng.set_word_pos(0);
@@ -682,7 +633,7 @@ pub(crate) mod tests {
 
         let seed = Default::default();
         let mut rng1 = ChaChaRng::from_seed(seed);
-        let mut rng2 = &mut ChaChaRng::from_seed(seed) as &mut dyn CryptoRng;
+        let rng2 = &mut ChaChaRng::from_seed(seed) as &mut dyn CryptoRng;
         for _ in 0..1000 {
             assert_eq!(rng1.next_u64(), rng2.next_u64());
         }
@@ -701,7 +652,7 @@ pub(crate) mod tests {
         let first_blocks_end_block_counter = rng.get_block_pos();
 
         // get first four blocks after wrapping
-        rng.set_block_pos([u32::MAX, u32::MAX]);
+        rng.set_block_pos(u64::MAX);
         let mut result = [0u8; 64 * 5];
         rng.fill_bytes(&mut result);
         assert_eq!(first_blocks_end_word_pos, rng.get_word_pos());

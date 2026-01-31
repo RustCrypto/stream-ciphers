@@ -136,7 +136,7 @@ pub use chacha::{ChaCha8, ChaCha12, ChaCha20, Key, KeyIvInit};
 #[cfg(feature = "rng")]
 pub use rand_core;
 #[cfg(feature = "rng")]
-pub use rng::{ChaCha8Core, ChaCha8Rng, ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng};
+pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng};
 
 #[cfg(feature = "legacy")]
 pub use legacy::{ChaCha20Legacy, LegacyNonce};
@@ -265,6 +265,18 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
             _pd: PhantomData,
         }
     }
+
+    #[cfg(any(feature = "cipher", feature = "rng"))]
+    #[inline(always)]
+    fn get_block_pos(&self) -> V::Counter {
+        V::get_block_pos(&self.state[12..])
+    }
+
+    #[cfg(any(feature = "cipher", feature = "rng"))]
+    #[inline(always)]
+    fn set_block_pos(&mut self, pos: V::Counter) {
+        V::set_block_pos(&mut self.state[12..], pos);
+    }
 }
 
 #[cfg(feature = "cipher")]
@@ -273,12 +285,12 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 
     #[inline(always)]
     fn get_block_pos(&self) -> Self::Counter {
-        V::get_block_pos(&self.state[12..])
+        self.get_block_pos()
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        V::set_block_pos(&mut self.state[12..], pos);
+        self.set_block_pos(pos)
     }
 }
 
