@@ -27,6 +27,7 @@ const N: usize = PAR_BLOCKS / 2;
 #[inline]
 #[target_feature(enable = "avx2")]
 #[cfg(feature = "cipher")]
+#[cfg_attr(chacha20_force_avx512, expect(unused))]
 pub(crate) unsafe fn inner<R, F, V>(state: &mut [u32; STATE_WORDS], f: F)
 where
     R: Rounds,
