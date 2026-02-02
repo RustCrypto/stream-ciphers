@@ -266,15 +266,17 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
         }
     }
 
+    /// Get the current block position.
     #[cfg(any(feature = "cipher", feature = "rng"))]
     #[inline(always)]
-    fn get_block_pos(&self) -> V::Counter {
+    pub fn get_block_pos(&self) -> V::Counter {
         V::get_block_pos(&self.state[12..])
     }
 
+    /// Set the block position.
     #[cfg(any(feature = "cipher", feature = "rng"))]
     #[inline(always)]
-    fn set_block_pos(&mut self, pos: V::Counter) {
+    pub fn set_block_pos(&mut self, pos: V::Counter) {
         V::set_block_pos(&mut self.state[12..], pos);
     }
 }
