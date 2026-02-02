@@ -20,7 +20,7 @@ rand_core-compatible RNGs based on those ciphers.
 
 [dependencies]
 cfg-if = "1"
-cipher = { version = "0.5.0-rc.7", optional = true, features = ["stream-wrapper"] }
+cipher = { version = "0.5.0-rc.8", optional = true, features = ["stream-wrapper"] }
 rand_core = { version = "0.10", optional = true, default-features = false }
 
 # `zeroize` is an explicit dependency because this crate may be used without the `cipher` crate
@@ -30,7 +30,7 @@ zeroize = { version = "1.8.1", optional = true, default-features = false }
 cpufeatures = "0.2"
 
 [dev-dependencies]
-cipher = { version = "0.5.0-rc.7", features = ["dev"] }
+cipher = { version = "0.5.0-rc.8", features = ["dev"] }
 hex-literal = "1"
 proptest = "1"
 
