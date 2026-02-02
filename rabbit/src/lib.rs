@@ -62,8 +62,8 @@ pub use cipher;
 use cipher::{
     Block, BlockSizeUser, InnerIvInit, IvSizeUser, KeyInit, KeySizeUser, ParBlocksSizeUser,
     StreamCipherBackend, StreamCipherClosure, StreamCipherCore, StreamCipherCoreWrapper,
+    common::InnerUser,
     consts::{U1, U8, U16},
-    crypto_common::InnerUser,
 };
 
 #[cfg(feature = "zeroize")]
