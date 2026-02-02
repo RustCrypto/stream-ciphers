@@ -100,7 +100,7 @@
 //! [`chacha20poly1305`]: https://docs.rs/chacha20poly1305
 
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
@@ -136,7 +136,7 @@ pub use chacha::{ChaCha8, ChaCha12, ChaCha20, Key, KeyIvInit};
 #[cfg(feature = "rng")]
 pub use rand_core;
 #[cfg(feature = "rng")]
-pub use rng::{ChaCha8Core, ChaCha8Rng, ChaCha12Core, ChaCha12Rng, ChaCha20Core, ChaCha20Rng};
+pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng};
 
 #[cfg(feature = "legacy")]
 pub use legacy::{ChaCha20Legacy, LegacyNonce};
@@ -279,6 +279,20 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
             _pd: PhantomData,
         }
     }
+
+    /// Get the current block position.
+    #[cfg(any(feature = "cipher", feature = "rng"))]
+    #[inline(always)]
+    pub fn get_block_pos(&self) -> V::Counter {
+        V::get_block_pos(&self.state[12..])
+    }
+
+    /// Set the block position.
+    #[cfg(any(feature = "cipher", feature = "rng"))]
+    #[inline(always)]
+    pub fn set_block_pos(&mut self, pos: V::Counter) {
+        V::set_block_pos(&mut self.state[12..], pos);
+    }
 }
 
 #[cfg(feature = "cipher")]
@@ -287,12 +301,12 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 
     #[inline(always)]
     fn get_block_pos(&self) -> Self::Counter {
-        V::get_block_pos(&self.state[12..])
+        self.get_block_pos()
     }
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        V::set_block_pos(&mut self.state[12..], pos);
+        self.set_block_pos(pos)
     }
 }
 
