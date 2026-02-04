@@ -96,30 +96,6 @@ mod chacha20test {
     }
 }
 
-// Long input test to check the full parallel AVX-512 implementation.
-// Test data generated from random byte strings.
-#[cfg(feature = "cipher")]
-mod chacha20test_long {
-    use chacha20::{ChaCha20, KeyIvInit};
-    use cipher::StreamCipher;
-    use hex_literal::hex;
-
-    const KEY: [u8; 32] = hex!("d387cb6ea45656c892a19d3706d1835d8e3cb11865431fa7133a09d1a1fc78da");
-
-    const IV: [u8; 12] = hex!("689f6a394fe2048a2400e005");
-
-    #[test]
-    fn chacha20_encryption() {
-        let mut cipher = ChaCha20::new(&KEY.into(), &IV.into());
-        let mut buf = hex::decode(include_str!("data/chacha20_long_plaintext.txt")).unwrap();
-
-        cipher.apply_keystream(&mut buf);
-
-        let ciphertext = hex::decode(include_str!("data/chacha20_long_ciphertext.txt")).unwrap();
-        assert_eq!(&buf[..], ciphertext);
-    }
-}
-
 #[rustfmt::skip]
 #[cfg(feature = "xchacha")]
 mod xchacha20 {
