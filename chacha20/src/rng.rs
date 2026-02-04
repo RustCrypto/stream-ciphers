@@ -135,16 +135,16 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// 4 blocks with sse2 & soft
     fn generate(&mut self, buffer: &mut [u32; 64]) {
         cfg_if! {
-            if #[cfg(chacha20_force_soft)] {
+            if #[cfg(chacha20_backend = "soft")] {
                 backends::soft::Backend(self).gen_ks_blocks(buffer);
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
                     // AVX-512 doesn't support RNG, so use AVX-2 instead
-                    if #[cfg(any(chacha20_force_avx2, chacha20_force_avx512))] {
+                    if #[cfg(any(chacha20_backend = "avx2", chacha20_backend = "avx512"))] {
                         unsafe {
                             backends::avx2::rng_inner::<R, V>(self, buffer);
                         }
-                    } else if #[cfg(chacha20_force_sse2)] {
+                    } else if #[cfg(chacha20_backend = "sse2")] {
                         unsafe {
                             backends::sse2::rng_inner::<R, V>(self, buffer);
                         }

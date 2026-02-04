@@ -84,16 +84,26 @@
 //!
 //! You can modify crate using the following configuration flags:
 //!
-//! - `chacha20_force_avx2`: force AVX2 backend on x86/x86_64 targets.
-//!   Requires enabled AVX2 target feature. Ignored on non-x86(-64) targets.
-//! - `chacha20_force_soft`: force software backend.
-//! - `chacha20_force_sse2`: force SSE2 backend on x86/x86_64 targets.
+//! - `chacha20_backend="avx2"`: force AVX2 backend on x86/x86_64 targets.
+//!   Requires enabled AVX2 target feature. Ignored on non-x86(_64) targets.
+//! - `chacha20_backend="avx512": force AVX-512 backend on x86/x86_64 targets.
+//!   Requires enabled AVX-512 target feature (MSRV 1.89). Ignored on non-x86(_64) targets.
+//! - `chacha20_backend="soft"`: force software backend.
+//! - `chacha20_backend="sse2"`: force SSE2 backend on x86/x86_64 targets.
 //!   Requires enabled SSE2 target feature. Ignored on non-x86(-64) targets.
 //!
 //! The flags can be enabled using `RUSTFLAGS` environmental variable
-//! (e.g. `RUSTFLAGS="--cfg chacha20_force_avx2"`) or by modifying `.cargo/config`.
+//! (e.g. `RUSTFLAGS='--cfg chacha20_backend="avx2"'`) or by modifying `.cargo/config.toml`:
 //!
-//! You SHOULD NOT enable several `force` flags simultaneously.
+//! ```toml
+//! # In .cargo/config.toml
+//! [build]
+//! rustflags = ['--cfg', 'chacha20_backend="avx2"']
+//! ```
+//!
+//! ## AVX-512 support
+//!
+//! To use the MSRV 1.89 AVX-512 support, you must enable it using: `--cfg chacha20_avx512`.
 //!
 //! [ChaCha]: https://tools.ietf.org/html/rfc8439
 //! [Salsa]: https://en.wikipedia.org/wiki/Salsa20
@@ -181,24 +191,24 @@ impl Rounds for R20 {
 }
 
 cfg_if! {
-    if #[cfg(chacha20_force_soft)] {
+    if #[cfg(chacha20_backend = "soft")] {
         type Tokens = ();
     } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
         cfg_if! {
-            if #[cfg(all(chacha20_avx512, chacha20_force_avx512))] {
+            if #[cfg(all(chacha20_avx512, chacha20_backend = "avx512"))] {
                 #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512vl")))]
                 compile_error!("You must enable `avx512f` and `avx512vl` target features with \
-                    `chacha20_force_avx512` configuration option");
+                    `chacha20_backend = "avx512"` configuration option");
                 type Tokens = ();
-            } else if #[cfg(chacha20_force_avx2)] {
+            } else if #[cfg(chacha20_backend = "avx2")] {
                 #[cfg(not(target_feature = "avx2"))]
                 compile_error!("You must enable `avx2` target feature with \
-                    `chacha20_force_avx2` configuration option");
+                    `chacha20_backend = "avx2"` configuration option");
                 type Tokens = ();
-            } else if #[cfg(chacha20_force_sse2)] {
+            } else if #[cfg(chacha20_backend = "sse2")] {
                 #[cfg(not(target_feature = "sse2"))]
                 compile_error!("You must enable `sse2` target feature with \
-                    `chacha20_force_sse2` configuration option");
+                    `chacha20_backend = "sse2"` configuration option");
                 type Tokens = ();
             } else {
                 #[cfg(chacha20_avx512)]
@@ -253,15 +263,15 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
         }
 
         cfg_if! {
-            if #[cfg(chacha20_force_soft)] {
+            if #[cfg(chacha20_backend = "soft")] {
                 let tokens = ();
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
-                    if #[cfg(chacha20_force_avx512)] {
+                    if #[cfg(chacha20_backend = "avx512")] {
                         let tokens = ();
-                    } else if #[cfg(chacha20_force_avx2)] {
+                    } else if #[cfg(chacha20_backend = "avx2")] {
                         let tokens = ();
-                    } else if #[cfg(chacha20_force_sse2)] {
+                    } else if #[cfg(chacha20_backend = "sse2")] {
                         let tokens = ();
                     } else if #[cfg(chacha20_avx512)] {
                         let tokens = (avx512_cpuid::init(), avx2_cpuid::init(), sse2_cpuid::init());
@@ -322,19 +332,19 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
         f: impl cipher::StreamCipherClosure<BlockSize = Self::BlockSize>,
     ) {
         cfg_if! {
-            if #[cfg(chacha20_force_soft)] {
+            if #[cfg(chacha20_backend = "soft")] {
                 f.call(&mut backends::soft::Backend(self));
             } else if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
                 cfg_if! {
-                    if #[cfg(all(chacha20_avx512, chacha20_force_avx512))] {
+                    if #[cfg(all(chacha20_avx512, chacha20_backend = "avx512"))] {
                         unsafe {
                             backends::avx512::inner::<R, _, V>(&mut self.state, f);
                         }
-                    } else if #[cfg(chacha20_force_avx2)] {
+                    } else if #[cfg(chacha20_backend = "avx2")] {
                         unsafe {
                             backends::avx2::inner::<R, _, V>(&mut self.state, f);
                         }
-                    } else if #[cfg(chacha20_force_sse2)] {
+                    } else if #[cfg(chacha20_backend = "sse2")] {
                         unsafe {
                             backends::sse2::inner::<R, _, V>(&mut self.state, f);
                         }
