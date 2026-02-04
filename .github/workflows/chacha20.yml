@@ -123,7 +123,7 @@ jobs:
   avx2:
     runs-on: ubuntu-latest
     env:
-      RUSTFLAGS: --cfg chacha20_force_avx2 -Ctarget-feature=+avx2 -Dwarnings
+      RUSTFLAGS: --cfg chacha20_backend="avx2" -Ctarget-feature=+avx2 -Dwarnings
     strategy:
       matrix:
         include:
@@ -156,7 +156,7 @@ jobs:
   sse2:
     runs-on: ubuntu-latest
     env:
-      RUSTFLAGS: --cfg chacha20_force_sse2 -Dwarnings
+      RUSTFLAGS: --cfg chacha20_backend="sse2" -Dwarnings
     strategy:
       matrix:
         include:
@@ -189,7 +189,7 @@ jobs:
   soft:
     runs-on: ubuntu-latest
     env:
-      RUSTFLAGS: --cfg chacha20_force_soft -Dwarnings
+      RUSTFLAGS: --cfg chacha20_backend="soft" -Dwarnings
     strategy:
       matrix:
         include:

@@ -47,10 +47,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 level = "warn"
 check-cfg = [
     'cfg(chacha20_avx512)',
-    'cfg(chacha20_force_soft)',
-    'cfg(chacha20_force_sse2)',
-    'cfg(chacha20_force_avx2)',
-    'cfg(chacha20_force_avx512)',
+    'cfg(chacha20_backend, values("avx2", "avx512", "soft", "sse2"))'
 ]
 
 [lints.clippy]
