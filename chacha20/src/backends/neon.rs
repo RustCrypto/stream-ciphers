@@ -7,7 +7,7 @@
 use crate::{Rounds, STATE_WORDS, Variant};
 use core::{arch::aarch64::*, marker::PhantomData};
 
-#[cfg(feature = "rand_core")]
+#[cfg(feature = "rng")]
 use crate::ChaChaCore;
 
 #[cfg(feature = "cipher")]
@@ -84,11 +84,10 @@ where
     }
 }
 
-#[inline]
-#[cfg(feature = "rand_core")]
-#[target_feature(enable = "neon")]
 /// Sets up backend and blindly writes 4 blocks to dest_ptr.
 #[cfg(feature = "rng")]
+#[inline]
+#[target_feature(enable = "neon")]
 pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
 where
     R: Rounds,
