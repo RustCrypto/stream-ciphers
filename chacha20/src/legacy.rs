@@ -29,6 +29,6 @@ impl IvSizeUser for ChaCha20LegacyCore {
 impl KeyIvInit for ChaCha20LegacyCore {
     #[inline(always)]
     fn new(key: &Key, iv: &LegacyNonce) -> Self {
-        ChaChaCore::<R20, Legacy>::new(key.as_ref(), iv.as_ref())
+        ChaChaCore::<R20, Legacy>::init(key.as_ref(), iv.as_ref())
     }
 }

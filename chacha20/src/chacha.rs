@@ -33,6 +33,6 @@ impl<R: Rounds> IvSizeUser for ChaChaCore<R, Ietf> {
 impl<R: Rounds> KeyIvInit for ChaChaCore<R, Ietf> {
     #[inline]
     fn new(key: &Key, iv: &Nonce) -> Self {
-        ChaChaCore::<R, Ietf>::new(key.as_ref(), iv.as_ref())
+        ChaChaCore::<R, Ietf>::init(key.as_ref(), iv.as_ref())
     }
 }

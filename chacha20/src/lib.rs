@@ -127,7 +127,6 @@ use cipher::{BlockSizeUser, StreamCipherCore, StreamCipherSeekCore, consts::U64}
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// State initialization constant ("expand 32-byte k")
-#[cfg(any(feature = "cipher", feature = "rng"))]
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// Number of 32-bit words in the ChaCha state
@@ -202,7 +201,6 @@ cfg_if! {
 /// The ChaCha core function.
 pub struct ChaChaCore<R: Rounds, V: Variant> {
     /// Internal state of the core function
-    #[cfg(any(feature = "cipher", feature = "rng"))]
     state: [u32; STATE_WORDS],
     /// CPU target feature tokens
     #[allow(dead_code)]
@@ -212,11 +210,17 @@ pub struct ChaChaCore<R: Rounds, V: Variant> {
 }
 
 impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
-    /// Constructs a ChaChaCore with the specified key, iv, and amount of rounds.
+    /// Constructs a ChaChaCore with the specified `key` and `iv`.
+    ///
     /// You must ensure that the iv is of the correct size when using this method
     /// directly.
-    #[cfg(any(feature = "cipher", feature = "rng"))]
-    fn new(key: &[u8; 32], iv: &[u8]) -> Self {
+    ///
+    /// # Panics
+    /// If `iv.len()` is not equal to 4, 8, or 12.
+    #[must_use]
+    pub fn init(key: &[u8; 32], iv: &[u8]) -> Self {
+        assert!(matches!(iv.len(), 4 | 8 | 12));
+
         let mut state = [0u32; STATE_WORDS];
 
         let ctr_size = size_of::<V::Counter>() / size_of::<u32>();
@@ -268,7 +272,6 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     }
 
     /// Get the current block position.
-    #[cfg(any(feature = "cipher", feature = "rng"))]
     #[inline(always)]
     #[must_use]
     pub fn get_block_pos(&self) -> V::Counter {
@@ -276,7 +279,6 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     }
 
     /// Set the block position.
-    #[cfg(any(feature = "cipher", feature = "rng"))]
     #[inline(always)]
     pub fn set_block_pos(&mut self, pos: V::Counter) {
         V::set_block_pos(&mut self.state[12..], pos);
