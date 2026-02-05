@@ -227,7 +227,7 @@ mod legacy {
                     cipher.apply_keystream(&mut buf[middle..last]);
 
                     for k in idx..last {
-                        assert_eq!(buf[k], EXPECTED_LONG[k])
+                        assert_eq!(buf[k], EXPECTED_LONG[k]);
                     }
                 }
             }

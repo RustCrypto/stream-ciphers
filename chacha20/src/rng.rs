@@ -6,7 +6,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use core::{convert::Infallible, fmt::Debug};
+#![allow(clippy::cast_possible_truncation, reason = "needs triage")]
+#![allow(clippy::undocumented_unsafe_blocks, reason = "TODO")]
+
+use core::{
+    convert::Infallible,
+    fmt::{self, Debug},
+};
 
 use rand_core::{
     SeedableRng, TryCryptoRng, TryRng,
@@ -28,7 +34,8 @@ pub(crate) const BLOCK_WORDS: u8 = 16;
 
 /// The seed for ChaCha20. Implements ZeroizeOnDrop when the
 /// zeroize feature is enabled.
-#[derive(PartialEq, Eq, Default, Clone)]
+#[derive(Clone, Default, Eq, PartialEq)]
+#[allow(missing_copy_implementations)]
 pub struct Seed([u8; 32]);
 
 impl AsRef<[u8; 32]> for Seed {
@@ -46,6 +53,12 @@ impl AsRef<[u8]> for Seed {
 impl AsMut<[u8]> for Seed {
     fn as_mut(&mut self) -> &mut [u8] {
         self.0.as_mut()
+    }
+}
+
+impl Debug for Seed {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Seed").finish_non_exhaustive()
     }
 }
 
@@ -71,12 +84,6 @@ impl Drop for Seed {
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for Seed {}
 
-impl Debug for Seed {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
 /// A wrapper for `stream_id` (64-bits).
 ///
 /// Can be constructed from any of the following:
@@ -85,6 +92,7 @@ impl Debug for Seed {
 /// * `[u8; 8]`
 ///
 /// The arrays should be in little endian order.
+#[derive(Clone, Copy, Debug)]
 pub struct StreamId([u32; Self::LEN]);
 
 impl StreamId {
@@ -106,6 +114,9 @@ impl From<[u8; Self::BYTES]> for StreamId {
     #[inline]
     fn from(value: [u8; Self::BYTES]) -> Self {
         let mut result = Self(Default::default());
+
+        // TODO(tarcieri): when MSRV 1.88, use `[T]::as_chunks` to avoid panic
+        #[allow(clippy::unwrap_used, reason = "MSRV TODO")]
         for (cur, chunk) in result
             .0
             .iter_mut()
@@ -120,8 +131,7 @@ impl From<[u8; Self::BYTES]> for StreamId {
 impl From<u64> for StreamId {
     #[inline]
     fn from(value: u64) -> Self {
-        let result: [u8; Self::BYTES] = value.to_le_bytes()[..Self::BYTES].try_into().unwrap();
-        result.into()
+        Self([(value & 0xFFFF_FFFF) as u32, (value >> 32) as u32])
     }
 }
 
@@ -168,6 +178,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
                     }
                 }
             } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
+                // SAFETY: we have used conditional compilation to ensure NEON is available
                 unsafe {
                     backends::neon::rng_inner::<R, V>(self, buffer);
                 }
@@ -313,14 +324,15 @@ macro_rules! impl_chacha_rng {
             /// not supported, hence the result can simply be multiplied by 4 to get a
             /// byte-offset.
             #[inline]
+            #[must_use]
             pub fn get_word_pos(&self) -> u128 {
                 let mut block_counter = (u64::from(self.core.core.state[13]) << 32)
                     | u64::from(self.core.core.state[12]);
                 if self.core.word_offset() != 0 {
-                    block_counter = block_counter.wrapping_sub(BUF_BLOCKS as u64);
+                    block_counter = block_counter.wrapping_sub(u64::from(BUF_BLOCKS));
                 }
-                let word_pos =
-                    block_counter as u128 * BLOCK_WORDS as u128 + self.core.word_offset() as u128;
+                let word_pos = u128::from(block_counter) * u128::from(BLOCK_WORDS)
+                    + self.core.word_offset() as u128;
                 // eliminate bits above the 68th bit
                 word_pos & ((1 << 68) - 1)
             }
@@ -335,8 +347,8 @@ macro_rules! impl_chacha_rng {
             /// 60 bits.
             #[inline]
             pub fn set_word_pos(&mut self, word_offset: u128) {
-                let index = (word_offset % BLOCK_WORDS as u128) as usize;
-                let counter = word_offset / BLOCK_WORDS as u128;
+                let index = (word_offset % u128::from(BLOCK_WORDS)) as usize;
+                let counter = word_offset / u128::from(BLOCK_WORDS);
                 //self.set_block_pos(counter as u64);
                 self.core.core.state[12] = counter as u32;
                 self.core.core.state[13] = (counter >> 32) as u32;
@@ -359,10 +371,11 @@ macro_rules! impl_chacha_rng {
             /// Get the block pos.
             #[inline]
             #[allow(unused)]
+            #[must_use]
             pub fn get_block_pos(&self) -> u64 {
                 let counter = self.core.core.get_block_pos();
                 if self.core.word_offset() != 0 {
-                    counter - BUF_BLOCKS as u64 + self.core.word_offset() as u64 / 16
+                    counter - u64::from(BUF_BLOCKS) + self.core.word_offset() as u64 / 16
                 } else {
                     counter
                 }
@@ -414,6 +427,7 @@ macro_rules! impl_chacha_rng {
 
             /// Get the stream number.
             #[inline]
+            #[must_use]
             pub fn get_stream(&self) -> u64 {
                 let mut result = [0u8; 8];
                 for (i, &big) in self.core.core.state[14..BLOCK_WORDS as usize]
@@ -431,6 +445,7 @@ macro_rules! impl_chacha_rng {
 
             /// Get the seed.
             #[inline]
+            #[must_use]
             pub fn get_seed(&self) -> [u8; 32] {
                 let mut result = [0u8; 32];
                 for (i, &big) in self.core.core.state[4..12].iter().enumerate() {
@@ -665,9 +680,7 @@ pub(crate) mod tests {
 
         if first_blocks[0..64 * 4].ne(&result[64..]) {
             for (i, (a, b)) in first_blocks.iter().zip(result.iter().skip(64)).enumerate() {
-                if a.ne(b) {
-                    panic!("i = {}\na = {}\nb = {}", i, a, b);
-                }
+                assert!(!a.ne(b), "i = {}\na = {}\nb = {}", i, a, b);
             }
         }
         assert_eq!(&first_blocks[0..64 * 4], &result[64..]);
@@ -685,13 +698,13 @@ pub(crate) mod tests {
         let first_blocks_end_word_pos = rng.get_word_pos();
 
         // get first four blocks after the supposed overflow
-        rng.set_block_pos(u32::MAX as u64);
+        rng.set_block_pos(u64::from(u32::MAX));
         let mut result = [0u8; 64 * 5];
         rng.fill_bytes(&mut result);
         assert_ne!(first_blocks_end_word_pos, rng.get_word_pos());
         assert_eq!(
             rng.get_word_pos(),
-            first_blocks_end_word_pos + (1 << 32) * BLOCK_WORDS as u128
+            first_blocks_end_word_pos + (1 << 32) * u128::from(BLOCK_WORDS)
         );
         assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
     }
