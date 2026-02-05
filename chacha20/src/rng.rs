@@ -93,45 +93,37 @@ impl ZeroizeOnDrop for Seed {}
 ///
 /// The arrays should be in little endian order.
 #[derive(Clone, Copy, Debug)]
-pub struct StreamId([u32; Self::LEN]);
+pub struct StreamId(u32, u32);
 
 impl StreamId {
     /// Amount of raw bytes backing a `StreamId` instance.
     const BYTES: usize = size_of::<Self>();
-
-    /// The length of the array contained within `StreamId`.
-    const LEN: usize = 2;
 }
 
-impl From<[u32; Self::LEN]> for StreamId {
+impl From<[u32; 2]> for StreamId {
     #[inline]
-    fn from(value: [u32; Self::LEN]) -> Self {
-        Self(value)
+    fn from(value: [u32; 2]) -> Self {
+        Self(value[0], value[1])
     }
 }
 
 impl From<[u8; Self::BYTES]> for StreamId {
     #[inline]
     fn from(value: [u8; Self::BYTES]) -> Self {
-        let mut result = Self(Default::default());
-
         // TODO(tarcieri): when MSRV 1.88, use `[T]::as_chunks` to avoid panic
+        let (lo, hi) = value.split_at(size_of::<u32>());
         #[allow(clippy::unwrap_used, reason = "MSRV TODO")]
-        for (cur, chunk) in result
-            .0
-            .iter_mut()
-            .zip(value.chunks_exact(size_of::<u32>()))
-        {
-            *cur = u32::from_le_bytes(chunk.try_into().unwrap());
-        }
-        result
+        Self(
+            u32::from_le_bytes(lo.try_into().unwrap()),
+            u32::from_le_bytes(hi.try_into().unwrap()),
+        )
     }
 }
 
 impl From<u64> for StreamId {
     #[inline]
     fn from(value: u64) -> Self {
-        Self([(value & 0xFFFF_FFFF) as u32, (value >> 32) as u32])
+        Self((value & 0xFFFF_FFFF) as u32, (value >> 32) as u32)
     }
 }
 
@@ -421,7 +413,8 @@ macro_rules! impl_chacha_rng {
             #[inline]
             pub fn set_stream<S: Into<StreamId>>(&mut self, stream: S) {
                 let stream: StreamId = stream.into();
-                self.core.core.state[14..].copy_from_slice(&stream.0);
+                self.core.core.state[14] = stream.0;
+                self.core.core.state[15] = stream.1;
                 self.set_block_pos(0);
             }
 
