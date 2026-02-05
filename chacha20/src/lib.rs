@@ -1,10 +1,17 @@
-//! Implementation of the [ChaCha] family of stream ciphers.
+#![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
+)]
+#![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
+
+//! # Usage
 //!
-//! Cipher functionality is accessed using traits from re-exported [`cipher`] crate.
-//!
-//! ChaCha stream ciphers are lightweight and amenable to fast, constant-time
-//! implementations in software. It improves upon the previous [Salsa] design,
-//! providing increased per-round diffusion with no cost to performance.
+//! Cipher functionality is accessed using traits from re-exported [`cipher`] crate, or as a set
+//! of random number generator types ending in `*Rng` which implement traits from the [`rand_core`]
+//! crate.
 //!
 //! This crate contains the following variants of the ChaCha20 core algorithm:
 //!
@@ -17,30 +24,7 @@
 //! while the original implementation uses 64-bit counter. In other words,
 //! it does not allow encryption of more than 256 GiB of data.
 //!
-//! # ⚠️ Security Warning: Hazmat!
-//!
-//! This crate does not ensure ciphertexts are authentic, which can lead to
-//! serious vulnerabilities if used incorrectly!
-//!
-//! If in doubt, use the [`chacha20poly1305`] crate instead, which provides
-//! an authenticated mode on top of ChaCha20.
-//!
-//! **USE AT YOUR OWN RISK!**
-//!
-//! # Diagram
-//!
-//! This diagram illustrates the ChaCha quarter round function.
-//! Each round consists of four quarter-rounds:
-//!
-//! <img src="https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/img/stream-ciphers/chacha20.png" width="300px">
-//!
-//! Legend:
-//!
-//! - ⊞ add
-//! - ‹‹‹ rotate
-//! - ⊕ xor
-//!
-//! # Example
+//! ## Example
 #![cfg_attr(feature = "cipher", doc = " ```")]
 #![cfg_attr(not(feature = "cipher"), doc = " ```ignore")]
 //! use chacha20::ChaCha20;
@@ -108,14 +92,6 @@
 //! [ChaCha]: https://tools.ietf.org/html/rfc8439
 //! [Salsa]: https://en.wikipedia.org/wiki/Salsa20
 //! [`chacha20poly1305`]: https://docs.rs/chacha20poly1305
-
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
-)]
-#![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
 #[cfg(feature = "cipher")]
 pub use cipher;
