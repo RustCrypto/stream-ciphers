@@ -1,15 +1,22 @@
-#![allow(unsafe_op_in_unsafe_fn)]
+//! SSE2 backend.
+
+#![allow(unsafe_op_in_unsafe_fn, reason = "needs triage")]
+#![allow(clippy::cast_possible_truncation, reason = "needs triage")]
+#![allow(clippy::cast_possible_wrap, reason = "needs triage")]
+#![allow(clippy::cast_sign_loss, reason = "needs triage")]
+#![allow(clippy::undocumented_unsafe_blocks, reason = "TODO")]
+
 use crate::{Rounds, Variant};
 
 #[cfg(feature = "rng")]
-use crate::{ChaChaCore};
+use crate::ChaChaCore;
 
 #[cfg(feature = "cipher")]
-use crate::{chacha::Block, STATE_WORDS};
+use crate::{STATE_WORDS, chacha::Block};
 #[cfg(feature = "cipher")]
 use cipher::{
-    consts::{U4, U64},
     BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
+    consts::{U4, U64},
 };
 use core::marker::PhantomData;
 
@@ -29,7 +36,7 @@ where
     F: StreamCipherClosure<BlockSize = U64>,
     V: Variant,
 {
-    let state_ptr = state.as_ptr() as *const __m128i;
+    let state_ptr = state.as_ptr().cast::<__m128i>();
     let mut backend = Backend::<R, V> {
         v: [
             _mm_loadu_si128(state_ptr.add(0)),
@@ -44,7 +51,7 @@ where
 
     state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
     if size_of::<V::Counter>() == 8 {
-        state[13] = _mm_extract_epi32(backend.v[3], 1) as u32
+        state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
     }
 }
 
@@ -72,10 +79,10 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
             self.v[3] = match size_of::<V::Counter>() {
                 4 => _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, 1)),
                 8 => _mm_add_epi64(self.v[3], _mm_set_epi64x(0, 1)),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
-            let block_ptr = block.as_mut_ptr() as *mut __m128i;
+            let block_ptr = block.as_mut_ptr().cast::<__m128i>();
             for i in 0..4 {
                 _mm_storeu_si128(block_ptr.add(i), res[0][i]);
             }
@@ -88,10 +95,10 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
             self.v[3] = match size_of::<V::Counter>() {
                 4 => _mm_add_epi32(self.v[3], _mm_set_epi32(0, 0, 0, PAR_BLOCKS as i32)),
                 8 => _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64)),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
-            let blocks_ptr = blocks.as_mut_ptr() as *mut __m128i;
+            let blocks_ptr = blocks.as_mut_ptr().cast::<__m128i>();
             for block in 0..PAR_BLOCKS {
                 for i in 0..4 {
                     _mm_storeu_si128(blocks_ptr.add(i + block * PAR_BLOCKS), res[block][i]);
@@ -109,7 +116,7 @@ where
     R: Rounds,
     V: Variant,
 {
-    let state_ptr = core.state.as_ptr() as *const __m128i;
+    let state_ptr = core.state.as_ptr().cast::<__m128i>();
     let mut backend = Backend::<R, V> {
         v: [
             _mm_loadu_si128(state_ptr.add(0)),
@@ -135,7 +142,7 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
             let res = rounds::<R, V>(&self.v);
             self.v[3] = _mm_add_epi64(self.v[3], _mm_set_epi64x(0, PAR_BLOCKS as i64));
 
-            let blocks_ptr = block.as_mut_ptr() as *mut __m128i;
+            let blocks_ptr = block.as_mut_ptr().cast::<__m128i>();
             for block in 0..PAR_BLOCKS {
                 for i in 0..4 {
                     _mm_storeu_si128(blocks_ptr.add(i + block * PAR_BLOCKS), res[block][i]);
@@ -153,7 +160,7 @@ unsafe fn rounds<R: Rounds, V: Variant>(v: &[__m128i; 4]) -> [[__m128i; 4]; PAR_
         res[block][3] = match size_of::<V::Counter>() {
             4 => _mm_add_epi32(res[block][3], _mm_set_epi32(0, 0, 0, block as i32)),
             8 => _mm_add_epi64(res[block][3], _mm_set_epi64x(0, block as i64)),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -168,7 +175,7 @@ unsafe fn rounds<R: Rounds, V: Variant>(v: &[__m128i; 4]) -> [[__m128i; 4]; PAR_
         let ctr = match size_of::<V::Counter>() {
             4 => _mm_add_epi32(v[3], _mm_set_epi32(0, 0, 0, block as i32)),
             8 => _mm_add_epi64(v[3], _mm_set_epi64x(0, block as i64)),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
         res[block][3] = _mm_add_epi32(res[block][3], ctr);
     }

@@ -1,3 +1,5 @@
+//! Random number generator tests.
+
 #![cfg(feature = "rng")]
 
 use chacha20::{
@@ -308,7 +310,7 @@ fn count_incorrect_bytes(expected: &[u8], output: &[u8]) -> (Option<usize>, u32)
         .for_each(|((i, a), b)| {
             if a.ne(b) {
                 if index_of_first_incorrect_word.is_none() {
-                    index_of_first_incorrect_word = Some(i / 4)
+                    index_of_first_incorrect_word = Some(i / 4);
                 }
                 num_incorrect_bytes += 1;
             }
@@ -321,7 +323,7 @@ fn count_incorrect_bytes(expected: &[u8], output: &[u8]) -> (Option<usize>, u32)
 fn counter_overflow_and_diagnostics() {
     let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
     let block_pos = 4294967295;
-    assert_eq!(block_pos, u32::MAX as u64);
+    assert_eq!(block_pos, u64::from(u32::MAX));
     rng.set_block_pos(4294967295);
 
     let mut output = [0u8; 64 * 4];
@@ -343,7 +345,7 @@ fn counter_overflow_and_diagnostics() {
         "The first parblock was incorrect before overflow, indicating that ChaCha was not implemented correctly for this backend. Check the rounds() fn or the functions that it calls"
     );
 
-    rng.set_block_pos(u32::MAX as u64 - 1);
+    rng.set_block_pos(u64::from(u32::MAX) - 1);
     let mut skipped_blocks = [0u8; 64 * 3];
     rng.fill_bytes(&mut skipped_blocks);
     rng.fill_bytes(&mut output[64 * 3..]);

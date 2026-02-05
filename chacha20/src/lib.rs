@@ -5,7 +5,6 @@
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
-#![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
 
 //! # Usage
 //!
@@ -93,16 +92,7 @@
 //! [Salsa]: https://en.wikipedia.org/wiki/Salsa20
 //! [`chacha20poly1305`]: https://docs.rs/chacha20poly1305
 
-#[cfg(feature = "cipher")]
-pub use cipher;
-#[cfg(feature = "cipher")]
-use cipher::{BlockSizeUser, StreamCipherCore, StreamCipherSeekCore, consts::U64};
-
-use cfg_if::cfg_if;
-use core::marker::PhantomData;
-
-#[cfg(feature = "zeroize")]
-use zeroize::{Zeroize, ZeroizeOnDrop};
+pub mod variants;
 
 mod backends;
 #[cfg(feature = "cipher")]
@@ -114,20 +104,27 @@ mod rng;
 #[cfg(feature = "xchacha")]
 mod xchacha;
 
-pub mod variants;
-use variants::Variant;
-
 #[cfg(feature = "cipher")]
 pub use chacha::{ChaCha8, ChaCha12, ChaCha20, Key, KeyIvInit};
+#[cfg(feature = "cipher")]
+pub use cipher;
+#[cfg(feature = "legacy")]
+pub use legacy::{ChaCha20Legacy, LegacyNonce};
 #[cfg(feature = "rng")]
 pub use rand_core;
 #[cfg(feature = "rng")]
 pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng};
-
-#[cfg(feature = "legacy")]
-pub use legacy::{ChaCha20Legacy, LegacyNonce};
 #[cfg(feature = "xchacha")]
 pub use xchacha::{XChaCha8, XChaCha12, XChaCha20, XNonce, hchacha};
+
+use cfg_if::cfg_if;
+use core::{fmt, marker::PhantomData};
+use variants::Variant;
+
+#[cfg(feature = "cipher")]
+use cipher::{BlockSizeUser, StreamCipherCore, StreamCipherSeekCore, consts::U64};
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// State initialization constant ("expand 32-byte k")
 #[cfg(any(feature = "cipher", feature = "rng"))]
@@ -143,7 +140,7 @@ pub trait Rounds: Copy {
 }
 
 /// 8-rounds
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct R8;
 
 impl Rounds for R8 {
@@ -151,7 +148,7 @@ impl Rounds for R8 {
 }
 
 /// 12-rounds
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct R12;
 
 impl Rounds for R12 {
@@ -159,7 +156,7 @@ impl Rounds for R12 {
 }
 
 /// 20-rounds
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct R20;
 
 impl Rounds for R20 {
@@ -229,13 +226,17 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
 
         const_dst.copy_from_slice(&CONSTANTS);
 
-        for (src, dst) in key.chunks_exact(4).zip(key_dst) {
-            *dst = u32::from_le_bytes(src.try_into().unwrap());
-        }
+        // TODO(tarcieri): when MSRV 1.88, use `[T]::as_chunks` to avoid panic
+        #[allow(clippy::unwrap_used, reason = "MSRV TODO")]
+        {
+            for (src, dst) in key.chunks_exact(4).zip(key_dst) {
+                *dst = u32::from_le_bytes(src.try_into().unwrap());
+            }
 
-        assert_eq!(size_of_val(iv_dst), size_of_val(iv));
-        for (src, dst) in iv.chunks_exact(4).zip(iv_dst) {
-            *dst = u32::from_le_bytes(src.try_into().unwrap());
+            assert_eq!(size_of_val(iv_dst), size_of_val(iv));
+            for (src, dst) in iv.chunks_exact(4).zip(iv_dst) {
+                *dst = u32::from_le_bytes(src.try_into().unwrap());
+            }
         }
 
         cfg_if! {
@@ -269,6 +270,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// Get the current block position.
     #[cfg(any(feature = "cipher", feature = "rng"))]
     #[inline(always)]
+    #[must_use]
     pub fn get_block_pos(&self) -> V::Counter {
         V::get_block_pos(&self.state[12..])
     }
@@ -278,6 +280,17 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     #[inline(always)]
     pub fn set_block_pos(&mut self, pos: V::Counter) {
         V::set_block_pos(&mut self.state[12..], pos);
+    }
+}
+
+impl<R: Rounds, V: Variant> fmt::Debug for ChaChaCore<R, V> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ChaChaCore<R: {}, V: {}-bit)> {{ ... }}",
+            R::COUNT,
+            size_of::<V::Counter>() * 8
+        )
     }
 }
 
@@ -292,7 +305,7 @@ impl<R: Rounds, V: Variant> StreamCipherSeekCore for ChaChaCore<R, V> {
 
     #[inline(always)]
     fn set_block_pos(&mut self, pos: Self::Counter) {
-        self.set_block_pos(pos)
+        self.set_block_pos(pos);
     }
 }
 
@@ -332,16 +345,19 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
 
                         #[cfg(chacha20_avx512)]
                         if avx512_token.get() {
+                            // SAFETY: runtime CPU feature detection above ensures this is valid
                             unsafe {
                                 backends::avx512::inner::<R, _, V>(&mut self.state, f);
                             }
                             return;
                         }
                         if avx2_token.get() {
+                            // SAFETY: runtime CPU feature detection above ensures this is valid
                             unsafe {
                                 backends::avx2::inner::<R, _, V>(&mut self.state, f);
                             }
                         } else if sse2_token.get() {
+                            // SAFETY: runtime CPU feature detection above ensures this is valid
                             unsafe {
                                 backends::sse2::inner::<R, _, V>(&mut self.state, f);
                             }
@@ -351,6 +367,7 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                     }
                 }
             } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
+                // SAFETY: we have used conditional compilation to ensure NEON is available
                 unsafe {
                     backends::neon::inner::<R, _, V>(&mut self.state, f);
                 }

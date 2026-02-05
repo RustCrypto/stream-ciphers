@@ -1,4 +1,11 @@
-#![allow(unsafe_op_in_unsafe_fn)]
+//! AVX2 backend.
+
+#![allow(unsafe_op_in_unsafe_fn, reason = "needs triage")]
+#![allow(clippy::cast_possible_truncation, reason = "needs triage")]
+#![allow(clippy::cast_possible_wrap, reason = "needs triage")]
+#![allow(clippy::cast_sign_loss, reason = "needs triage")]
+#![allow(clippy::undocumented_unsafe_blocks, reason = "TODO")]
+
 use crate::{Rounds, Variant};
 use core::marker::PhantomData;
 
@@ -6,12 +13,12 @@ use core::marker::PhantomData;
 use crate::ChaChaCore;
 
 #[cfg(feature = "cipher")]
-use crate::{chacha::Block, STATE_WORDS};
+use crate::{STATE_WORDS, chacha::Block};
 
 #[cfg(feature = "cipher")]
 use cipher::{
-    consts::{U4, U64},
     BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
+    consts::{U4, U64},
 };
 
 #[cfg(target_arch = "x86")]
@@ -34,7 +41,7 @@ where
     F: StreamCipherClosure<BlockSize = U64>,
     V: Variant,
 {
-    let state_ptr = state.as_ptr() as *const __m128i;
+    let state_ptr = state.as_ptr().cast::<__m128i>();
     let v = [
         _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(0))),
         _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(1))),
@@ -44,7 +51,7 @@ where
     c = match size_of::<V::Counter>() {
         4 => _mm256_add_epi32(c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 0)),
         8 => _mm256_add_epi64(c, _mm256_set_epi64x(0, 1, 0, 0)),
-        _ => unreachable!()
+        _ => unreachable!(),
     };
     let mut ctr = [c; N];
     for i in 0..N {
@@ -65,9 +72,9 @@ where
 
     state[12] = _mm256_extract_epi32(backend.ctr[0], 0) as u32;
     match size_of::<V::Counter>() {
-        4 => {},
+        4 => {}
         8 => state[13] = _mm256_extract_epi32(backend.ctr[0], 1) as u32,
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
 
@@ -79,7 +86,7 @@ where
     R: Rounds,
     V: Variant,
 {
-    let state_ptr = core.state.as_ptr() as *const __m128i;
+    let state_ptr = core.state.as_ptr().cast::<__m128i>();
     let v = [
         _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(0))),
         _mm256_broadcastsi128_si256(_mm_loadu_si128(state_ptr.add(1))),
@@ -130,13 +137,13 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
                 *c = match size_of::<V::Counter>() {
                     4 => _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, 1, 0, 0, 0, 1)),
                     8 => _mm256_add_epi64(*c, _mm256_set_epi64x(0, 1, 0, 1)),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
             }
 
             let res0: [__m128i; 8] = core::mem::transmute(res[0]);
 
-            let block_ptr = block.as_mut_ptr() as *mut __m128i;
+            let block_ptr = block.as_mut_ptr().cast::<__m128i>();
             for i in 0..4 {
                 _mm_storeu_si128(block_ptr.add(i), res0[2 * i]);
             }
@@ -152,12 +159,14 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
             for c in self.ctr.iter_mut() {
                 *c = match size_of::<V::Counter>() {
                     4 => _mm256_add_epi32(*c, _mm256_set_epi32(0, 0, 0, pb, 0, 0, 0, pb)),
-                    8 => _mm256_add_epi64(*c, _mm256_set_epi64x(0, pb as i64, 0, pb as i64)),
-                    _ => unreachable!()
+                    8 => {
+                        _mm256_add_epi64(*c, _mm256_set_epi64x(0, i64::from(pb), 0, i64::from(pb)))
+                    }
+                    _ => unreachable!(),
                 }
             }
 
-            let mut block_ptr = blocks.as_mut_ptr() as *mut __m128i;
+            let mut block_ptr = blocks.as_mut_ptr().cast::<__m128i>();
             for v in vs {
                 let t: [__m128i; 8] = core::mem::transmute(v);
                 for i in 0..4 {
@@ -179,10 +188,10 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
 
             let pb = PAR_BLOCKS as i32;
             for c in self.ctr.iter_mut() {
-                *c = _mm256_add_epi64(*c, _mm256_set_epi64x(0, pb as i64, 0, pb as i64));
+                *c = _mm256_add_epi64(*c, _mm256_set_epi64x(0, i64::from(pb), 0, i64::from(pb)));
             }
 
-            let mut block_ptr = blocks.as_mut_ptr() as *mut __m128i;
+            let mut block_ptr = blocks.as_mut_ptr().cast::<__m128i>();
             for v in vs {
                 let t: [__m128i; 8] = core::mem::transmute(v);
                 for i in 0..4 {

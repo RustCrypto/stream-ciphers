@@ -1,14 +1,13 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
+use crate::{
+    CONSTANTS, ChaChaCore, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
+};
 use cipher::{
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
     StreamCipherCoreWrapper, StreamCipherSeekCore,
     array::Array,
-    consts::{U16, U24, U32, U64},
-};
-
-use crate::{
-    CONSTANTS, ChaChaCore, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
+    consts::{U4, U16, U24, U32, U64},
 };
 
 #[cfg(feature = "zeroize")]
@@ -42,6 +41,7 @@ pub type XChaCha12 = StreamCipherCoreWrapper<XChaChaCore<R12>>;
 pub type XChaCha8 = StreamCipherCoreWrapper<XChaChaCore<R8>>;
 
 /// The XChaCha core function.
+#[derive(Debug)]
 pub struct XChaChaCore<R: Rounds>(ChaChaCore<R, Ietf>);
 
 impl<R: Rounds> KeySizeUser for XChaChaCore<R> {
@@ -58,6 +58,7 @@ impl<R: Rounds> BlockSizeUser for XChaChaCore<R> {
 
 impl<R: Rounds> KeyIvInit for XChaChaCore<R> {
     fn new(key: &Key, iv: &XNonce) -> Self {
+        #[allow(clippy::unwrap_used)]
         let subkey = hchacha::<R>(key, iv[..16].as_ref().try_into().unwrap());
 
         let mut nonce = [0u8; 12];
@@ -111,17 +112,19 @@ impl<R: Rounds> ZeroizeOnDrop for XChaChaCore<R> {}
 /// For more information on HSalsa on which HChaCha is based, see:
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
+#[must_use]
 pub fn hchacha<R: Rounds>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
     let mut state = [0u32; STATE_WORDS];
     state[..4].copy_from_slice(&CONSTANTS);
 
-    let key_chunks = key.chunks_exact(4);
+    // TODO(tarcieri): use `[T]::as_chunks` when MSRV 1.88
+    let key_chunks = Array::<u8, U4>::slice_as_chunks(key).0;
     for (v, chunk) in state[4..12].iter_mut().zip(key_chunks) {
-        *v = u32::from_le_bytes(chunk.try_into().unwrap());
+        *v = u32::from_le_bytes(chunk.0);
     }
-    let input_chunks = input.chunks_exact(4);
+    let input_chunks = Array::<u8, U4>::slice_as_chunks(input).0;
     for (v, chunk) in state[12..16].iter_mut().zip(input_chunks) {
-        *v = u32::from_le_bytes(chunk.try_into().unwrap());
+        *v = u32::from_le_bytes(chunk.0);
     }
 
     // R rounds consisting of R/2 column rounds and R/2 diagonal rounds

@@ -9,7 +9,7 @@ mod sealed {
 pub trait Variant: sealed::Sealed {
     /// The counter's type.
     #[cfg(not(feature = "cipher"))]
-    type Counter;
+    type Counter: Copy;
 
     /// The counter's type.
     #[cfg(feature = "cipher")]
@@ -28,6 +28,7 @@ pub trait Variant: sealed::Sealed {
 }
 
 /// IETF ChaCha configuration to use a 32-bit counter and 96-bit nonce.
+#[derive(Clone, Copy, Debug)]
 pub enum Ietf {}
 
 impl sealed::Sealed for Ietf {}
@@ -54,6 +55,7 @@ impl Variant for Ietf {
 
 /// DJB variant specific features: 64-bit counter and 64-bit nonce.
 #[cfg(any(feature = "legacy", feature = "rng"))]
+#[derive(Clone, Copy, Debug)]
 pub enum Legacy {}
 
 #[cfg(any(feature = "legacy", feature = "rng"))]
@@ -70,8 +72,8 @@ impl Variant for Legacy {
 
     #[inline(always)]
     fn set_block_pos(row: &mut [u32], pos: u64) {
-        row[0] = (pos & 0xFFFF_FFFF).try_into().unwrap();
-        row[1] = (pos >> 32).try_into().unwrap();
+        row[0] = (pos & 0xFFFF_FFFF) as u32;
+        row[1] = (pos >> 32) as u32;
     }
 
     #[inline(always)]

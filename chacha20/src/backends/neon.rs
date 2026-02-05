@@ -1,8 +1,9 @@
-#![allow(unsafe_op_in_unsafe_fn)]
 //! NEON-optimized implementation for aarch64 CPUs.
 //!
 //! Adapted from the Crypto++ `chacha_simd` implementation by Jack Lloyd and
 //! Jeffrey Walton (public domain).
+
+#![allow(unsafe_op_in_unsafe_fn, reason = "needs triage")]
 
 use crate::{Rounds, STATE_WORDS, Variant};
 use core::{arch::aarch64::*, marker::PhantomData};
@@ -77,7 +78,7 @@ where
     match size_of::<V::Counter>() {
         4 => state[12] = vgetq_lane_u32(backend.state[3], 0),
         8 => vst1q_u64(
-            state.as_mut_ptr().offset(12) as *mut u64,
+            state.as_mut_ptr().offset(12).cast::<u64>(),
             vreinterpretq_u64_u32(backend.state[3]),
         ),
         _ => unreachable!(),
@@ -98,7 +99,7 @@ where
     backend.write_par_ks_blocks(buffer);
 
     vst1q_u64(
-        core.state.as_mut_ptr().offset(12) as *mut u64,
+        core.state.as_mut_ptr().offset(12).cast::<u64>(),
         vreinterpretq_u64_u32(backend.state[3]),
     );
 }
@@ -127,6 +128,8 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
         let mut par = ParBlocks::<Self>::default();
         self.gen_par_ks_blocks(&mut par);
         *block = par[0];
+
+        // SAFETY: we have used conditional compilation to ensure NEON is available
         unsafe {
             self.state[3] = add_counter!(state3, vld1q_u32([1, 0, 0, 0].as_ptr()), V);
         }
@@ -134,6 +137,7 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
 
     #[inline(always)]
     fn gen_par_ks_blocks(&mut self, dest: &mut ParBlocks<Self>) {
+        // SAFETY: we have used conditional compilation to ensure NEON is available
         unsafe {
             let mut blocks = [
                 [self.state[0], self.state[1], self.state[2], self.state[3]],
@@ -176,6 +180,7 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
                 }
                 // write blocks to dest
                 for state_row in 0..4 {
+                    #[allow(clippy::cast_sign_loss, reason = "needs triage")]
                     vst1q_u8(
                         dest[block].as_mut_ptr().offset(state_row << 4),
                         vreinterpretq_u8_u32(blocks[block][state_row as usize]),
@@ -245,7 +250,7 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
             double_quarter_round(&mut blocks);
         }
 
-        let mut dest_ptr = buffer.as_mut_ptr() as *mut u8;
+        let mut dest_ptr = buffer.as_mut_ptr().cast::<u8>();
         for block in 0..4 {
             // add state to block
             for state_row in 0..3 {
@@ -261,6 +266,7 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
             }
             // write blocks to buffer
             for state_row in 0..4 {
+                #[allow(clippy::cast_sign_loss)]
                 vst1q_u8(
                     dest_ptr.offset(state_row << 4),
                     vreinterpretq_u8_u32(blocks[block][state_row as usize]),
