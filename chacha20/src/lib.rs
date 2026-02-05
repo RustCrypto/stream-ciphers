@@ -113,7 +113,7 @@ pub use legacy::{ChaCha20Legacy, LegacyNonce};
 #[cfg(feature = "rng")]
 pub use rand_core;
 #[cfg(feature = "rng")]
-pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng};
+pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng, Seed};
 #[cfg(feature = "xchacha")]
 pub use xchacha::{XChaCha8, XChaCha12, XChaCha20, XNonce, hchacha};
 
@@ -127,6 +127,7 @@ use cipher::{BlockSizeUser, StreamCipherCore, StreamCipherSeekCore, consts::U64}
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// State initialization constant ("expand 32-byte k")
+#[cfg(any(feature = "cipher", feature = "rng"))]
 const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// Number of 32-bit words in the ChaCha state
@@ -218,7 +219,8 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// # Panics
     /// If `iv.len()` is not equal to 4, 8, or 12.
     #[must_use]
-    pub fn init(key: &[u8; 32], iv: &[u8]) -> Self {
+    #[cfg(any(feature = "cipher", feature = "rng"))]
+    fn new_internal(key: &[u8; 32], iv: &[u8]) -> Self {
         assert!(matches!(iv.len(), 4 | 8 | 12));
 
         let mut state = [0u32; STATE_WORDS];
