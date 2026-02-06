@@ -3,7 +3,9 @@ name: benches
 on:
   pull_request:
     paths:
+      - ".github/workflows/benches.yml"
       - "benches/**"
+      - "chacha20/**"
   push:
     branches: master
 

@@ -27,7 +27,7 @@ fn bench(c: &mut Benchmarker) {
     group.finish();
 }
 
-use chacha20::rand_core::{RngCore, SeedableRng};
+use chacha20::rand_core::{Rng, SeedableRng};
 
 fn bench_chacha20rng(c: &mut Benchmarker) {
     let mut group = c.benchmark_group("ChaCha20Rng");
