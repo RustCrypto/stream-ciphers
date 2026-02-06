@@ -1,11 +1,3 @@
-// Copyright 2018 Developers of the Rand project.
-//
-// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
-// except according to those terms.
-
 #![allow(clippy::cast_possible_truncation, reason = "needs triage")]
 #![allow(clippy::undocumented_unsafe_blocks, reason = "TODO")]
 
@@ -260,7 +252,7 @@ macro_rules! impl_chacha_rng {
                 }
             }
 
-            /// Sets the stream ID, resetting the keystream position to 0.
+            /// Set the stream ID and reset the `word_pos` to 0.
             #[inline]
             pub fn set_stream(&mut self, stream: u64) {
                 self.core.core.state[14] = stream as u32;
