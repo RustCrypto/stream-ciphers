@@ -198,8 +198,7 @@ fn test_chacha_nonce() {
     let seed = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
     let mut rng = ChaCha20Rng::from_seed(seed);
 
-    let stream_id = hex!("0000004a00000000");
-    rng.set_stream(stream_id);
+    rng.set_stream(0x000000004a000000);
     rng.set_block_pos(u64::from_le_bytes(hex!("0000000000000009")));
 
     // The test vectors omit the first 64-bytes of the keystream
@@ -240,40 +239,6 @@ fn test_chacha_nonce_2() {
         0x398a19fa, 0x6ded1b53,
     ];
     assert_eq!(results, expected);
-}
-
-#[test]
-fn stream_id_endianness() {
-    let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
-    assert_eq!(rng.get_word_pos(), 0);
-    rng.set_stream([3, 3333]);
-    assert_eq!(rng.get_word_pos(), 0);
-    let expected = 1152671828;
-    assert_eq!(rng.next_u32(), expected);
-    assert_eq!(rng.get_word_pos(), 1);
-
-    rng.set_stream(1234567);
-    // these `word_pos == 0` might need to be changed if set_stream changes again
-    assert_eq!(rng.get_word_pos(), 0);
-    let mut block = [0u32; 16];
-    for word in 0..block.len() {
-        block[word] = rng.next_u32();
-    }
-    assert_eq!(rng.get_word_pos(), 16);
-    // new `get_block_pos`
-    assert_eq!(rng.get_block_pos(), 1);
-    rng.set_stream(1234567);
-    assert_eq!(rng.get_block_pos(), 0);
-    assert_eq!(rng.get_word_pos(), 0);
-
-    let expected = 3110319182;
-    rng.set_word_pos(65); // old set_stream added 64 to the word_pos
-    assert!(rng.next_u32() == expected);
-
-    rng.set_stream([1, 2, 3, 4, 5, 6, 7, 8]);
-    rng.set_word_pos(130); // old set_stream added another 64 to the word_pos
-    let expected = 3790367479;
-    assert_eq!(rng.next_u32(), expected);
 }
 
 /// Test vector 9 from https://github.com/pyca/cryptography/blob/main/vectors/cryptography_vectors/ciphers/ChaCha20/counter-overflow.txt
@@ -366,10 +331,10 @@ fn counter_overflow_and_diagnostics() {
         assert!(a.eq(b), "PARBLOCK #{} uses incorrect counter addition\nDiagnostic = {}\nnum_incorrect_bytes = {}\nindex_of_first_incorrect_word = {:?}", i + 1, msg, num_incorrect_bytes, index_of_first_incorrect_word);
     });
 }
+
 #[test]
 fn test_wrapping_add() {
     let mut rng = ChaCha20Rng::from_seed(KEY);
-    rng.set_stream(1337);
     // test counter wrapping-add
     rng.set_word_pos((1 << 68) - 65);
     let mut output = [3u8; 1280];
@@ -379,34 +344,6 @@ fn test_wrapping_add() {
 
     assert!(rng.get_word_pos() < 2000);
     assert!(rng.get_word_pos() != 0);
-}
-
-#[test]
-fn test_set_and_get_equivalence() {
-    let seed = [44u8; 32];
-    let mut rng = ChaCha20Rng::from_seed(seed);
-
-    // test set_stream with [u32; 2]
-    rng.set_stream([313453u32, 0u32]);
-    assert_eq!(rng.get_stream(), 313453);
-
-    // test set_stream with [u8; 12]
-    rng.set_stream([89, 0, 0, 0, 0, 0, 0, 0]);
-    assert_eq!(rng.get_stream(), 89);
-
-    // test set_stream with u128
-    rng.set_stream(11111111);
-    assert_eq!(rng.get_stream(), 11111111);
-
-    // test set_block_pos with u64
-    rng.set_block_pos(58392);
-    assert_eq!(rng.get_block_pos(), 58392);
-    // test word_pos = 16 * block_pos
-    assert_eq!(rng.get_word_pos(), 58392 * 16);
-
-    // test set_word_pos with u64
-    rng.set_word_pos(8888);
-    assert_eq!(rng.get_word_pos(), 8888);
 }
 
 #[test]

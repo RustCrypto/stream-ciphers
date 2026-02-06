@@ -65,7 +65,7 @@ impl<R: Rounds> KeyIvInit for XChaChaCore<R> {
         // first 4 bytes are 0, last 8 bytes are last 8 from the iv
         // according to draft-arciszewski-xchacha-03
         nonce[4..].copy_from_slice(&iv[16..]);
-        Self(ChaChaCore::<R, Ietf>::new(subkey.as_ref(), &nonce))
+        Self(ChaChaCore::<R, Ietf>::new_internal(subkey.as_ref(), &nonce))
     }
 }
 
