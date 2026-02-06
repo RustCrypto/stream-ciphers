@@ -37,6 +37,15 @@ const BUF_BLOCKS: u8 = 4;
 /// Buffer size in words used by buffered RNG.
 const BUFFER_SIZE: usize = (BLOCK_WORDS * BUF_BLOCKS) as usize;
 
+impl<R: Rounds, V: Variant> SeedableRng  for ChaChaCore<R, V> {
+    type Seed = Seed;
+
+    #[inline]
+    fn from_seed(seed: Self::Seed) -> Self {
+        ChaChaCore::new_internal(&seed, &[0u8; 8])
+    }
+}
+
 impl<R: Rounds, V: Variant> Generator for ChaChaCore<R, V> {
     type Output = [u32; BUFFER_SIZE];
 
