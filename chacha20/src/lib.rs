@@ -220,7 +220,7 @@ impl<R: Rounds, V: Variant> ChaChaCore<R, V> {
     /// If `iv.len()` is not equal to 4, 8, or 12.
     #[must_use]
     #[cfg(any(feature = "cipher", feature = "rng"))]
-    fn new_internal(key: &[u8; 32], iv: &[u8]) -> Self {
+    pub fn new_internal(key: &[u8; 32], iv: &[u8]) -> Self {
         assert!(matches!(iv.len(), 4 | 8 | 12));
 
         let mut state = [0u32; STATE_WORDS];
