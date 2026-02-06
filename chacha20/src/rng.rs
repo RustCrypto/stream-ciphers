@@ -26,6 +26,9 @@ use crate::{
 
 use cfg_if::cfg_if;
 
+/// Seed value used to initialize ChaCha-based RNGs.
+pub type Seed = [u8; 32];
+
 /// Number of 32-bit words per ChaCha block (fixed by algorithm definition).
 pub(crate) const BLOCK_WORDS: u8 = 16;
 
@@ -126,11 +129,11 @@ macro_rules! impl_chacha_rng {
         }
 
         impl SeedableRng for $Rng {
-            type Seed = [u8; 32];
+            type Seed = Seed;
 
             #[inline]
             fn from_seed(seed: Self::Seed) -> Self {
-                let core = ChaChaCore::init(&seed, &[0u8; 8]);
+                let core = ChaChaCore::new_internal(&seed, &[0u8; 8]);
                 Self {
                     core: BlockRng::new(core),
                 }
