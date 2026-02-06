@@ -100,13 +100,16 @@ macro_rules! impl_chacha_rng {
     ($Rng:ident, $rounds:ident) => {
         /// A cryptographically secure random number generator that uses the ChaCha stream cipher.
         ///
-        /// See the crate docs for more information about the underlying stream cipher.
+        /// See the [crate docs][crate] for more information about the underlying stream cipher.
         ///
         /// This RNG implementation uses a 64-bit counter and 64-bit stream identifier (a.k.a nonce).
         /// A 64-bit counter over 64-byte (16 word) blocks allows 1 ZiB of output before cycling,
         /// and the stream identifier allows 2<sup>64</sup> unique streams of output per seed.
-        /// Both counter and stream are initialized to zero but may be set via the `set_word_pos`
-        /// and `set_stream` methods.
+        /// Both counter and stream are initialized to zero but may be set via the [`set_word_pos`]
+        /// and [`set_stream`] methods.
+        ///
+        /// [`set_word_pos`]: Self::set_word_pos
+        /// [`set_stream`]: Self::set_stream
         ///
         /// # Example
         ///
