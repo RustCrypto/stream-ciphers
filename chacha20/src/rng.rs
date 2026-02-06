@@ -37,7 +37,7 @@ const BUF_BLOCKS: u8 = 4;
 /// Buffer size in words used by buffered RNG.
 const BUFFER_SIZE: usize = (BLOCK_WORDS * BUF_BLOCKS) as usize;
 
-impl<R: Rounds, V: Variant> SeedableRng  for ChaChaCore<R, V> {
+impl<R: Rounds, V: Variant> SeedableRng for ChaChaCore<R, V> {
     type Seed = Seed;
 
     #[inline]
