@@ -8,10 +8,6 @@ on:
       - "Cargo.*"
   push:
     branches: master
-    paths:
-      - ".github/workflows/chacha20.yml"
-      - "chacha20/**"
-      - "Cargo.*"
 
 defaults:
   run:
