@@ -280,13 +280,10 @@ macro_rules! impl_chacha_rng {
             #[inline]
             #[must_use]
             pub fn get_seed(&self) -> [u8; 32] {
+                let seed = &self.core.core.state[4..12];
                 let mut result = [0u8; 32];
-                for (i, &big) in self.core.core.state[4..12].iter().enumerate() {
-                    let index = i * 4;
-                    result[index + 0] = big as u8;
-                    result[index + 1] = (big >> 8) as u8;
-                    result[index + 2] = (big >> 16) as u8;
-                    result[index + 3] = (big >> 24) as u8;
+                for (src, dst) in seed.iter().zip(result.chunks_exact_mut(4)) {
+                    dst.copy_from_slice(&src.to_le_bytes())
                 }
                 result
             }
