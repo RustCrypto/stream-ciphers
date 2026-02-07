@@ -34,7 +34,7 @@ work on stable Rust with the following `RUSTFLAGS`:
   - `sse2`: (~1.6cpb) `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
   - `avx512`: `-Ctarget-feature=+avx512f,+avx512vl --cfg chacha20_avx512` requires Rust 1.89+
 - `aarch64`
-  - `neon` (~2-3x faster than `soft`) requires Rust 1.61+ and the `neon` feature enabled
+  - `neon` (~2-3x faster than `soft`) requires the `neon` feature enabled
 - Portable
   - `soft`: (~5 cpb on x86/x86_64)
 
