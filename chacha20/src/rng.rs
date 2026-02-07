@@ -21,6 +21,9 @@ use cfg_if::cfg_if;
 /// Seed value used to initialize ChaCha-based RNGs.
 pub type Seed = [u8; 32];
 
+/// Serialized RNG state.
+pub type SerializedRngState = [u8; 49];
+
 /// Number of 32-bit words per ChaCha block (fixed by algorithm definition).
 pub(crate) const BLOCK_WORDS: u8 = 16;
 
@@ -277,15 +280,60 @@ macro_rules! impl_chacha_rng {
             #[inline]
             #[must_use]
             pub fn get_seed(&self) -> [u8; 32] {
+                let seed = &self.core.core.state[4..12];
                 let mut result = [0u8; 32];
-                for (i, &big) in self.core.core.state[4..12].iter().enumerate() {
-                    let index = i * 4;
-                    result[index + 0] = big as u8;
-                    result[index + 1] = (big >> 8) as u8;
-                    result[index + 2] = (big >> 16) as u8;
-                    result[index + 3] = (big >> 24) as u8;
+                for (src, dst) in seed.iter().zip(result.chunks_exact_mut(4)) {
+                    dst.copy_from_slice(&src.to_le_bytes())
                 }
                 result
+            }
+
+            /// Serialize RNG state.
+            ///
+            /// # Warning
+            /// Leaking serialized RNG state to an attacker defeats security properties
+            /// provided by the RNG.
+            #[inline]
+            pub fn serialize_state(&self) -> SerializedRngState {
+                let seed = self.get_seed();
+                let stream = self.get_stream().to_le_bytes();
+                let word_pos = self.get_word_pos().to_le_bytes();
+
+                let mut res = [0u8; 49];
+                let (seed_dst, res_rem) = res.split_at_mut(32);
+                let (stream_dst, word_pos_dst) = res_rem.split_at_mut(8);
+
+                seed_dst.copy_from_slice(&seed);
+                stream_dst.copy_from_slice(&stream);
+                word_pos_dst.copy_from_slice(&word_pos[..9]);
+
+                debug_assert_eq!(&word_pos[9..], &[0u8; 7]);
+
+                res
+            }
+
+            /// Deserialize RNG state.
+            #[inline]
+            pub fn deserialize_state(state: &SerializedRngState) -> Self {
+                let (seed, state_rem) = state.split_at(32);
+                let (stream, word_pos_raw) = state_rem.split_at(8);
+
+                let seed: &[u8; 32] = seed.try_into().expect("seed.len() is equal to 32");
+                let stream: &[u8; 8] = stream.try_into().expect("stream.len() is equal to 8");
+
+                // Note that we use only 68 bits from `word_pos_raw`, i.e. 4 remaining bits
+                // get ignored and should be equal to zero in practice.
+                let mut word_pos_buf = [0u8; 16];
+                word_pos_buf[..9].copy_from_slice(word_pos_raw);
+                let word_pos = u128::from_le_bytes(word_pos_buf);
+
+                let core = ChaChaCore::new_internal(seed, stream);
+                let mut res = Self {
+                    core: BlockRng::new(core),
+                };
+
+                res.set_word_pos(word_pos);
+                res
             }
         }
     };

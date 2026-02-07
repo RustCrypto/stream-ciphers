@@ -113,7 +113,7 @@ pub use legacy::{ChaCha20Legacy, LegacyNonce};
 #[cfg(feature = "rng")]
 pub use rand_core;
 #[cfg(feature = "rng")]
-pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng, Seed};
+pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng, Seed, SerializedRngState};
 #[cfg(feature = "xchacha")]
 pub use xchacha::{XChaCha8, XChaCha12, XChaCha20, XNonce, hchacha};
 
