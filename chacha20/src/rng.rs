@@ -315,7 +315,7 @@ macro_rules! impl_chacha_rng {
                 let (stream, word_pos_raw) = state_rem.split_at(8);
 
                 let seed: &[u8; 32] = seed.try_into().expect("seed.len() is equal to 32");
-                let stream: &[u8; 8] = stream.try_into().expect("stream.len() is equal to 32");
+                let stream: &[u8; 8] = stream.try_into().expect("stream.len() is equal to 8");
 
                 // Note that we use only 68 bits from `word_pos_raw`, i.e. 4 remaining bits
                 // get ignored and should be equal to zero in practice.
