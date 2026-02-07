@@ -3,12 +3,13 @@
 #![cfg(feature = "rng")]
 
 use chacha20::{
-    ChaCha20Rng,
+    ChaCha8Rng, ChaCha12Rng, ChaCha20Rng, SerializedRngState,
     rand_core::{Rng, SeedableRng},
 };
 use hex_literal::hex;
 
 const KEY: [u8; 32] = hex!("0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20");
+const STREAM: u64 = 0xF0F1F2F3_F4F5F6F7;
 const BLOCK_WORDS: u8 = 16;
 
 #[test]
@@ -466,4 +467,85 @@ fn counter_not_wrapping_at_32_bits() {
         first_blocks_end_word_pos + (1 << 32) * u128::from(BLOCK_WORDS)
     );
     assert_ne!(&first_blocks[0..64 * 4], &result[64..]);
+}
+
+#[test]
+fn test_chacha8rng_serde_roundtrip() {
+    for skip_words in 0..100 {
+        let mut rng = ChaCha8Rng::from_seed(KEY);
+        rng.set_stream(STREAM);
+        for _ in 0..skip_words {
+            let _ = rng.next_u32();
+        }
+        let state = rng.serialize_state();
+        let mut rng2 = ChaCha8Rng::deserialize_state(&state);
+        for _ in 0..100 {
+            assert_eq!(rng.next_u32(), rng2.next_u32());
+        }
+    }
+}
+
+#[test]
+fn test_chacha12rng_serde_roundtrip() {
+    for skip_words in 0..100 {
+        let mut rng = ChaCha12Rng::from_seed(KEY);
+        rng.set_stream(STREAM);
+        for _ in 0..skip_words {
+            let _ = rng.next_u32();
+        }
+        let state = rng.serialize_state();
+        let mut rng2 = ChaCha12Rng::deserialize_state(&state);
+        for _ in 0..100 {
+            assert_eq!(rng.next_u32(), rng2.next_u32());
+        }
+    }
+}
+
+#[test]
+fn test_chacha20rng_serde_roundtrip() {
+    for skip_words in 0..100 {
+        let mut rng = ChaCha20Rng::from_seed(KEY);
+        rng.set_stream(STREAM);
+        for _ in 0..skip_words {
+            let _ = rng.next_u32();
+        }
+        let state = rng.serialize_state();
+        let mut rng2 = ChaCha20Rng::deserialize_state(&state);
+        for _ in 0..100 {
+            assert_eq!(rng.next_u32(), rng2.next_u32());
+        }
+    }
+}
+
+#[test]
+fn test_rng_serialized_state_stability() {
+    const EXPECTED: SerializedRngState = hex!(
+        "0102030405060708090A0B0C0D0E0F10"
+        "1112131415161718191A1B1C1D1E1F20"
+        "F7F6F5F4F3F2F1F06400000000000000"
+        "00"
+    );
+    let mut rng = ChaCha8Rng::from_seed(KEY);
+    rng.set_stream(STREAM);
+    for _ in 0..100 {
+        let _ = rng.next_u32();
+    }
+    let state = rng.serialize_state();
+    assert_eq!(state, EXPECTED);
+
+    let mut rng = ChaCha12Rng::from_seed(KEY);
+    rng.set_stream(STREAM);
+    for _ in 0..100 {
+        let _ = rng.next_u32();
+    }
+    let state = rng.serialize_state();
+    assert_eq!(state, EXPECTED);
+
+    let mut rng = ChaCha20Rng::from_seed(KEY);
+    rng.set_stream(STREAM);
+    for _ in 0..100 {
+        let _ = rng.next_u32();
+    }
+    let state = rng.serialize_state();
+    assert_eq!(state, EXPECTED);
 }
