@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 64-bit counter support ([#439])
 - `{get,set}_block_pos` inherent methods ([#516])
 - AVX-512 backend - requires `--cfg chacha20_avx512` to enable ([#477])
+- Inherent methods for RNG state (de)serialization ([#541])
 
 ### Changed
 - Bump `cipher` from `0.4` to `0.5` - replaces `generic-array` with `hybrid-array` ([#338], [#521])
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#520]: https://github.com/RustCrypto/stream-ciphers/pull/520
 [#521]: https://github.com/RustCrypto/stream-ciphers/pull/521
 [#530]: https://github.com/RustCrypto/stream-ciphers/pull/530
+[#541]: https://github.com/RustCrypto/stream-ciphers/pull/541
 
 ## 0.9.1 (2023-04-01)
 ### Added
