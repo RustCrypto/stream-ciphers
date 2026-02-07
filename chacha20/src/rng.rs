@@ -289,6 +289,10 @@ macro_rules! impl_chacha_rng {
             }
 
             /// Serialize RNG state.
+            ///
+            /// # Warning
+            /// Leaking serialized RNG state to an attacker defeats security properties
+            /// provided by the RNG.
             #[inline]
             pub fn serialize_state(&self) -> SerializedRngState {
                 let seed = self.get_seed();
