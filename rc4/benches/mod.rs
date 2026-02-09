@@ -3,6 +3,7 @@
 extern crate test;
 
 cipher::stream_cipher_bench!(
+    // TODO: use `Key:` option instead after macro is fixed upstream
     Init: {
         use cipher::KeyInit;
         let key = test::black_box(Default::default());
