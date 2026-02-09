@@ -16,6 +16,7 @@ description = "Pure Rust implementation of the RC4 stream cipher"
 cipher = { version = "0.5", features = ["stream-wrapper"] }
 
 [dev-dependencies]
+cipher = { version = "0.5", features = ["dev"] }
 hex-literal = "1"
 
 [features]
