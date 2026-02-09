@@ -78,8 +78,8 @@ pub use cipher;
 use cipher::{
     Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure,
     StreamCipherCore, StreamCipherCoreWrapper, StreamCipherSeekCore,
-    array::{Array, typenum::Unsigned},
-    consts::{U4, U6, U8, U10, U24, U32, U64},
+    array::{Array, ArraySize, typenum::Unsigned},
+    consts::{U4, U6, U8, U10, U16, U24, U32, U64},
 };
 use core::marker::PhantomData;
 
@@ -93,18 +93,29 @@ pub use xsalsa::{XSalsa8, XSalsa12, XSalsa20, XSalsaCore, hsalsa};
 
 /// Salsa20/8 stream cipher
 /// (reduced-round variant of Salsa20 with 8 rounds, *not recommended*)
-pub type Salsa8 = StreamCipherCoreWrapper<SalsaCore<U4>>;
+pub type Salsa8 = StreamCipherCoreWrapper<SalsaCore<U4, U32>>;
 
 /// Salsa20/12 stream cipher
 /// (reduced-round variant of Salsa20 with 12 rounds, *not recommended*)
-pub type Salsa12 = StreamCipherCoreWrapper<SalsaCore<U6>>;
+pub type Salsa12 = StreamCipherCoreWrapper<SalsaCore<U6, U32>>;
 
 /// Salsa20/20 stream cipher
 /// (20 rounds; **recommended**)
-pub type Salsa20 = StreamCipherCoreWrapper<SalsaCore<U10>>;
+pub type Salsa20 = StreamCipherCoreWrapper<SalsaCore<U10, U32>>;
+
+/// Salsa20/20 stream cipher, using 16-byte keys (*not recommended*)
+///
+/// # ⚠️ Security warning
+///
+/// Using Salsa20 with keys shorter than 32 bytes is
+/// [**explicitly discouraged** by its creator][0]. It is included for
+/// compatibility with systems that use these weaker keys.
+///
+/// [0]: https://cr.yp.to/snuffle/keysizes.pdf
+pub type Salsa20_16 = StreamCipherCoreWrapper<SalsaCore<U10, U16>>;
 
 /// Key type used by all Salsa variants and [`XSalsa20`].
-pub type Key = Array<u8, U32>;
+pub type Key<KeySize = U32> = Array<u8, KeySize>;
 
 /// Nonce type used by all Salsa variants.
 pub type Nonce = Array<u8, U8>;
@@ -115,18 +126,23 @@ pub type XNonce = Array<u8, U24>;
 /// Number of 32-bit words in the Salsa20 state
 const STATE_WORDS: usize = 16;
 
-/// State initialization constant ("expand 32-byte k")
-const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
+/// State initialization constant for 16-byte keys ("expand 16-byte k")
+const CONSTANTS_16: [u32; 4] = [0x6170_7865, 0x3120_646e, 0x7962_2d36, 0x6b20_6574];
+
+/// State initialization constant for 32-byte keys ("expand 32-byte k")
+const CONSTANTS_32: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574];
 
 /// The Salsa20 core function.
-pub struct SalsaCore<R: Unsigned> {
+pub struct SalsaCore<R: Unsigned, KeySize = U32> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
     /// Number of rounds to perform
     rounds: PhantomData<R>,
+    /// Key size
+    key_size: PhantomData<KeySize>,
 }
 
-impl<R: Unsigned> SalsaCore<R> {
+impl<R: Unsigned, KeySize> SalsaCore<R, KeySize> {
     /// Create new Salsa core from raw state.
     ///
     /// This method is mainly intended for the `scrypt` crate.
@@ -135,32 +151,45 @@ impl<R: Unsigned> SalsaCore<R> {
         Self {
             state,
             rounds: PhantomData,
+            key_size: PhantomData,
         }
     }
 }
 
-impl<R: Unsigned> KeySizeUser for SalsaCore<R> {
-    type KeySize = U32;
+impl<R: Unsigned, KeySize> KeySizeUser for SalsaCore<R, KeySize>
+where
+    KeySize: ArraySize,
+{
+    type KeySize = KeySize;
 }
 
-impl<R: Unsigned> IvSizeUser for SalsaCore<R> {
+impl<R: Unsigned, KeySize> IvSizeUser for SalsaCore<R, KeySize> {
     type IvSize = U8;
 }
 
-impl<R: Unsigned> BlockSizeUser for SalsaCore<R> {
+impl<R: Unsigned, KeySize> BlockSizeUser for SalsaCore<R, KeySize> {
     type BlockSize = U64;
 }
 
-impl<R: Unsigned> KeyIvInit for SalsaCore<R> {
-    fn new(key: &Key, iv: &Nonce) -> Self {
+impl<R: Unsigned> KeyIvInit for SalsaCore<R, U16> {
+    /// Create a new Salsa core using a _weaker_ 16-byte key.
+    ///
+    /// # ⚠️ Security warning
+    ///
+    /// Using Salsa20 with keys shorter than 32 bytes is
+    /// [**explicitly discouraged** by its creator][0]. It is included for
+    /// compatibility with systems that use these weaker keys.
+    ///
+    /// [0]: https://cr.yp.to/snuffle/keysizes.pdf
+    fn new(key: &Key<U16>, iv: &Nonce) -> Self {
         let mut state = [0u32; STATE_WORDS];
-        state[0] = CONSTANTS[0];
+        state[0] = CONSTANTS_16[0];
 
-        for (i, chunk) in key[..16].chunks(4).enumerate() {
+        for (i, chunk) in key.chunks(4).enumerate() {
             state[1 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
         }
 
-        state[5] = CONSTANTS[1];
+        state[5] = CONSTANTS_16[1];
 
         for (i, chunk) in iv.chunks(4).enumerate() {
             state[6 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
@@ -168,22 +197,57 @@ impl<R: Unsigned> KeyIvInit for SalsaCore<R> {
 
         state[8] = 0;
         state[9] = 0;
-        state[10] = CONSTANTS[2];
+        state[10] = CONSTANTS_16[2];
+
+        for (i, chunk) in key.chunks(4).enumerate() {
+            state[11 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
+        }
+
+        state[15] = CONSTANTS_16[3];
+
+        Self {
+            state,
+            rounds: PhantomData,
+            key_size: PhantomData,
+        }
+    }
+}
+
+impl<R: Unsigned> KeyIvInit for SalsaCore<R, U32> {
+    /// Create a new Salsa core using a 32-byte key.
+    fn new(key: &Key<U32>, iv: &Nonce) -> Self {
+        let mut state = [0u32; STATE_WORDS];
+        state[0] = CONSTANTS_32[0];
+
+        for (i, chunk) in key[..16].chunks(4).enumerate() {
+            state[1 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
+        }
+
+        state[5] = CONSTANTS_32[1];
+
+        for (i, chunk) in iv.chunks(4).enumerate() {
+            state[6 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
+        }
+
+        state[8] = 0;
+        state[9] = 0;
+        state[10] = CONSTANTS_32[2];
 
         for (i, chunk) in key[16..].chunks(4).enumerate() {
             state[11 + i] = u32::from_le_bytes(chunk.try_into().unwrap());
         }
 
-        state[15] = CONSTANTS[3];
+        state[15] = CONSTANTS_32[3];
 
         Self {
             state,
             rounds: PhantomData,
+            key_size: PhantomData,
         }
     }
 }
 
-impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
+impl<R: Unsigned, KeySize> StreamCipherCore for SalsaCore<R, KeySize> {
     #[inline(always)]
     fn remaining_blocks(&self) -> Option<usize> {
         let rem = u64::MAX - self.get_block_pos();
@@ -194,7 +258,7 @@ impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
     }
 }
 
-impl<R: Unsigned> StreamCipherSeekCore for SalsaCore<R> {
+impl<R: Unsigned, KeySize> StreamCipherSeekCore for SalsaCore<R, KeySize> {
     type Counter = u64;
 
     #[inline(always)]
@@ -210,11 +274,11 @@ impl<R: Unsigned> StreamCipherSeekCore for SalsaCore<R> {
 }
 
 #[cfg(feature = "zeroize")]
-impl<R: Unsigned> Drop for SalsaCore<R> {
+impl<R: Unsigned, KeySize> Drop for SalsaCore<R, KeySize> {
     fn drop(&mut self) {
         self.state.zeroize();
     }
 }
 
 #[cfg(feature = "zeroize")]
-impl<R: Unsigned> ZeroizeOnDrop for SalsaCore<R> {}
+impl<R: Unsigned, KeySize> ZeroizeOnDrop for SalsaCore<R, KeySize> {}
