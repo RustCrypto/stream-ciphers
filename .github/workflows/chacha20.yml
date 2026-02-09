@@ -90,7 +90,7 @@ jobs:
       CARGO_INCREMENTAL: 0
       RUSTFLAGS: ${{ matrix.RUSTFLAGS }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Intel SDE
         run: |
           curl -JLO "https://downloadmirror.intel.com/${{ env.SDE_FULL_VERSION_MIRROR }}/sde-external-${{ env.SDE_FULL_VERSION }}-lin.tar.xz"
