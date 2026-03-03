@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## UNRELEASED
 ### Added
-- Add `Key` and `Iv` as aliases ([#547])
+- `Key` and `Iv` type aliases ([#547])
 
 ### Fixed
 - Minimal versions build ([#290])
