@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## UNRELEASED
+### Added
+- `Key` and `Iv` type aliases ([#547])
+
 ### Fixed
 - Minimal versions build ([#290])
 - Hc256Core h2 function ([#324])
@@ -22,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#324]: https://github.com/RustCrypto/stream-ciphers/pull/324
 [#338]: https://github.com/RustCrypto/stream-ciphers/pull/338
 [#397]: https://github.com/RustCrypto/stream-ciphers/pull/397
+[#547]: https://github.com/RustCrypto/stream-ciphers/pull/547
 
 ## 0.5.0 (2022-02-10)
 ### Changed

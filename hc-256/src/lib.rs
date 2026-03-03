@@ -60,9 +60,8 @@
 pub use cipher;
 
 use cipher::{
-    AlgorithmName, Block, BlockSizeUser, Iv, IvSizeUser, Key, KeyIvInit, KeySizeUser,
-    ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure, StreamCipherCore,
-    StreamCipherCoreWrapper,
+    AlgorithmName, Block, BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, ParBlocksSizeUser,
+    StreamCipherBackend, StreamCipherClosure, StreamCipherCore, StreamCipherCoreWrapper,
     consts::{U1, U4, U32},
 };
 use core::fmt;
@@ -77,6 +76,12 @@ const KEY_BITS: usize = 256;
 const KEY_WORDS: usize = KEY_BITS / 32;
 const IV_BITS: usize = 256;
 const IV_WORDS: usize = IV_BITS / 32;
+
+/// HC-256 stream cipher key.
+pub type Key = cipher::Key<Hc256Core>;
+
+/// HC-256 stream cipher initialization vector.
+pub type Iv = cipher::Iv<Hc256Core>;
 
 /// The HC-256 stream cipher.
 pub type Hc256 = StreamCipherCoreWrapper<Hc256Core>;
@@ -101,7 +106,7 @@ impl IvSizeUser for Hc256Core {
 }
 
 impl KeyIvInit for Hc256Core {
-    fn new(key: &Key<Self>, iv: &Iv<Self>) -> Self {
+    fn new(key: &Key, iv: &Iv) -> Self {
         fn f1(x: u32) -> u32 {
             x.rotate_right(7) ^ x.rotate_right(18) ^ (x >> 3)
         }
