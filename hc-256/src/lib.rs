@@ -78,10 +78,10 @@ const KEY_WORDS: usize = KEY_BITS / 32;
 const IV_BITS: usize = 256;
 const IV_WORDS: usize = IV_BITS / 32;
 
-/// The HC-256 stream cipher core
+/// The HC-256 stream cipher.
 pub type Hc256 = StreamCipherCoreWrapper<Hc256Core>;
 
-/// The HC-256 stream cipher core
+/// Core state of the HC-256 stream cipher.
 pub struct Hc256Core {
     ptable: [u32; TABLE_SIZE],
     qtable: [u32; TABLE_SIZE],
