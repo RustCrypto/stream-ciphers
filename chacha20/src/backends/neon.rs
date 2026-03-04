@@ -180,10 +180,9 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
                 }
                 // write blocks to dest
                 for state_row in 0..4 {
-                    #[allow(clippy::cast_sign_loss, reason = "needs triage")]
                     vst1q_u8(
-                        dest[block].as_mut_ptr().offset(state_row << 4),
-                        vreinterpretq_u8_u32(blocks[block][state_row as usize]),
+                        dest[block].as_mut_ptr().add(state_row << 4),
+                        vreinterpretq_u8_u32(blocks[block][state_row]),
                     );
                 }
             }

@@ -125,11 +125,12 @@ fn test_chacha_true_values_c() {
     // Test block 2 by using `set_block_pos` and [u8; 8]
     let mut rng4 = ChaCha20Rng::from_seed(seed);
     rng4.set_block_pos(2);
-    results = [0u32; 16];
-    for i in results.iter_mut() {
-        *i = rng4.next_u32();
+    let mut buf = [0u8; 8];
+    for chunk in expected.chunks_exact(2) {
+        rng4.fill_bytes(&mut buf);
+        assert_eq!(buf[..4], chunk[0].to_le_bytes());
+        assert_eq!(buf[4..], chunk[1].to_le_bytes());
     }
-    assert_eq!(results, expected);
     assert_eq!(rng4.get_word_pos(), expected_end);
 
     // Test skipping behaviour with other types
