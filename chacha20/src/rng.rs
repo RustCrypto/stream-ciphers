@@ -252,7 +252,7 @@ macro_rules! impl_chacha_rng {
                 let counter = self.core.core.get_block_pos();
                 let offset = self.core.word_offset();
                 if offset != 0 {
-                    counter - u64::from(BUF_BLOCKS) + offset as u64 / 16
+                    counter - u64::from(BUF_BLOCKS) + offset as u64 / u64::from(BLOCK_WORDS)
                 } else {
                     counter
                 }
