@@ -25,13 +25,13 @@
 //! // Here we use the `Into` trait to convert arrays into it.
 //! let mut cipher = Hc256::new(&key.into(), &nonce.into());
 //!
-//! let mut buffer = plaintext.clone();
+//! let mut buffer = plaintext;
 //!
 //! // apply keystream (encrypt)
 //! cipher.apply_keystream(&mut buffer);
 //! assert_eq!(buffer, ciphertext);
 //!
-//! let ciphertext = buffer.clone();
+//! let ciphertext = buffer;
 //!
 //! // decrypt ciphertext by applying keystream again
 //! let mut cipher = Hc256::new(&key.into(), &nonce.into());

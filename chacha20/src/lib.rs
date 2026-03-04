@@ -40,13 +40,13 @@
 //! // Here we use the `Into` trait to convert arrays into it.
 //! let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
 //!
-//! let mut buffer = plaintext.clone();
+//! let mut buffer = plaintext;
 //!
 //! // apply keystream (encrypt)
 //! cipher.apply_keystream(&mut buffer);
 //! assert_eq!(buffer, ciphertext);
 //!
-//! let ciphertext = buffer.clone();
+//! let ciphertext = buffer;
 //!
 //! // ChaCha ciphers support seeking
 //! cipher.seek(0u32);
