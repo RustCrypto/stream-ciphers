@@ -15,7 +15,7 @@ use crate::variants::Legacy;
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 pub type ChaCha20Legacy = StreamCipherCoreWrapper<ChaCha20LegacyCore>;
 
-/// /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
+/// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 pub type ChaCha20LegacyCore = ChaChaCore<R20, Legacy>;
 
 impl KeySizeUser for ChaCha20LegacyCore {

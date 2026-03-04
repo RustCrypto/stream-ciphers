@@ -193,7 +193,7 @@ macro_rules! impl_chacha_rng {
         impl $Rng {
             /// Get the offset from the start of the stream, in 32-bit words.
             ///
-            /// Since the generated blocks are 64 words (2<sup>6</sup>) long and the
+            /// Since the generated blocks are 16 words (2<sup>4</sup>) long and the
             /// counter is 64-bits, the offset is a 68-bit number. Sub-word offsets are
             /// not supported, hence the result can simply be multiplied by 4 to get a
             /// byte-offset.
