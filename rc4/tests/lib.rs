@@ -1,599 +1,402 @@
+//! Test vectors from RFC 6229:
 //! https://datatracker.ietf.org/doc/html/rfc6229#section-2
 
-#![allow(deprecated)] // uses `from_slice`
-
+use cipher::array::{Array, ArraySize};
 use hex_literal::hex;
-use rc4::{Key, Rc4};
-use rc4::{KeyInit, StreamCipher, consts::*};
+use rc4::{KeyInit, Rc4, StreamCipher, consts::*};
+
+const OFFSETS: [usize; 18] = [
+    0x0000, 0x0010, 0x00f0, 0x0100, 0x01f0, 0x0200, 0x02f0, 0x0300, 0x03f0, 0x0400, 0x05f0, 0x0600,
+    0x07f0, 0x0800, 0x0bf0, 0x0c00, 0x0ff0, 0x1000,
+];
+const BUF_LEN: usize = *OFFSETS.last().unwrap() + CHUNK_SIZE;
+const CHUNK_SIZE: usize = 16;
+
+fn run_test<N: ArraySize>(key: Array<u8, N>, test_vectors: [u8; 288]) {
+    let mut cipher = Rc4::<N>::new(&key);
+    let mut data = [0u8; BUF_LEN];
+    cipher.apply_keystream(&mut data);
+
+    for (offset, chunk) in OFFSETS.into_iter().zip(test_vectors.chunks(CHUNK_SIZE)) {
+        assert_eq!(&data[offset..][..CHUNK_SIZE], chunk);
+    }
+}
 
 #[test]
 fn test_rfc6229_length_40_bits_key1() {
-    const KEY: [u8; 5] = hex!("0102030405");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   b2 39 63 05  f0 3d c0 27   cc c3 52 4a  0a 11 18 a8
-            0010   69 82 94 4f  18 fc 82 d5   89 c4 03 a4  7a 0d 09 19
-            00f0   28 cb 11 32  c9 6c e2 86   42 1d ca ad  b8 b6 9e ae
-            0100   1c fc f6 2b  03 ed db 64   1d 77 df cf  7f 8d 8c 93
-            01f0   42 b7 d0 cd  d9 18 a8 a3   3d d5 17 81  c8 1f 40 41
-            0200   64 59 84 44  32 a7 da 92   3c fb 3e b4  98 06 61 f6
-            02f0   ec 10 32 7b  de 2b ee fd   18 f9 27 76  80 45 7e 22
-            0300   eb 62 63 8d  4f 0b a1 fe   9f ca 20 e0  5b f8 ff 2b
-            03f0   45 12 90 48  e6 a0 ed 0b   56 b4 90 33  8f 07 8d a5
-            0400   30 ab bc c7  c2 0b 01 60   9f 23 ee 2d  5f 6b b7 df
-            05f0   32 94 f7 44  d8 f9 79 05   07 e7 0f 62  e5 bb ce ea
-            0600   d8 72 9d b4  18 82 25 9b   ee 4f 82 53  25 f5 a1 30
-            07f0   1e b1 4a 0c  13 b3 bf 47   fa 2a 0b a9  3a d4 5b 8b
-            0800   cc 58 2f 8b  a9 f2 65 e2   b1 be 91 12  e9 75 d2 d7
-            0bf0   f2 e3 0f 9b  d1 02 ec bf   75 aa ad e9  bc 35 c4 3c
-            0c00   ec 0e 11 c4  79 dc 32 9d   c8 da 79 68  fe 96 56 81
-            0ff0   06 83 26 a2  11 84 16 d2   1f 9d 04 b2  cd 1c a0 50
-            1000   ff 25 b5 89  95 99 67 07   e5 1f bd f0  8b 34 d8 75
-        "
+    run_test::<U5>(
+        hex!("0102030405").into(),
+        hex!(
+            "b2396305f03dc027ccc3524a0a1118a8"
+            "6982944f18fc82d589c403a47a0d0919"
+            "28cb1132c96ce286421dcaadb8b69eae"
+            "1cfcf62b03eddb641d77dfcf7f8d8c93"
+            "42b7d0cdd918a8a33dd51781c81f4041"
+            "6459844432a7da923cfb3eb4980661f6"
+            "ec10327bde2beefd18f9277680457e22"
+            "eb62638d4f0ba1fe9fca20e05bf8ff2b"
+            "45129048e6a0ed0b56b490338f078da5"
+            "30abbcc7c20b01609f23ee2d5f6bb7df"
+            "3294f744d8f9790507e70f62e5bbceea"
+            "d8729db41882259bee4f825325f5a130"
+            "1eb14a0c13b3bf47fa2a0ba93ad45b8b"
+            "cc582f8ba9f265e2b1be9112e975d2d7"
+            "f2e30f9bd102ecbf75aaade9bc35c43c"
+            "ec0e11c479dc329dc8da7968fe965681"
+            "068326a2118416d21f9d04b2cd1ca050"
+            "ff25b58995996707e51fbdf08b34d875"
+        ),
     );
-
-    let key = Key::<U5>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_56_bits_key1() {
-    const KEY: [u8; 7] = hex!("01020304050607");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   29 3f 02 d4  7f 37 c9 b6   33 f2 af 52  85 fe b4 6b
-            0010   e6 20 f1 39  0d 19 bd 84   e2 e0 fd 75  20 31 af c1
-            00f0   91 4f 02 53  1c 92 18 81   0d f6 0f 67  e3 38 15 4c
-            0100   d0 fd b5 83  07 3c e8 5a   b8 39 17 74  0e c0 11 d5
-            01f0   75 f8 14 11  e8 71 cf fa   70 b9 0c 74  c5 92 e4 54
-            0200   0b b8 72 02  93 8d ad 60   9e 87 a5 a1  b0 79 e5 e4
-            02f0   c2 91 12 46  b6 12 e7 e7   b9 03 df ed  a1 da d8 66
-            0300   32 82 8f 91  50 2b 62 91   36 8d e8 08  1d e3 6f c2
-            03f0   f3 b9 a7 e3  b2 97 bf 9a   d8 04 51 2f  90 63 ef f1
-            0400   8e cb 67 a9  ba 1f 55 a5   a0 67 e2 b0  26 a3 67 6f
-            05f0   d2 aa 90 2b  d4 2d 0d 7c   fd 34 0c d4  58 10 52 9f
-            0600   78 b2 72 c9  6e 42 ea b4   c6 0b d9 14  e3 9d 06 e3
-            07f0   f4 33 2f d3  1a 07 93 96   ee 3c ee 3f  2a 4f f0 49
-            0800   05 45 97 81  d4 1f da 7f   30 c1 be 7e  12 46 c6 23
-            0bf0   ad fd 38 68  b8 e5 14 85   d5 e6 10 01  7e 3d d6 09
-            0c00   ad 26 58 1c  0c 5b e4 5f   4c ea 01 db  2f 38 05 d5
-            0ff0   f3 17 2c ef  fc 3b 3d 99   7c 85 cc d5  af 1a 95 0c
-            1000   e7 4b 0b 97  31 22 7f d3   7c 0e c0 8a  47 dd d8 b8
-        "
+    run_test::<U7>(
+        hex!("01020304050607").into(),
+        hex!(
+            "293f02d47f37c9b633f2af5285feb46b"
+            "e620f1390d19bd84e2e0fd752031afc1"
+            "914f02531c9218810df60f67e338154c"
+            "d0fdb583073ce85ab83917740ec011d5"
+            "75f81411e871cffa70b90c74c592e454"
+            "0bb87202938dad609e87a5a1b079e5e4"
+            "c2911246b612e7e7b903dfeda1dad866"
+            "32828f91502b6291368de8081de36fc2"
+            "f3b9a7e3b297bf9ad804512f9063eff1"
+            "8ecb67a9ba1f55a5a067e2b026a3676f"
+            "d2aa902bd42d0d7cfd340cd45810529f"
+            "78b272c96e42eab4c60bd914e39d06e3"
+            "f4332fd31a079396ee3cee3f2a4ff049"
+            "05459781d41fda7f30c1be7e1246c623"
+            "adfd3868b8e51485d5e610017e3dd609"
+            "ad26581c0c5be45f4cea01db2f3805d5"
+            "f3172ceffc3b3d997c85ccd5af1a950c"
+            "e74b0b9731227fd37c0ec08a47ddd8b8"
+        ),
     );
-
-    let key = Key::<U7>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_64_bits_key1() {
-    const KEY: [u8; 8] = hex!("0102030405060708");
+    run_test::<U8>(
+        hex!("0102030405060708").into(),
+        hex!(
+                "97ab8a1bf0afb96132f2f67258da15a8"
+                "8263efdb45c4a18684ef87e6b19e5b09"
+                "9636ebc9841926f4f7d1f362bddf6e18"
+                "d0a990ff2c05fef5b90373c9ff4b870a"
+                "73239f1db7f41d80b643c0c52518ec63"
+                "163b319923a6bdb4527c626126703c0f"
+                "49d6c8af0f97144a87df21d91472f966"
+                "44173a103b6616c5d5ad1cee40c863d0"
+                "273c9c4b27f322e4e716ef53a47de7a4"
+                "c6d0e7b226259fa9023490b26167ad1d"
+                "1fe8986713f07c3d9ae1c163ff8cf9d3"
+                "8369e1a965610be887fbd0c79162aafb"
+                "0a0127abb44484b9fbef5abcae1b579f"
+                "c2cdadc6402e8ee866e1f37bdb47e42c"
+                "26b51ea37df8e1d6f76fc3b66a7429b3"
+                "bc7683205d4f443dc1f29dda3315c87b"
+                "d5fa5a3469d29aaaf83d23589db8c85b"
+                "3fb46e2c8f0f068edce8cdcd7dfc5862"
 
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   97 ab 8a 1b  f0 af b9 61   32 f2 f6 72  58 da 15 a8
-            0010   82 63 ef db  45 c4 a1 86   84 ef 87 e6  b1 9e 5b 09
-            00f0   96 36 eb c9  84 19 26 f4   f7 d1 f3 62  bd df 6e 18
-            0100   d0 a9 90 ff  2c 05 fe f5   b9 03 73 c9  ff 4b 87 0a
-            01f0   73 23 9f 1d  b7 f4 1d 80   b6 43 c0 c5  25 18 ec 63
-            0200   16 3b 31 99  23 a6 bd b4   52 7c 62 61  26 70 3c 0f
-            02f0   49 d6 c8 af  0f 97 14 4a   87 df 21 d9  14 72 f9 66
-            0300   44 17 3a 10  3b 66 16 c5   d5 ad 1c ee  40 c8 63 d0
-            03f0   27 3c 9c 4b  27 f3 22 e4   e7 16 ef 53  a4 7d e7 a4
-            0400   c6 d0 e7 b2  26 25 9f a9   02 34 90 b2  61 67 ad 1d
-            05f0   1f e8 98 67  13 f0 7c 3d   9a e1 c1 63  ff 8c f9 d3
-            0600   83 69 e1 a9  65 61 0b e8   87 fb d0 c7  91 62 aa fb
-            07f0   0a 01 27 ab  b4 44 84 b9   fb ef 5a bc  ae 1b 57 9f
-            0800   c2 cd ad c6  40 2e 8e e8   66 e1 f3 7b  db 47 e4 2c
-            0bf0   26 b5 1e a3  7d f8 e1 d6   f7 6f c3 b6  6a 74 29 b3
-            0c00   bc 76 83 20  5d 4f 44 3d   c1 f2 9d da  33 15 c8 7b
-            0ff0   d5 fa 5a 34  69 d2 9a aa   f8 3d 23 58  9d b8 c8 5b
-            1000   3f b4 6e 2c  8f 0f 06 8e   dc e8 cd cd  7d fc 58 62
-        "
+        ),
     );
-
-    let key = Key::<U8>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_80_bits_key1() {
-    const KEY: [u8; 10] = hex!("0102030405060708090a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   ed e3 b0 46  43 e5 86 cc   90 7d c2 18  51 70 99 02
-            0010   03 51 6b a7  8f 41 3b eb   22 3a a5 d4  d2 df 67 11
-            00f0   3c fd 6c b5  8e e0 fd de   64 01 76 ad  00 00 04 4d
-            0100   48 53 2b 21  fb 60 79 c9   11 4c 0f fd  9c 04 a1 ad
-            01f0   3e 8c ea 98  01 71 09 97   90 84 b1 ef  92 f9 9d 86
-            0200   e2 0f b4 9b  db 33 7e e4   8b 8d 8d c0  f4 af ef fe
-            02f0   5c 25 21 ea  cd 79 66 f1   5e 05 65 44  be a0 d3 15
-            0300   e0 67 a7 03  19 31 a2 46   a6 c3 87 5d  2f 67 8a cb
-            03f0   a6 4f 70 af  88 ae 56 b6   f8 75 81 c0  e2 3e 6b 08
-            0400   f4 49 03 1d  e3 12 81 4e   c6 f3 19 29  1f 4a 05 16
-            05f0   bd ae 85 92  4b 3c b1 d0   a2 e3 3a 30  c6 d7 95 99
-            0600   8a 0f ed db  ac 86 5a 09   bc d1 27 fb  56 2e d6 0a
-            07f0   b5 5a 0a 5b  51 a1 2a 8b   e3 48 99 c3  e0 47 51 1a
-            0800   d9 a0 9c ea  3c e7 5f e3   96 98 07 03  17 a7 13 39
-            0bf0   55 22 25 ed  11 77 f4 45   84 ac 8c fa  6c 4e b5 fc
-            0c00   7e 82 cb ab  fc 95 38 1b   08 09 98 44  21 29 c2 f8
-            0ff0   1f 13 5e d1  4c e6 0a 91   36 9d 23 22  be f2 5e 3c
-            1000   08 b6 be 45  12 4a 43 e2   eb 77 95 3f  84 dc 85 53
-        "
+    run_test::<U10>(
+        hex!("0102030405060708090a").into(),
+        hex!(
+            "ede3b04643e586cc907dc21851709902"
+            "03516ba78f413beb223aa5d4d2df6711"
+            "3cfd6cb58ee0fdde640176ad0000044d"
+            "48532b21fb6079c9114c0ffd9c04a1ad"
+            "3e8cea98017109979084b1ef92f99d86"
+            "e20fb49bdb337ee48b8d8dc0f4afeffe"
+            "5c2521eacd7966f15e056544bea0d315"
+            "e067a7031931a246a6c3875d2f678acb"
+            "a64f70af88ae56b6f87581c0e23e6b08"
+            "f449031de312814ec6f319291f4a0516"
+            "bdae85924b3cb1d0a2e33a30c6d79599"
+            "8a0feddbac865a09bcd127fb562ed60a"
+            "b55a0a5b51a12a8be34899c3e047511a"
+            "d9a09cea3ce75fe39698070317a71339"
+            "552225ed1177f44584ac8cfa6c4eb5fc"
+            "7e82cbabfc95381b080998442129c2f8"
+            "1f135ed14ce60a91369d2322bef25e3c"
+            "08b6be45124a43e2eb77953f84dc8553"
+        ),
     );
-
-    let key = Key::<U10>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_128_bits_key1() {
-    const KEY: [u8; 16] = hex!("0102030405060708090a0b0c0d0e0f10");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   9a c7 cc 9a  60 9d 1e f7   b2 93 28 99  cd e4 1b 97
-            0010   52 48 c4 95  90 14 12 6a   6e 8a 84 f1  1d 1a 9e 1c
-            00f0   06 59 02 e4  b6 20 f6 cc   36 c8 58 9f  66 43 2f 2b
-            0100   d3 9d 56 6b  c6 bc e3 01   07 68 15 15  49 f3 87 3f
-            01f0   b6 d1 e6 c4  a5 e4 77 1c   ad 79 53 8d  f2 95 fb 11
-            0200   c6 8c 1d 5c  55 9a 97 41   23 df 1d bc  52 a4 3b 89
-            02f0   c5 ec f8 8d  e8 97 fd 57   fe d3 01 70  1b 82 a2 59
-            0300   ec cb e1 3d  e1 fc c9 1c   11 a0 b2 6c  0b c8 fa 4d
-            03f0   e7 a7 25 74  f8 78 2a e2   6a ab cf 9e  bc d6 60 65
-            0400   bd f0 32 4e  60 83 dc c6   d3 ce dd 3c  a8 c5 3c 16
-            05f0   b4 01 10 c4  19 0b 56 22   a9 61 16 b0  01 7e d2 97
-            0600   ff a0 b5 14  64 7e c0 4f   63 06 b8 92  ae 66 11 81
-            07f0   d0 3d 1b c0  3c d3 3d 70   df f9 fa 5d  71 96 3e bd
-            0800   8a 44 12 64  11 ea a7 8b   d5 1e 8d 87  a8 87 9b f5
-            0bf0   fa be b7 60  28 ad e2 d0   e4 87 22 e4  6c 46 15 a3
-            0c00   c0 5d 88 ab  d5 03 57 f9   35 a6 3c 59  ee 53 76 23
-            0ff0   ff 38 26 5c  16 42 c1 ab   e8 d3 c2 fe  5e 57 2b f8
-            1000   a3 6a 4c 30  1a e8 ac 13   61 0c cb c1  22 56 ca cc
-
-        "
+    run_test::<U16>(
+        hex!("0102030405060708090a0b0c0d0e0f10").into(),
+        hex!(
+            "9ac7cc9a609d1ef7b2932899cde41b97"
+            "5248c4959014126a6e8a84f11d1a9e1c"
+            "065902e4b620f6cc36c8589f66432f2b"
+            "d39d566bc6bce3010768151549f3873f"
+            "b6d1e6c4a5e4771cad79538df295fb11"
+            "c68c1d5c559a974123df1dbc52a43b89"
+            "c5ecf88de897fd57fed301701b82a259"
+            "eccbe13de1fcc91c11a0b26c0bc8fa4d"
+            "e7a72574f8782ae26aabcf9ebcd66065"
+            "bdf0324e6083dcc6d3cedd3ca8c53c16"
+            "b40110c4190b5622a96116b0017ed297"
+            "ffa0b514647ec04f6306b892ae661181"
+            "d03d1bc03cd33d70dff9fa5d71963ebd"
+            "8a44126411eaa78bd51e8d87a8879bf5"
+            "fabeb76028ade2d0e48722e46c4615a3"
+            "c05d88abd50357f935a63c59ee537623"
+            "ff38265c1642c1abe8d3c2fe5e572bf8"
+            "a36a4c301ae8ac13610ccbc12256cacc"
+        ),
     );
-
-    let key = Key::<U16>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_192_bits_key1() {
-    const KEY: [u8; 24] = hex!("0102030405060708090a0b0c0d0e0f101112131415161718");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   05 95 e5 7f  e5 f0 bb 3c   70 6e da c8  a4 b2 db 11
-            0010   df de 31 34  4a 1a f7 69   c7 4f 07 0a  ee 9e 23 26
-            00f0   b0 6b 9b 1e  19 5d 13 d8   f4 a7 99 5c  45 53 ac 05
-            0100   6b d2 37 8e  c3 41 c9 a4   2f 37 ba 79  f8 8a 32 ff
-            01f0   e7 0b ce 1d  f7 64 5a db   5d 2c 41 30  21 5c 35 22
-            0200   9a 57 30 c7  fc b4 c9 af   51 ff da 89  c7 f1 ad 22
-            02f0   04 85 05 5f  d4 f6 f0 d9   63 ef 5a b9  a5 47 69 82
-            0300   59 1f c6 6b  cd a1 0e 45   2b 03 d4 55  1f 6b 62 ac
-            03f0   27 53 cc 83  98 8a fa 3e   16 88 a1 d3  b4 2c 9a 02
-            0400   93 61 0d 52  3d 1d 3f 00   62 b3 c2 a3  bb c7 c7 f0
-            05f0   96 c2 48 61  0a ad ed fe   af 89 78 c0  3d e8 20 5a
-            0600   0e 31 7b 3d  1c 73 b9 e9   a4 68 8f 29  6d 13 3a 19
-            07f0   bd f0 e6 c3  cc a5 b5 b9   d5 33 b6 9c  56 ad a1 20
-            0800   88 a2 18 b6  e2 ec e1 e6   24 6d 44 c7  59 d1 9b 10
-            0bf0   68 66 39 7e  95 c1 40 53   4f 94 26 34  21 00 6e 40
-            0c00   32 cb 0a 1e  95 42 c6 b3   b8 b3 98 ab  c3 b0 f1 d5
-            0ff0   29 a0 b8 ae  d5 4a 13 23   24 c6 2e 42  3f 54 b4 c8
-            1000   3c b0 f3 b5  02 0a 98 b8   2a f9 fe 15  44 84 a1 68
-        "
+    run_test::<U24>(
+        hex!("0102030405060708090a0b0c0d0e0f101112131415161718").into(),
+        hex!(
+            "0595e57fe5f0bb3c706edac8a4b2db11"
+            "dfde31344a1af769c74f070aee9e2326"
+            "b06b9b1e195d13d8f4a7995c4553ac05"
+            "6bd2378ec341c9a42f37ba79f88a32ff"
+            "e70bce1df7645adb5d2c4130215c3522"
+            "9a5730c7fcb4c9af51ffda89c7f1ad22"
+            "0485055fd4f6f0d963ef5ab9a5476982"
+            "591fc66bcda10e452b03d4551f6b62ac"
+            "2753cc83988afa3e1688a1d3b42c9a02"
+            "93610d523d1d3f0062b3c2a3bbc7c7f0"
+            "96c248610aadedfeaf8978c03de8205a"
+            "0e317b3d1c73b9e9a4688f296d133a19"
+            "bdf0e6c3cca5b5b9d533b69c56ada120"
+            "88a218b6e2ece1e6246d44c759d19b10"
+            "6866397e95c140534f94263421006e40"
+            "32cb0a1e9542c6b3b8b398abc3b0f1d5"
+            "29a0b8aed54a132324c62e423f54b4c8"
+            "3cb0f3b5020a98b82af9fe154484a168"
+        ),
     );
-
-    let key = Key::<U24>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_256_bits_key1() {
-    const KEY: [u8; 32] = hex!("0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   ea a6 bd 25  88 0b f9 3d   3f 5d 1e 4c  a2 61 1d 91
-            0010   cf a4 5c 9f  7e 71 4b 54   bd fa 80 02  7c b1 43 80
-            00f0   11 4a e3 44  de d7 1b 35   f2 e6 0f eb  ad 72 7f d8
-            0100   02 e1 e7 05  6b 0f 62 39   00 49 64 22  94 3e 97 b6
-            01f0   91 cb 93 c7  87 96 4e 10   d9 52 7d 99  9c 6f 93 6b
-            0200   49 b1 8b 42  f8 e8 36 7c   be b5 ef 10  4b a1 c7 cd
-            02f0   87 08 4b 3b  a7 00 ba de   95 56 10 67  27 45 b3 74
-            0300   e7 a7 b9 e9  ec 54 0d 5f   f4 3b db 12  79 2d 1b 35
-            03f0   c7 99 b5 96  73 8f 6b 01   8c 76 c7 4b  17 59 bd 90
-            0400   7f ec 5b fd  9f 9b 89 ce   65 48 30 90  92 d7 e9 58
-            05f0   40 f2 50 b2  6d 1f 09 6a   4a fd 4c 34  0a 58 88 15
-            0600   3e 34 13 5c  79 db 01 02   00 76 76 51  cf 26 30 73
-            07f0   f6 56 ab cc  f8 8d d8 27   02 7b 2c e9  17 d4 64 ec
-            0800   18 b6 25 03  bf bc 07 7f   ba bb 98 f2  0d 98 ab 34
-            0bf0   8a ed 95 ee  5b 0d cb fb   ef 4e b2 1d  3a 3f 52 f9
-            0c00   62 5a 1a b0  0e e3 9a 53   27 34 6b dd  b0 1a 9c 18
-            0ff0   a1 3a 7c 79  c7 e1 19 b5   ab 02 96 ab  28 c3 00 b9
-            1000   f3 e4 c0 a2  e0 2d 1d 01   f7 f0 a7 46  18 af 2b 48
-
-        "
+    run_test::<U32>(
+        hex!("0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20").into(),
+        hex!(
+            "eaa6bd25880bf93d3f5d1e4ca2611d91"
+            "cfa45c9f7e714b54bdfa80027cb14380"
+            "114ae344ded71b35f2e60febad727fd8"
+            "02e1e7056b0f623900496422943e97b6"
+            "91cb93c787964e10d9527d999c6f936b"
+            "49b18b42f8e8367cbeb5ef104ba1c7cd"
+            "87084b3ba700bade955610672745b374"
+            "e7a7b9e9ec540d5ff43bdb12792d1b35"
+            "c799b596738f6b018c76c74b1759bd90"
+            "7fec5bfd9f9b89ce6548309092d7e958"
+            "40f250b26d1f096a4afd4c340a588815"
+            "3e34135c79db010200767651cf263073"
+            "f656abccf88dd827027b2ce917d464ec"
+            "18b62503bfbc077fbabb98f20d98ab34"
+            "8aed95ee5b0dcbfbef4eb21d3a3f52f9"
+            "625a1ab00ee39a5327346bddb01a9c18"
+            "a13a7c79c7e119b5ab0296ab28c300b9"
+            "f3e4c0a2e02d1d01f7f0a74618af2b48"
+        ),
     );
-
-    let key = Key::<U32>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_40_bits_key2() {
-    const KEY: [u8; 5] = hex!("833222772a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   80 ad 97 bd  c9 73 df 8a   2e 87 9e 92  a4 97 ef da
-            0010   20 f0 60 c2  f2 e5 12 65   01 d3 d4 fe  a1 0d 5f c0
-            00f0   fa a1 48 e9  90 46 18 1f   ec 6b 20 85  f3 b2 0e d9
-            0100   f0 da f5 ba  b3 d5 96 83   98 57 84 6f  73 fb fe 5a
-            01f0   1c 7e 2f c4  63 92 32 fe   29 75 84 b2  96 99 6b c8
-            0200   3d b9 b2 49  40 6c c8 ed   ff ac 55 cc  d3 22 ba 12
-            02f0   e4 f9 f7 e0  06 61 54 bb   d1 25 b7 45  56 9b c8 97
-            0300   75 d5 ef 26  2b 44 c4 1a   9c f6 3a e1  45 68 e1 b9
-            03f0   6d a4 53 db  f8 1e 82 33   4a 3d 88 66  cb 50 a1 e3
-            0400   78 28 d0 74  11 9c ab 5c   22 b2 94 d7  a9 bf a0 bb
-            05f0   ad b8 9c ea  9a 15 fb e6   17 29 5b d0  4b 8c a0 5c
-            0600   62 51 d8 7f  d4 aa ae 9a   7e 4a d5 c2  17 d3 f3 00
-            07f0   e7 11 9b d6  dd 9b 22 af   e8 f8 95 85  43 28 81 e2
-            0800   78 5b 60 fd  7e c4 e9 fc   b6 54 5f 35  0d 66 0f ab
-            0bf0   af ec c0 37  fd b7 b0 83   8e b3 d7 0b  cd 26 83 82
-            0c00   db c1 a7 b4  9d 57 35 8c   c9 fa 6d 61  d7 3b 7c f0
-            0ff0   63 49 d1 26  a3 7a fc ba   89 79 4f 98  04 91 4f dc
-            1000   bf 42 c3 01  8c 2f 7c 66   bf de 52 49  75 76 81 15
-        "
+    run_test::<U5>(
+        hex!("833222772a").into(),
+        hex!(
+            "80ad97bdc973df8a2e879e92a497efda"
+            "20f060c2f2e5126501d3d4fea10d5fc0"
+            "faa148e99046181fec6b2085f3b20ed9"
+            "f0daf5bab3d596839857846f73fbfe5a"
+            "1c7e2fc4639232fe297584b296996bc8"
+            "3db9b249406cc8edffac55ccd322ba12"
+            "e4f9f7e0066154bbd125b745569bc897"
+            "75d5ef262b44c41a9cf63ae14568e1b9"
+            "6da453dbf81e82334a3d8866cb50a1e3"
+            "7828d074119cab5c22b294d7a9bfa0bb"
+            "adb89cea9a15fbe617295bd04b8ca05c"
+            "6251d87fd4aaae9a7e4ad5c217d3f300"
+            "e7119bd6dd9b22afe8f89585432881e2"
+            "785b60fd7ec4e9fcb6545f350d660fab"
+            "afecc037fdb7b0838eb3d70bcd268382"
+            "dbc1a7b49d57358cc9fa6d61d73b7cf0"
+            "6349d126a37afcba89794f9804914fdc"
+            "bf42c3018c2f7c66bfde524975768115"
+        ),
     );
-
-    let key = Key::<U5>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_56_bits_key2() {
-    const KEY: [u8; 7] = hex!("1910833222772a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   bc 92 22 db  d3 27 4d 8f   c6 6d 14 cc  bd a6 69 0b
-            0010   7a e6 27 41  0c 9a 2b e6   93 df 5b b7  48 5a 63 e3
-            00f0   3f 09 31 aa  03 de fb 30   0f 06 01 03  82 6f 2a 64
-            0100   be aa 9e c8  d5 9b b6 81   29 f3 02 7c  96 36 11 81
-            01f0   74 e0 4d b4  6d 28 64 8d   7d ee 8a 00  64 b0 6c fe
-            0200   9b 5e 81 c6  2f e0 23 c5   5b e4 2f 87  bb f9 32 b8
-            02f0   ce 17 8f c1  82 6e fe cb   c1 82 f5 79  99 a4 61 40
-            0300   8b df 55 cd  55 06 1c 06   db a6 be 11  de 4a 57 8a
-            03f0   62 6f 5f 4d  ce 65 25 01   f3 08 7d 39  c9 2c c3 49
-            0400   42 da ac 6a  8f 9a b9 a7   fd 13 7c 60  37 82 56 82
-            05f0   cc 03 fd b7  91 92 a2 07   31 2f 53 f5  d4 dc 33 d9
-            0600   f7 0f 14 12  2a 1c 98 a3   15 5d 28 b8  a0 a8 a4 1d
-            07f0   2a 3a 30 7a  b2 70 8a 9c   00 fe 0b 42  f9 c2 d6 a1
-            0800   86 26 17 62  7d 22 61 ea   b0 b1 24 65  97 ca 0a e9
-            0bf0   55 f8 77 ce  4f 2e 1d db   bf 8e 13 e2  cd e0 fd c8
-            0c00   1b 15 56 cb  93 5f 17 33   37 70 5f bb  5d 50 1f c1
-            0ff0   ec d0 e9 66  02 be 7f 8d   50 92 81 6c  cc f2 c2 e9
-            1000   02 78 81 fa  b4 99 3a 1c   26 20 24 a9  4f ff 3f 61
-        "
+    run_test::<U7>(
+        hex!("1910833222772a").into(),
+        hex!(
+            "bc9222dbd3274d8fc66d14ccbda6690b"
+            "7ae627410c9a2be693df5bb7485a63e3"
+            "3f0931aa03defb300f060103826f2a64"
+            "beaa9ec8d59bb68129f3027c96361181"
+            "74e04db46d28648d7dee8a0064b06cfe"
+            "9b5e81c62fe023c55be42f87bbf932b8"
+            "ce178fc1826efecbc182f57999a46140"
+            "8bdf55cd55061c06dba6be11de4a578a"
+            "626f5f4dce652501f3087d39c92cc349"
+            "42daac6a8f9ab9a7fd137c6037825682"
+            "cc03fdb79192a207312f53f5d4dc33d9"
+            "f70f14122a1c98a3155d28b8a0a8a41d"
+            "2a3a307ab2708a9c00fe0b42f9c2d6a1"
+            "862617627d2261eab0b1246597ca0ae9"
+            "55f877ce4f2e1ddbbf8e13e2cde0fdc8"
+            "1b1556cb935f173337705fbb5d501fc1"
+            "ecd0e96602be7f8d5092816cccf2c2e9"
+            "027881fab4993a1c262024a94fff3f61"
+        ),
     );
-
-    let key = Key::<U7>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_64_bits_key2() {
-    const KEY: [u8; 8] = hex!("641910833222772a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   bb f6 09 de  94 13 17 2d   07 66 0c b6  80 71 69 26
-            0010   46 10 1a 6d  ab 43 11 5d   6c 52 2b 4f  e9 36 04 a9
-            00f0   cb e1 ff f2  1c 96 f3 ee   f6 1e 8f e0  54 2c bd f0
-            0100   34 79 38 bf  fa 40 09 c5   12 cf b4 03  4b 0d d1 a7
-            01f0   78 67 a7 86  d0 0a 71 47   90 4d 76 dd  f1 e5 20 e3
-            0200   8d 3e 9e 1c  ae fc cc b3   fb f8 d1 8f  64 12 0b 32
-            02f0   94 23 37 f8  fd 76 f0 fa   e8 c5 2d 79  54 81 06 72
-            0300   b8 54 8c 10  f5 16 67 f6   e6 0e 18 2f  a1 9b 30 f7
-            03f0   02 11 c7 c6  19 0c 9e fd   12 37 c3 4c  8f 2e 06 c4
-            0400   bd a6 4f 65  27 6d 2a ac   b8 f9 02 12  20 3a 80 8e
-            05f0   bd 38 20 f7  32 ff b5 3e   c1 93 e7 9d  33 e2 7c 73
-            0600   d0 16 86 16  86 19 07 d4   82 e3 6c da  c8 cf 57 49
-            07f0   97 b0 f0 f2  24 b2 d2 31   71 14 80 8f  b0 3a f7 a0
-            0800   e5 96 16 e4  69 78 79 39   a0 63 ce ea  9a f9 56 d1
-            0bf0   c4 7e 0d c1  66 09 19 c1   11 01 20 8f  9e 69 aa 1f
-            0c00   5a e4 f1 28  96 b8 37 9a   2a ad 89 b5  b5 53 d6 b0
-            0ff0   6b 6b 09 8d  0c 29 3b c2   99 3d 80 bf  05 18 b6 d9
-            1000   81 70 cc 3c  cd 92 a6 98   62 1b 93 9d  d3 8f e7 b9
-        "
+    run_test::<U8>(
+        hex!("641910833222772a").into(),
+        hex!(
+            "bbf609de9413172d07660cb680716926"
+            "46101a6dab43115d6c522b4fe93604a9"
+            "cbe1fff21c96f3eef61e8fe0542cbdf0"
+            "347938bffa4009c512cfb4034b0dd1a7"
+            "7867a786d00a7147904d76ddf1e520e3"
+            "8d3e9e1caefcccb3fbf8d18f64120b32"
+            "942337f8fd76f0fae8c52d7954810672"
+            "b8548c10f51667f6e60e182fa19b30f7"
+            "0211c7c6190c9efd1237c34c8f2e06c4"
+            "bda64f65276d2aacb8f90212203a808e"
+            "bd3820f732ffb53ec193e79d33e27c73"
+            "d0168616861907d482e36cdac8cf5749"
+            "97b0f0f224b2d2317114808fb03af7a0"
+            "e59616e469787939a063ceea9af956d1"
+            "c47e0dc1660919c11101208f9e69aa1f"
+            "5ae4f12896b8379a2aad89b5b553d6b0"
+            "6b6b098d0c293bc2993d80bf0518b6d9"
+            "8170cc3ccd92a698621b939dd38fe7b9"
+        ),
     );
-
-    let key = Key::<U8>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_80_bits_key2() {
-    const KEY: [u8; 10] = hex!("8b37641910833222772a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   ab 65 c2 6e  dd b2 87 60   0d b2 fd a1  0d 1e 60 5c
-            0010   bb 75 90 10  c2 96 58 f2   c7 2d 93 a2  d1 6d 29 30
-            00f0   b9 01 e8 03  6e d1 c3 83   cd 3c 4c 4d  d0 a6 ab 05
-            0100   3d 25 ce 49  22 92 4c 55   f0 64 94 33  53 d7 8a 6c
-            01f0   12 c1 aa 44  bb f8 7e 75   e6 11 f6 9b  2c 38 f4 9b
-            0200   28 f2 b3 43  4b 65 c0 98   77 47 00 44  c6 ea 17 0d
-            02f0   bd 9e f8 22  de 52 88 19   61 34 cf 8a  f7 83 93 04
-            0300   67 55 9c 23  f0 52 15 84   70 a2 96 f7  25 73 5a 32
-            03f0   8b ab 26 fb  c2 c1 2b 0f   13 e2 ab 18  5e ab f2 41
-            0400   31 18 5a 6d  69 6f 0c fa   9b 42 80 8b  38 e1 32 a2
-            05f0   56 4d 3d ae  18 3c 52 34   c8 af 1e 51  06 1c 44 b5
-            0600   3c 07 78 a7  b5 f7 2d 3c   23 a3 13 5c  7d 67 b9 f4
-            07f0   f3 43 69 89  0f cf 16 fb   51 7d ca ae  44 63 b2 dd
-            0800   02 f3 1c 81  e8 20 07 31   b8 99 b0 28  e7 91 bf a7
-            0bf0   72 da 64 62  83 22 8c 14   30 08 53 70  17 95 61 6f
-            0c00   4e 0a 8c 6f  79 34 a7 88   e2 26 5e 81  d6 d0 c8 f4
-            0ff0   43 8d d5 ea  fe a0 11 1b   6f 36 b4 b9  38 da 2a 68
-            1000   5f 6b fc 73  81 58 74 d9   71 00 f0 86  97 93 57 d8
-        "
+    run_test::<U10>(
+        hex!("8b37641910833222772a").into(),
+        hex!(
+            "ab65c26eddb287600db2fda10d1e605c"
+            "bb759010c29658f2c72d93a2d16d2930"
+            "b901e8036ed1c383cd3c4c4dd0a6ab05"
+            "3d25ce4922924c55f064943353d78a6c"
+            "12c1aa44bbf87e75e611f69b2c38f49b"
+            "28f2b3434b65c09877470044c6ea170d"
+            "bd9ef822de5288196134cf8af7839304"
+            "67559c23f052158470a296f725735a32"
+            "8bab26fbc2c12b0f13e2ab185eabf241"
+            "31185a6d696f0cfa9b42808b38e132a2"
+            "564d3dae183c5234c8af1e51061c44b5"
+            "3c0778a7b5f72d3c23a3135c7d67b9f4"
+            "f34369890fcf16fb517dcaae4463b2dd"
+            "02f31c81e8200731b899b028e791bfa7"
+            "72da646283228c14300853701795616f"
+            "4e0a8c6f7934a788e2265e81d6d0c8f4"
+            "438dd5eafea0111b6f36b4b938da2a68"
+            "5f6bfc73815874d97100f086979357d8"
+        ),
     );
-
-    let key = Key::<U10>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_128_bits_key2() {
-    const KEY: [u8; 16] = hex!("ebb46227c6cc8b37641910833222772a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   72 0c 94 b6  3e df 44 e1   31 d9 50 ca  21 1a 5a 30
-            0010   c3 66 fd ea  cf 9c a8 04   36 be 7c 35  84 24 d2 0b
-            00f0   b3 39 4a 40  aa bf 75 cb   a4 22 82 ef  25 a0 05 9f
-            0100   48 47 d8 1d  a4 94 2d bc   24 9d ef c4  8c 92 2b 9f
-            01f0   08 12 8c 46  9f 27 53 42   ad da 20 2b  2b 58 da 95
-            0200   97 0d ac ef  40 ad 98 72   3b ac 5d 69  55 b8 17 61
-            02f0   3c b8 99 93  b0 7b 0c ed   93 de 13 d2  a1 10 13 ac
-            0300   ef 2d 67 6f  15 45 c2 c1   3d c6 80 a0  2f 4a db fe
-            03f0   b6 05 95 51  4f 24 bc 9f   e5 22 a6 ca  d7 39 36 44
-            0400   b5 15 a8 c5  01 17 54 f5   90 03 05 8b  db 81 51 4e
-            05f0   3c 70 04 7e  8c bc 03 8e   3b 98 20 db  60 1d a4 95
-            0600   11 75 da 6e  e7 56 de 46   a5 3e 2b 07  56 60 b7 70
-            07f0   00 a5 42 bb  a0 21 11 cc   2c 65 b3 8e  bd ba 58 7e
-            0800   58 65 fd bb  5b 48 06 41   04 e8 30 b3  80 f2 ae de
-            0bf0   34 b2 1a d2  ad 44 e9 99   db 2d 7f 08  63 f0 d9 b6
-            0c00   84 a9 21 8f  c3 6e 8a 5f   2c cf be ae  53 a2 7d 25
-            0ff0   a2 22 1a 11  b8 33 cc b4   98 a5 95 40  f0 54 5f 4a
-            1000   5b be b4 78  7d 59 e5 37   3f db ea 6c  6f 75 c2 9b
-
-        "
+    run_test::<U16>(
+        hex!("ebb46227c6cc8b37641910833222772a").into(),
+        hex!(
+            "720c94b63edf44e131d950ca211a5a30"
+            "c366fdeacf9ca80436be7c358424d20b"
+            "b3394a40aabf75cba42282ef25a0059f"
+            "4847d81da4942dbc249defc48c922b9f"
+            "08128c469f275342adda202b2b58da95"
+            "970dacef40ad98723bac5d6955b81761"
+            "3cb89993b07b0ced93de13d2a11013ac"
+            "ef2d676f1545c2c13dc680a02f4adbfe"
+            "b60595514f24bc9fe522a6cad7393644"
+            "b515a8c5011754f59003058bdb81514e"
+            "3c70047e8cbc038e3b9820db601da495"
+            "1175da6ee756de46a53e2b075660b770"
+            "00a542bba02111cc2c65b38ebdba587e"
+            "5865fdbb5b48064104e830b380f2aede"
+            "34b21ad2ad44e999db2d7f0863f0d9b6"
+            "84a9218fc36e8a5f2ccfbeae53a27d25"
+            "a2221a11b833ccb498a59540f0545f4a"
+            "5bbeb4787d59e5373fdbea6c6f75c29b"
+        ),
     );
-
-    let key = Key::<U16>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_192_bits_key2() {
-    const KEY: [u8; 24] = hex!("c109163908ebe51debb46227c6cc8b37641910833222772a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   54 b6 4e 6b  5a 20 b5 e2   ec 84 59 3d  c7 98 9d a7
-            0010   c1 35 ee e2  37 a8 54 65   ff 97 dc 03  92 4f 45 ce
-            00f0   cf cc 92 2f  b4 a1 4a b4   5d 61 75 aa  bb f2 d2 01
-            0100   83 7b 87 e2  a4 46 ad 0e   f7 98 ac d0  2b 94 12 4f
-            01f0   17 a6 db d6  64 92 6a 06   36 b3 f4 c3  7a 4f 46 94
-            0200   4a 5f 9f 26  ae ee d4 d4   a2 5f 63 2d  30 52 33 d9
-            02f0   80 a3 d0 1e  f0 0c 8e 9a   42 09 c1 7f  4e eb 35 8c
-            0300   d1 5e 7d 5f  fa aa bc 02   07 bf 20 0a  11 77 93 a2
-            03f0   34 96 82 bf  58 8e aa 52   d0 aa 15 60  34 6a ea fa
-            0400   f5 85 4c db  76 c8 89 e3   ad 63 35 4e  5f 72 75 e3
-            05f0   53 2c 7c ec  cb 39 df 32   36 31 84 05  a4 b1 27 9c
-            0600   ba ef e6 d9  ce b6 51 84   22 60 e0 d1  e0 5e 3b 90
-            07f0   e8 2d 8c 6d  b5 4e 3c 63   3f 58 1c 95  2b a0 42 07
-            0800   4b 16 e5 0a  bd 38 1b d7   09 00 a9 cd  9a 62 cb 23
-            0bf0   36 82 ee 33  bd 14 8b d9   f5 86 56 cd  8f 30 d9 fb
-            0c00   1e 5a 0b 84  75 04 5d 9b   20 b2 62 86  24 ed fd 9e
-            0ff0   63 ed d6 84  fb 82 62 82   fe 52 8f 9c  0e 92 37 bc
-            1000   e4 dd 2e 98  d6 96 0f ae   0b 43 54 54  56 74 33 91
-        "
+    run_test::<U24>(
+        hex!("c109163908ebe51debb46227c6cc8b37641910833222772a").into(),
+        hex!(
+            "54b64e6b5a20b5e2ec84593dc7989da7"
+            "c135eee237a85465ff97dc03924f45ce"
+            "cfcc922fb4a14ab45d6175aabbf2d201"
+            "837b87e2a446ad0ef798acd02b94124f"
+            "17a6dbd664926a0636b3f4c37a4f4694"
+            "4a5f9f26aeeed4d4a25f632d305233d9"
+            "80a3d01ef00c8e9a4209c17f4eeb358c"
+            "d15e7d5ffaaabc0207bf200a117793a2"
+            "349682bf588eaa52d0aa1560346aeafa"
+            "f5854cdb76c889e3ad63354e5f7275e3"
+            "532c7ceccb39df3236318405a4b1279c"
+            "baefe6d9ceb651842260e0d1e05e3b90"
+            "e82d8c6db54e3c633f581c952ba04207"
+            "4b16e50abd381bd70900a9cd9a62cb23"
+            "3682ee33bd148bd9f58656cd8f30d9fb"
+            "1e5a0b8475045d9b20b2628624edfd9e"
+            "63edd684fb826282fe528f9c0e9237bc"
+            "e4dd2e98d6960fae0b43545456743391"
+        ),
     );
-
-    let key = Key::<U24>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
 
 #[test]
 fn test_rfc6229_length_256_bits_key2() {
-    const KEY: [u8; 32] = hex!("1ada31d5cf688221c109163908ebe51debb46227c6cc8b37641910833222772a");
-
-    const TEST_VECTORS: [u8; 324] = hex!(
-        // offset  data
-        "
-            0000   dd 5b cb 00  18 e9 22 d4   94 75 9d 7c  39 5d 02 d3
-            0010   c8 44 6f 8f  77 ab f7 37   68 53 53 eb  89 a1 c9 eb
-            00f0   af 3e 30 f9  c0 95 04 59   38 15 15 75  c3 fb 90 98
-            0100   f8 cb 62 74  db 99 b8 0b   1d 20 12 a9  8e d4 8f 0e
-            01f0   25 c3 00 5a  1c b8 5d e0   76 25 98 39  ab 71 98 ab
-            0200   9d cb c1 83  e8 cb 99 4b   72 7b 75 be  31 80 76 9c
-            02f0   a1 d3 07 8d  fa 91 69 50   3e d9 d4 49  1d ee 4e b2
-            0300   85 14 a5 49  58 58 09 6f   59 6e 4b cd  66 b1 06 65
-            03f0   5f 40 d5 9e  c1 b0 3b 33   73 8e fa 60  b2 25 5d 31
-            0400   34 77 c7 f7  64 a4 1b ac   ef f9 0b f1  4f 92 b7 cc
-            05f0   ac 4e 95 36  8d 99 b9 eb   78 b8 da 8f  81 ff a7 95
-            0600   8c 3c 13 f8  c2 38 8b b7   3f 38 57 6e  65 b7 c4 46
-            07f0   13 c4 b9 c1  df b6 65 79   ed dd 8a 28  0b 9f 73 16
-            0800   dd d2 78 20  55 01 26 69   8e fa ad c6  4b 64 f6 6e
-            0bf0   f0 8f 2e 66  d2 8e d1 43   f3 a2 37 cf  9d e7 35 59
-            0c00   9e a3 6c 52  55 31 b8 80   ba 12 43 34  f5 7b 0b 70
-            0ff0   d5 a3 9e 3d  fc c5 02 80   ba c4 a6 b5  aa 0d ca 7d
-            1000   37 0b 1c 1f  e6 55 91 6d   97 fd 0d 47  ca 1d 72 b8
-
-        "
+    run_test::<U32>(
+        hex!("1ada31d5cf688221c109163908ebe51debb46227c6cc8b37641910833222772a").into(),
+        hex!(
+            "dd5bcb0018e922d494759d7c395d02d3"
+            "c8446f8f77abf737685353eb89a1c9eb"
+            "af3e30f9c095045938151575c3fb9098"
+            "f8cb6274db99b80b1d2012a98ed48f0e"
+            "25c3005a1cb85de076259839ab7198ab"
+            "9dcbc183e8cb994b727b75be3180769c"
+            "a1d3078dfa9169503ed9d4491dee4eb2"
+            "8514a5495858096f596e4bcd66b10665"
+            "5f40d59ec1b03b33738efa60b2255d31"
+            "3477c7f764a41baceff90bf14f92b7cc"
+            "ac4e95368d99b9eb78b8da8f81ffa795"
+            "8c3c13f8c2388bb73f38576e65b7c446"
+            "13c4b9c1dfb66579eddd8a280b9f7316"
+            "ddd27820550126698efaadc64b64f66e"
+            "f08f2e66d28ed143f3a237cf9de73559"
+            "9ea36c525531b880ba124334f57b0b70"
+            "d5a39e3dfcc50280bac4a6b5aa0dca7d"
+            "370b1c1fe655916d97fd0d47ca1d72b8"
+        ),
     );
-
-    let key = Key::<U32>::from_slice(&KEY);
-    let mut cipher = Rc4::<_>::new(key);
-
-    let mut data = [0u8; 0x1010];
-    cipher.apply_keystream(&mut data);
-
-    let chunk_size = /* offset */2 + 16;
-    for chunk in TEST_VECTORS.chunks(chunk_size) {
-        let offset = u16::from_be_bytes([chunk[0], chunk[1]]) as usize;
-
-        assert_eq!(data[offset..offset + 16], chunk[2..]);
-    }
 }
