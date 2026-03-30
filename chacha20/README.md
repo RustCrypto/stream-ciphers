@@ -8,37 +8,20 @@
 [![Project Chat][chat-image]][chat-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
-Pure Rust implementation of the [ChaCha20 Stream Cipher][1].
+Implementation of the [ChaCha] family of stream ciphers.
 
 <img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/chacha20.png" width="300px">
 
-## About
+ChaCha improves upon the previous [Salsa] family of stream ciphers
+with increased per-round diffusion at no cost to performance.
 
-[ChaCha20][1] is a [stream cipher][2] which is designed to support
-high-performance software implementations.
+This crate also contains an implementation of the [XChaCha] family of stream ciphers
+with an extended 192-bit (24-byte) nonce, gated under the `xchacha` Cargo feature,
+and "legacy" (a.k.a "djb") variant with 64-bit nonce, gated under `legacy` crate feature.
 
-It improves upon the previous [Salsa20][3] stream cipher with increased
-per-round diffusion at no cost to performance.
-
-This crate also contains an implementation of [XChaCha20][4]: a variant
-of ChaCha20 with an extended 192-bit (24-byte) nonce, gated under the
-`chacha20` Cargo feature (on-by-default).
-
-## Implementations
-
-This crate contains the following implementations of ChaCha20, all of which
-work on stable Rust with the following `RUSTFLAGS`:
-
-- `x86` / `x86_64`
-  - `avx2`: (~1.4cpb) `-Ctarget-cpu=haswell -Ctarget-feature=+avx2`
-  - `sse2`: (~1.6cpb) `-Ctarget-feature=+sse2` (on by default on x86 CPUs)
-  - `avx512`: `-Ctarget-feature=+avx512f,+avx512vl --cfg chacha20_avx512` requires Rust 1.89+
-- `aarch64`
-  - `neon` (~2-3x faster than `soft`) requires the `neon` feature enabled
-- Portable
-  - `soft`: (~5 cpb on x86/x86_64)
-
-NOTE: cpb = cycles per byte (smaller is better)
+**WARNING:** This implementation internally uses 32-bit counter,
+while the original "legacy" variant implementation uses 64-bit counter.
+In other words, it does not allow encryption of more than 256 GiB of data.
 
 ## Security
 
@@ -48,18 +31,79 @@ This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
 verify ciphertext integrity), which can lead to serious vulnerabilities
 if used incorrectly!
 
-To avoid this, use an [AEAD][5] mode based on ChaCha20, i.e. [ChaCha20Poly1305][6].
-See the [RustCrypto/AEADs][7] repository for more information.
+To avoid this, use an [AEAD] mode based on ChaCha20, e.g. [`chacha20poly1305`].
+See the [RustCrypto/AEADs] repository for more information.
 
 USE AT YOUR OWN RISK!
 
 ### Notes
 
-This crate has received one [security audit by NCC Group][8], with no significant
-findings. We would like to thank [MobileCoin][9] for funding the audit.
+This crate has received one [security audit by NCC Group][NCC-AUDIT], with no significant
+findings. We would like to thank [MobileCoin] for funding the audit.
 
 All implementations contained in the crate (along with the underlying ChaCha20
 stream cipher itself) are designed to execute in constant time.
+
+## Examples
+
+```rust
+// This example requires `cipher` crate feature
+#[cfg(feature = "cipher")] {
+
+use chacha20::ChaCha20;
+use chacha20::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
+use hex_literal::hex;
+
+let key = [0x42; 32];
+let nonce = [0x24; 12];
+let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
+let ciphertext = hex!("e405626e 4f1236b3 670ee428 332ea20e");
+
+// Key and IV must be references to the `Array` type.
+// Here we use the `Into` trait to convert arrays into it.
+let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
+
+let mut buffer = plaintext;
+
+// apply keystream (encrypt)
+cipher.apply_keystream(&mut buffer);
+assert_eq!(buffer, ciphertext);
+
+let ciphertext = buffer;
+
+// ChaCha ciphers support seeking
+cipher.seek(0u32);
+
+// decrypt ciphertext by applying keystream again
+cipher.apply_keystream(&mut buffer);
+assert_eq!(buffer, plaintext);
+
+// stream ciphers can be used with streaming messages
+cipher.seek(0u32);
+for chunk in buffer.chunks_mut(3) {
+    cipher.apply_keystream(chunk);
+}
+assert_eq!(buffer, ciphertext);
+}
+```
+
+## Configuration Flags
+
+You can modify crate using the following configuration flags:
+
+- `chacha20_backend="avx2"`: force AVX2 backend on x86/x86_64 targets.
+  Requires enabled AVX2 target feature. Ignored on non-x86(_64) targets.
+- `chacha20_backend="avx512"`: force AVX-512 backend on x86/x86_64 targets.
+  Requires enabled AVX-512 target feature (MSRV 1.89). Ignored on non-x86(_64) targets.
+- `chacha20_backend="soft"`: force software backend.
+- `chacha20_backend="sse2"`: force SSE2 backend on x86/x86_64 targets.
+  Requires enabled SSE2 target feature. Ignored on non-x86(-64) targets.
+
+To use the MSRV 1.89 AVX-512 support with autodetection, you must enable it using
+`chacha20_avx512` configuration flag.
+
+The flags can be enabled using `RUSTFLAGS` environmental variable
+(e.g. `RUSTFLAGS='--cfg chacha20_backend="avx2"'`) or by modifying `.cargo/config.toml`.
 
 ## License
 
@@ -93,12 +137,11 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (footnotes)
 
-[1]: https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant
-[2]: https://en.wikipedia.org/wiki/Stream_cipher
-[3]: https://en.wikipedia.org/wiki/Salsa20
-[4]: https://tools.ietf.org/html/draft-arciszewski-xchacha-02
-[5]: https://en.wikipedia.org/wiki/Authenticated_encryption
-[6]: https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305
-[7]: https://github.com/RustCrypto/AEADs
-[8]: https://web.archive.org/web/20240108154854/https://research.nccgroup.com/wp-content/uploads/2020/02/NCC_Group_MobileCoin_RustCrypto_AESGCM_ChaCha20Poly1305_Implementation_Review_2020-02-12_v1.0.pdf
-[9]: https://www.mobilecoin.com/
+[ChaCha]: https://en.wikipedia.org/wiki/Salsa20#ChaCha_variant
+[Salsa]: https://en.wikipedia.org/wiki/Salsa20
+[XChaCha]: https://tools.ietf.org/html/draft-arciszewski-xchacha-02
+[AEAD]: https://en.wikipedia.org/wiki/Authenticated_encryption
+[`chacha20poly1305`]: https://docs.rs/chacha20poly1305
+[RustCrypto/AEADs]: https://github.com/RustCrypto/AEADs
+[NCC-AUDIT]: https://web.archive.org/web/20240108154854/https://research.nccgroup.com/wp-content/uploads/2020/02/NCC_Group_MobileCoin_RustCrypto_AESGCM_ChaCha20Poly1305_Implementation_Review_2020-02-12_v1.0.pdf
+[MobileCoin]: https://www.mobilecoin.com/
