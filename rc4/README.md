@@ -28,25 +28,26 @@ relied on for security/confidentiality.
 
 ```rust
 use hex_literal::hex;
-use rc4::{consts::*, KeyInit, StreamCipher};
-use rc4::{Key, Rc4};
+use rc4::{KeyInit, Rc4, StreamCipher};
 
-let mut rc4 = Rc4::<U3>::new(b"Key".into());
+let mut rc4 = Rc4::new_from_slice(b"Key").unwrap();
 let mut data = *b"Plaintext";
 rc4.apply_keystream(&mut data);
 assert_eq!(data, hex!("BBF316E8D940AF0AD3"));
 
-let mut rc4 = Rc4::<U4>::new(b"Wiki".into());
+let mut rc4 = Rc4::new_from_slice(b"Wiki").unwrap();
 let mut data = *b"pedia";
 rc4.apply_keystream(&mut data);
 assert_eq!(data, hex!("1021BF0420"));
 
-let key = Key::<U6>::from_slice(b"Secret");
-let mut rc4 = Rc4::<_>::new(key);
+let mut rc4 = Rc4::new_from_slice(b"Secret").unwrap();
 let mut data = *b"Attack at dawn";
 rc4.apply_keystream(&mut data);
 assert_eq!(data, hex!("45A01F645FC35B383552544B9BF5"));
 ```
+
+Note that `Rc4` accepts keys of 1 to 256 bytes, though short keys are insecure
+and real-world usage typically uses 5–32 bytes (40–256 bits).
 
 ## License
 

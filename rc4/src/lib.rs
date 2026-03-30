@@ -10,124 +10,20 @@
 
 pub use cipher::{self, KeyInit, StreamCipher, consts};
 
-use cipher::{
-    Block, BlockSizeUser, KeySizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
-    StreamCipherCore, StreamCipherCoreWrapper,
-    array::{Array, ArraySize},
-};
+use cipher::{BlockSizeUser, InOutBuf, InvalidLength, Key, KeySizeUser, StreamCipherError};
+use core::array;
 
-use core::marker::PhantomData;
+const MIN_KEY_SIZE: usize = 1;
+const MAX_KEY_SIZE: usize = 256;
 
-#[cfg(feature = "zeroize")]
-use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
-
-/// RC4 key type (8–2048 bits/ 1-256 bytes)
-///
-/// Implemented as an alias for [`Array`].
-pub type Key<KeySize> = Array<u8, KeySize>;
-
-type BlockSize = consts::U1;
-
-/// The RC4 stream cipher initialized with key.
-pub type Rc4<KeySize> = StreamCipherCoreWrapper<Rc4Core<KeySize>>;
-
-/// Core state of the RC4 stream cipher initialized only with key.
-pub struct Rc4Core<KeySize> {
-    state: Rc4State,
-
-    key_size: PhantomData<KeySize>,
-}
-
-impl<KeySize> KeySizeUser for Rc4Core<KeySize>
-where
-    KeySize: ArraySize,
-{
-    type KeySize = KeySize;
-}
-
-impl<KeySize> KeyInit for Rc4Core<KeySize>
-where
-    KeySize: ArraySize,
-{
-    fn new(key: &Key<KeySize>) -> Self {
-        Self {
-            state: Rc4State::new(key),
-            key_size: Default::default(),
-        }
-    }
-}
-
-impl<KeySize> BlockSizeUser for Rc4Core<KeySize> {
-    type BlockSize = BlockSize;
-}
-
-impl<KeySize> StreamCipherCore for Rc4Core<KeySize> {
-    #[inline(always)]
-    fn remaining_blocks(&self) -> Option<usize> {
-        None
-    }
-
-    fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
-        f.call(&mut Backend(&mut self.state));
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl<KeySize> ZeroizeOnDrop for Rc4Core<KeySize> where KeySize: ArraySize {}
-
-struct Backend<'a>(&'a mut Rc4State);
-
-impl BlockSizeUser for Backend<'_> {
-    type BlockSize = BlockSize;
-}
-
-impl ParBlocksSizeUser for Backend<'_> {
-    type ParBlocksSize = consts::U1;
-}
-
-impl StreamCipherBackend for Backend<'_> {
-    #[inline(always)]
-    fn gen_ks_block(&mut self, block: &mut Block<Self>) {
-        block[0] = self.0.prga();
-    }
-}
-
-struct Rc4State {
+/// RC4 stream cipher.
+pub struct Rc4 {
     state: [u8; 256],
     i: u8,
     j: u8,
 }
 
-impl Rc4State {
-    fn new(key: &[u8]) -> Self {
-        let mut state = Self {
-            state: [0; 256],
-            i: 0,
-            j: 0,
-        };
-
-        state.ksa(key);
-
-        state
-    }
-
-    fn ksa(&mut self, key: &[u8]) {
-        self.state.iter_mut().enumerate().for_each(|(i, x)| {
-            *x = i as u8;
-        });
-
-        let i_iter = 0..256usize;
-        let key_iter = key.iter().cycle();
-
-        let mut j = 0u8;
-
-        i_iter.zip(key_iter).for_each(|(i, k)| {
-            j = j.wrapping_add(self.state[i]).wrapping_add(*k);
-
-            self.state.swap(i, j.into());
-        });
-    }
-
+impl Rc4 {
     fn s_i(&self) -> u8 {
         self.state[self.i as usize]
     }
@@ -140,19 +36,81 @@ impl Rc4State {
         self.i = self.i.wrapping_add(1);
         self.j = self.j.wrapping_add(self.s_i());
 
-        self.state.swap(self.i.into(), self.j.into());
+        self.state.swap(usize::from(self.i), usize::from(self.j));
 
-        let index: usize = self.s_i().wrapping_add(self.s_j()).into();
+        let index = self.s_i().wrapping_add(self.s_j());
 
-        self.state[index]
+        self.state[usize::from(index)]
+    }
+}
+
+impl KeySizeUser for Rc4 {
+    type KeySize = consts::U32;
+}
+
+impl KeyInit for Rc4 {
+    #[inline]
+    fn new(key: &Key<Self>) -> Self {
+        Self::new_from_slice(key).expect("32 byte keys are supported")
+    }
+
+    #[inline]
+    fn new_from_slice(key: &[u8]) -> Result<Self, InvalidLength> {
+        if key.len() < MIN_KEY_SIZE || key.len() > MAX_KEY_SIZE {
+            return Err(InvalidLength);
+        }
+
+        let mut state = array::from_fn(|i| u8::try_from(i).expect("`i` is less than 256"));
+
+        let i_iter = 0..256usize;
+        let key_iter = key.iter().cycle();
+
+        let mut j = 0u8;
+
+        i_iter.zip(key_iter).for_each(|(i, k)| {
+            j = j.wrapping_add(state[i]).wrapping_add(*k);
+            state.swap(i, usize::from(j));
+        });
+
+        Ok(Self { state, i: 0, j: 0 })
+    }
+}
+
+impl BlockSizeUser for Rc4 {
+    type BlockSize = consts::U1;
+}
+
+impl StreamCipher for Rc4 {
+    #[inline(always)]
+    fn check_remaining(&self, _data_len: usize) -> Result<(), StreamCipherError> {
+        Ok(())
+    }
+
+    #[inline]
+    fn unchecked_apply_keystream_inout(&mut self, buf: InOutBuf<'_, '_, u8>) {
+        buf.into_iter().for_each(|mut b| {
+            let ks = self.prga();
+            *b.get_out() = ks ^ *b.get_in();
+        });
+    }
+
+    #[inline]
+    fn unchecked_write_keystream(&mut self, buf: &mut [u8]) {
+        buf.iter_mut().for_each(|b| *b = self.prga());
     }
 }
 
 #[cfg(feature = "zeroize")]
-impl core::ops::Drop for Rc4State {
+impl cipher::zeroize::ZeroizeOnDrop for Rc4 {}
+
+impl core::ops::Drop for Rc4 {
     fn drop(&mut self) {
-        self.state.zeroize();
-        self.i.zeroize();
-        self.j.zeroize();
+        #[cfg(feature = "zeroize")]
+        {
+            use cipher::zeroize::Zeroize;
+            self.state.zeroize();
+            self.i.zeroize();
+            self.j.zeroize();
+        }
     }
 }
