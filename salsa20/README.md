@@ -8,9 +8,7 @@
 [![Project Chat][chat-image]][chat-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
-Implementation of the [Salsa] family of stream ciphers
-
-This crate also contains an implementation of [XSalsa] variants with
+Implementation of the [Salsa] family of stream ciphers, including the [XSalsa] variants with
 an extended 192-bit (24-byte) nonce.
 
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
