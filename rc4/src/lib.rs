@@ -15,7 +15,7 @@ use cipher::{BlockSizeUser, InOutBuf, InvalidLength, Key, KeySizeUser, StreamCip
 #[cfg(feature = "zeroize")]
 use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 
-const MIN_KEY_SIZE: usize = 5;
+const MIN_KEY_SIZE: usize = 1;
 const MAX_KEY_SIZE: usize = 256;
 
 /// Core state of the RC4 stream cipher.
