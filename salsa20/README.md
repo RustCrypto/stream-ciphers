@@ -23,7 +23,7 @@ architectures.
 
 USE AT YOUR OWN RISK!
 
-# Examples
+## Examples
 
 ```rust
 use salsa20::Salsa20;
