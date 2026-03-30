@@ -95,4 +95,4 @@ dual licensed as above, without any additional terms or conditions.
 [//]: # (footnotes)
 
 [Salsa]: https://en.wikipedia.org/wiki/Salsa20
-[XSalsa20]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
+[XSalsa]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
