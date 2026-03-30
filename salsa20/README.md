@@ -8,18 +8,8 @@
 [![Project Chat][chat-image]][chat-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
-Pure Rust implementation of the [Salsa20 Stream Cipher][1].
-
-<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/salsa20.png" width="300px">
-
-## About
-
-[Salsa20][1] is a [stream cipher][2] which is designed to support
-high-performance software implementations.
-
-This crate also contains an implementation of [XSalsa20][3]: a variant
-of Salsa20 with an extended 192-bit (24-byte) nonce, gated under the
-`xsalsa20` Cargo feature (on-by-default).
+Implementation of the [Salsa] family of stream ciphers, including the [XSalsa] variants with
+an extended 192-bit (24-byte) nonce.
 
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
@@ -32,6 +22,45 @@ thoroughly assessed to ensure its operation is constant-time on common CPU
 architectures.
 
 USE AT YOUR OWN RISK!
+
+# Examples
+
+```rust
+use salsa20::Salsa20;
+use salsa20::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
+use hex_literal::hex;
+
+let key = [0x42; 32];
+let nonce = [0x24; 8];
+let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
+let ciphertext = hex!("85843cc5 d58cce7b 5dd3dd04 fa005ded");
+
+// Key and IV must be references to the `Array` type.
+// Here we use the `Into` trait to convert arrays into it.
+let mut cipher = Salsa20::new(&key.into(), &nonce.into());
+
+let mut buffer = plaintext;
+
+// apply keystream (encrypt)
+cipher.apply_keystream(&mut buffer);
+assert_eq!(buffer, ciphertext);
+
+let ciphertext = buffer;
+
+// Salsa ciphers support seeking
+cipher.seek(0u32);
+
+// decrypt ciphertext by applying keystream again
+cipher.apply_keystream(&mut buffer);
+assert_eq!(buffer, plaintext);
+
+// stream ciphers can be used with streaming messages
+cipher.seek(0u32);
+for chunk in buffer.chunks_mut(3) {
+    cipher.apply_keystream(chunk);
+}
+assert_eq!(buffer, ciphertext);
+```
 
 ## License
 
@@ -65,7 +94,5 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (footnotes)
 
-[1]: https://en.wikipedia.org/wiki/Salsa20
-[2]: https://en.wikipedia.org/wiki/Stream_cipher
-[3]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
-[4]: https://github.com/RustCrypto/AEADs/tree/master/xsalsa20poly1305
+[Salsa]: https://en.wikipedia.org/wiki/Salsa20
+[XSalsa]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf

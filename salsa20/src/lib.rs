@@ -1,78 +1,12 @@
-//! Implementation of the [Salsa] family of stream ciphers.
-//!
-//! Cipher functionality is accessed using traits from re-exported [`cipher`] crate.
-//!
-//! # ⚠️ Security Warning: Hazmat!
-//!
-//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
-//! is not verified, which can lead to serious vulnerabilities!
-//!
-//! USE AT YOUR OWN RISK!
-//!
-//! # Diagram
-//!
-//! This diagram illustrates the Salsa quarter round function.
-//! Each round consists of four quarter-rounds:
-//!
-//! <img src="https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/img/stream-ciphers/salsa20.png" width="300px">
-//!
-//! Legend:
-//!
-//! - ⊞ add
-//! - ‹‹‹ rotate
-//! - ⊕ xor
-//!
-//! # Example
-//! ```
-//! use salsa20::Salsa20;
-//! // Import relevant traits
-//! use salsa20::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
-//! use hex_literal::hex;
-//!
-//! let key = [0x42; 32];
-//! let nonce = [0x24; 8];
-//! let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
-//! let ciphertext = hex!("85843cc5 d58cce7b 5dd3dd04 fa005ded");
-//!
-//! // Key and IV must be references to the `Array` type.
-//! // Here we use the `Into` trait to convert arrays into it.
-//! let mut cipher = Salsa20::new(&key.into(), &nonce.into());
-//!
-//! let mut buffer = plaintext;
-//!
-//! // apply keystream (encrypt)
-//! cipher.apply_keystream(&mut buffer);
-//! assert_eq!(buffer, ciphertext);
-//!
-//! let ciphertext = buffer;
-//!
-//! // Salsa ciphers support seeking
-//! cipher.seek(0u32);
-//!
-//! // decrypt ciphertext by applying keystream again
-//! cipher.apply_keystream(&mut buffer);
-//! assert_eq!(buffer, plaintext);
-//!
-//! // stream ciphers can be used with streaming messages
-//! cipher.seek(0u32);
-//! for chunk in buffer.chunks_mut(3) {
-//!     cipher.apply_keystream(chunk);
-//! }
-//! assert_eq!(buffer, ciphertext);
-//! ```
-//!
-//! Salsa20 will run the SSE2 backend in x86(-64) targets for Salsa20/20 variant.
-//! Other variants will fallback to the software backend.
-//!
-//! [Salsa]: https://en.wikipedia.org/wiki/Salsa20
-
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs, rust_2018_idioms, trivial_casts, unused_qualifications)]
+
 pub use cipher;
 
 use cipher::{

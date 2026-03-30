@@ -1,96 +1,10 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
-
-//! # Usage
-//!
-//! Cipher functionality is accessed using traits from re-exported [`cipher`] crate, or as a set
-//! of random number generator types ending in `*Rng` which implement traits from the [`rand_core`]
-//! crate.
-//!
-//! This crate contains the following variants of the ChaCha20 core algorithm:
-//!
-//! - [`ChaCha20`]: standard IETF variant with 96-bit nonce
-//! - [`ChaCha8`] / [`ChaCha12`]: reduced round variants of ChaCha20
-//! - [`XChaCha20`]: 192-bit extended nonce variant
-//! - [`XChaCha8`] / [`XChaCha12`]: reduced round variants of XChaCha20
-//! - [`ChaCha20Legacy`]: "djb" variant with 64-bit nonce.
-//! **WARNING:** This implementation internally uses 32-bit counter,
-//! while the original implementation uses 64-bit counter. In other words,
-//! it does not allow encryption of more than 256 GiB of data.
-//!
-//! ## Example
-#![cfg_attr(feature = "cipher", doc = " ```")]
-#![cfg_attr(not(feature = "cipher"), doc = " ```ignore")]
-//! use chacha20::ChaCha20;
-//! // Import relevant traits
-//! use chacha20::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
-//! use hex_literal::hex;
-//!
-//! let key = [0x42; 32];
-//! let nonce = [0x24; 12];
-//! let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
-//! let ciphertext = hex!("e405626e 4f1236b3 670ee428 332ea20e");
-//!
-//! // Key and IV must be references to the `Array` type.
-//! // Here we use the `Into` trait to convert arrays into it.
-//! let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
-//!
-//! let mut buffer = plaintext;
-//!
-//! // apply keystream (encrypt)
-//! cipher.apply_keystream(&mut buffer);
-//! assert_eq!(buffer, ciphertext);
-//!
-//! let ciphertext = buffer;
-//!
-//! // ChaCha ciphers support seeking
-//! cipher.seek(0u32);
-//!
-//! // decrypt ciphertext by applying keystream again
-//! cipher.apply_keystream(&mut buffer);
-//! assert_eq!(buffer, plaintext);
-//!
-//! // stream ciphers can be used with streaming messages
-//! cipher.seek(0u32);
-//! for chunk in buffer.chunks_mut(3) {
-//!     cipher.apply_keystream(chunk);
-//! }
-//! assert_eq!(buffer, ciphertext);
-//! ```
-//!
-//! # Configuration Flags
-//!
-//! You can modify crate using the following configuration flags:
-//!
-//! - `chacha20_backend="avx2"`: force AVX2 backend on x86/x86_64 targets.
-//!   Requires enabled AVX2 target feature. Ignored on non-x86(_64) targets.
-//! - `chacha20_backend="avx512": force AVX-512 backend on x86/x86_64 targets.
-//!   Requires enabled AVX-512 target feature (MSRV 1.89). Ignored on non-x86(_64) targets.
-//! - `chacha20_backend="soft"`: force software backend.
-//! - `chacha20_backend="sse2"`: force SSE2 backend on x86/x86_64 targets.
-//!   Requires enabled SSE2 target feature. Ignored on non-x86(-64) targets.
-//!
-//! The flags can be enabled using `RUSTFLAGS` environmental variable
-//! (e.g. `RUSTFLAGS='--cfg chacha20_backend="avx2"'`) or by modifying `.cargo/config.toml`:
-//!
-//! ```toml
-//! # In .cargo/config.toml
-//! [build]
-//! rustflags = ['--cfg', 'chacha20_backend="avx2"']
-//! ```
-//!
-//! ## AVX-512 support
-//!
-//! To use the MSRV 1.89 AVX-512 support, you must enable it using: `--cfg chacha20_avx512`.
-//!
-//! [ChaCha]: https://tools.ietf.org/html/rfc8439
-//! [Salsa]: https://en.wikipedia.org/wiki/Salsa20
-//! [`chacha20poly1305`]: https://docs.rs/chacha20poly1305
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod variants;
 

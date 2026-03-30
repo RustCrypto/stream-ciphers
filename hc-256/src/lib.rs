@@ -1,59 +1,10 @@
-//! Implementation of the [HC-256] stream cipher.
-//!
-//! Cipher functionality is accessed using traits from re-exported [`cipher`] crate.
-//!
-//! # ⚠️ Security Warning: Hazmat!
-//!
-//! This crate does not ensure ciphertexts are authentic! Thus ciphertext integrity
-//! is not verified, which can lead to serious vulnerabilities!
-//!
-//! USE AT YOUR OWN RISK!
-//!
-//! # Example
-//! ```
-//! use hc_256::Hc256;
-//! // Import relevant traits
-//! use hc_256::cipher::{KeyIvInit, StreamCipher};
-//! use hex_literal::hex;
-//!
-//! let key = [0x42; 32];
-//! let nonce = [0x24; 32];
-//! let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
-//! let ciphertext = hex!("ca982177 325cd40e bc208045 066c420f");
-//!
-//! // Key and IV must be references to the `Array` type.
-//! // Here we use the `Into` trait to convert arrays into it.
-//! let mut cipher = Hc256::new(&key.into(), &nonce.into());
-//!
-//! let mut buffer = plaintext;
-//!
-//! // apply keystream (encrypt)
-//! cipher.apply_keystream(&mut buffer);
-//! assert_eq!(buffer, ciphertext);
-//!
-//! let ciphertext = buffer;
-//!
-//! // decrypt ciphertext by applying keystream again
-//! let mut cipher = Hc256::new(&key.into(), &nonce.into());
-//! cipher.apply_keystream(&mut buffer);
-//! assert_eq!(buffer, plaintext);
-//!
-//! // stream ciphers can be used with streaming messages
-//! let mut cipher = Hc256::new(&key.into(), &nonce.into());
-//! for chunk in buffer.chunks_mut(3) {
-//!     cipher.apply_keystream(chunk);
-//! }
-//! assert_eq!(buffer, ciphertext);
-//! ```
-//!
-//! [HC-256]: https://en.wikipedia.org/wiki/HC-256
-
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 

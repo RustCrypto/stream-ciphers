@@ -1,39 +1,12 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/8f1a9894/logo.svg"
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![forbid(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
-
-//! # Usage
-//!
-//! ```rust
-//! use hex_literal::hex;
-//! use rc4::{consts::*, KeyInit, StreamCipher};
-//! use rc4::{Key, Rc4};
-//!
-//! let mut rc4 = Rc4::<U3>::new(b"Key".into());
-//! let mut data = b"Plaintext".to_vec();
-//! rc4.apply_keystream(&mut data);
-//! assert_eq!(data, [0xBB, 0xF3, 0x16, 0xE8, 0xD9, 0x40, 0xAF, 0x0A, 0xD3]);
-//!
-//! let mut rc4 = Rc4::<U4>::new(b"Wiki".into());
-//! let mut data = b"pedia".to_vec();
-//! rc4.apply_keystream(&mut data);
-//! assert_eq!(data, [0x10, 0x21, 0xBF, 0x04, 0x20]);
-//!
-//! let key = Key::<U6>::from_slice(b"Secret");
-//! let mut rc4 = Rc4::<_>::new(key);
-//! let mut data = b"Attack at dawn".to_vec();
-//! rc4.apply_keystream(&mut data);
-//! assert_eq!(
-//!     data,
-//!     [0x45, 0xA0, 0x1F, 0x64, 0x5F, 0xC3, 0x5B, 0x38, 0x35, 0x52, 0x54, 0x4B, 0x9B, 0xF5]
-//! );
-//! ```
 
 pub use cipher::{self, KeyInit, StreamCipher, consts};
 
