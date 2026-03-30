@@ -65,6 +65,7 @@ impl KeySizeUser for Rc4 {
 }
 
 impl KeyInit for Rc4 {
+    #[inline]
     fn new(key: &Key<Self>) -> Self {
         let mut state = Self {
             state: [0; 256],
@@ -75,6 +76,7 @@ impl KeyInit for Rc4 {
         state
     }
 
+    #[inline]
     fn new_from_slice(key: &[u8]) -> Result<Self, InvalidLength> {
         if key.len() < MIN_KEY_SIZE || key.len() > MAX_KEY_SIZE {
             return Err(InvalidLength);
