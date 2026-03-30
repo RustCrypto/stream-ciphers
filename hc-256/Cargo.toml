@@ -1,6 +1,6 @@
 [package]
 name = "hc-256"
-version = "0.6.0-pre"
+version = "0.6.0"
 authors = ["RustCrypto Developers"]
 edition = "2024"
 rust-version = "1.85"
@@ -24,4 +24,3 @@ zeroize = ["cipher/zeroize"]
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]

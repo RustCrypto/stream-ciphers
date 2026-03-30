@@ -1,6 +1,6 @@
 [package]
 name = "rabbit"
-version = "0.5.0-pre"
+version = "0.5.0"
 authors = ["RustCrypto Developers"]
 edition = "2024"
 rust-version = "1.85"
@@ -24,4 +24,3 @@ zeroize = ["cipher/zeroize"]
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
