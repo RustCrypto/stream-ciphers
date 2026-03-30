@@ -12,9 +12,6 @@ pub use cipher::{self, KeyInit, StreamCipher, consts};
 
 use cipher::{BlockSizeUser, InOutBuf, InvalidLength, Key, KeySizeUser, StreamCipherError};
 
-#[cfg(feature = "zeroize")]
-use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
-
 const MIN_KEY_SIZE: usize = 1;
 const MAX_KEY_SIZE: usize = 256;
 
@@ -119,13 +116,16 @@ impl StreamCipher for Rc4 {
 }
 
 #[cfg(feature = "zeroize")]
-impl ZeroizeOnDrop for Rc4 {}
+impl cipher::zeroize::ZeroizeOnDrop for Rc4 {}
 
-#[cfg(feature = "zeroize")]
 impl core::ops::Drop for Rc4 {
     fn drop(&mut self) {
-        self.state.zeroize();
-        self.i.zeroize();
-        self.j.zeroize();
+        #[cfg(feature = "zeroize")]
+        {
+            use cipher::zeroize::Zeroize;
+            self.state.zeroize();
+            self.i.zeroize();
+            self.j.zeroize();
+        }
     }
 }
