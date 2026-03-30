@@ -1,9 +1,8 @@
 //! Test vectors from RFC 6229:
 //! https://datatracker.ietf.org/doc/html/rfc6229#section-2
 
-use cipher::array::{Array, ArraySize};
 use hex_literal::hex;
-use rc4::{KeyInit, Rc4, StreamCipher, consts::*};
+use rc4::{KeyInit, Rc4, StreamCipher};
 
 const OFFSETS: [usize; 18] = [
     0x0000, 0x0010, 0x00f0, 0x0100, 0x01f0, 0x0200, 0x02f0, 0x0300, 0x03f0, 0x0400, 0x05f0, 0x0600,
@@ -12,8 +11,8 @@ const OFFSETS: [usize; 18] = [
 const BUF_LEN: usize = *OFFSETS.last().unwrap() + CHUNK_SIZE;
 const CHUNK_SIZE: usize = 16;
 
-fn run_test<N: ArraySize>(key: Array<u8, N>, test_vectors: [u8; 288]) {
-    let mut cipher = Rc4::<N>::new(&key);
+fn run_test<const N: usize>(key: [u8; N], test_vectors: [u8; 288]) {
+    let mut cipher = Rc4::new_from_slice(&key).expect("key size should supported");
     let mut data = [0u8; BUF_LEN];
     cipher.apply_keystream(&mut data);
 
@@ -24,8 +23,8 @@ fn run_test<N: ArraySize>(key: Array<u8, N>, test_vectors: [u8; 288]) {
 
 #[test]
 fn test_rfc6229_length_40_bits_key1() {
-    run_test::<U5>(
-        hex!("0102030405").into(),
+    run_test(
+        hex!("0102030405"),
         hex!(
             "b2396305f03dc027ccc3524a0a1118a8"
             "6982944f18fc82d589c403a47a0d0919"
@@ -51,8 +50,8 @@ fn test_rfc6229_length_40_bits_key1() {
 
 #[test]
 fn test_rfc6229_length_56_bits_key1() {
-    run_test::<U7>(
-        hex!("01020304050607").into(),
+    run_test(
+        hex!("01020304050607"),
         hex!(
             "293f02d47f37c9b633f2af5285feb46b"
             "e620f1390d19bd84e2e0fd752031afc1"
@@ -78,8 +77,8 @@ fn test_rfc6229_length_56_bits_key1() {
 
 #[test]
 fn test_rfc6229_length_64_bits_key1() {
-    run_test::<U8>(
-        hex!("0102030405060708").into(),
+    run_test(
+        hex!("0102030405060708"),
         hex!(
                 "97ab8a1bf0afb96132f2f67258da15a8"
                 "8263efdb45c4a18684ef87e6b19e5b09"
@@ -106,8 +105,8 @@ fn test_rfc6229_length_64_bits_key1() {
 
 #[test]
 fn test_rfc6229_length_80_bits_key1() {
-    run_test::<U10>(
-        hex!("0102030405060708090a").into(),
+    run_test(
+        hex!("0102030405060708090a"),
         hex!(
             "ede3b04643e586cc907dc21851709902"
             "03516ba78f413beb223aa5d4d2df6711"
@@ -133,8 +132,8 @@ fn test_rfc6229_length_80_bits_key1() {
 
 #[test]
 fn test_rfc6229_length_128_bits_key1() {
-    run_test::<U16>(
-        hex!("0102030405060708090a0b0c0d0e0f10").into(),
+    run_test(
+        hex!("0102030405060708090a0b0c0d0e0f10"),
         hex!(
             "9ac7cc9a609d1ef7b2932899cde41b97"
             "5248c4959014126a6e8a84f11d1a9e1c"
@@ -160,8 +159,8 @@ fn test_rfc6229_length_128_bits_key1() {
 
 #[test]
 fn test_rfc6229_length_192_bits_key1() {
-    run_test::<U24>(
-        hex!("0102030405060708090a0b0c0d0e0f101112131415161718").into(),
+    run_test(
+        hex!("0102030405060708090a0b0c0d0e0f101112131415161718"),
         hex!(
             "0595e57fe5f0bb3c706edac8a4b2db11"
             "dfde31344a1af769c74f070aee9e2326"
@@ -187,8 +186,8 @@ fn test_rfc6229_length_192_bits_key1() {
 
 #[test]
 fn test_rfc6229_length_256_bits_key1() {
-    run_test::<U32>(
-        hex!("0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20").into(),
+    run_test(
+        hex!("0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"),
         hex!(
             "eaa6bd25880bf93d3f5d1e4ca2611d91"
             "cfa45c9f7e714b54bdfa80027cb14380"
@@ -214,8 +213,8 @@ fn test_rfc6229_length_256_bits_key1() {
 
 #[test]
 fn test_rfc6229_length_40_bits_key2() {
-    run_test::<U5>(
-        hex!("833222772a").into(),
+    run_test(
+        hex!("833222772a"),
         hex!(
             "80ad97bdc973df8a2e879e92a497efda"
             "20f060c2f2e5126501d3d4fea10d5fc0"
@@ -241,8 +240,8 @@ fn test_rfc6229_length_40_bits_key2() {
 
 #[test]
 fn test_rfc6229_length_56_bits_key2() {
-    run_test::<U7>(
-        hex!("1910833222772a").into(),
+    run_test(
+        hex!("1910833222772a"),
         hex!(
             "bc9222dbd3274d8fc66d14ccbda6690b"
             "7ae627410c9a2be693df5bb7485a63e3"
@@ -268,8 +267,8 @@ fn test_rfc6229_length_56_bits_key2() {
 
 #[test]
 fn test_rfc6229_length_64_bits_key2() {
-    run_test::<U8>(
-        hex!("641910833222772a").into(),
+    run_test(
+        hex!("641910833222772a"),
         hex!(
             "bbf609de9413172d07660cb680716926"
             "46101a6dab43115d6c522b4fe93604a9"
@@ -295,8 +294,8 @@ fn test_rfc6229_length_64_bits_key2() {
 
 #[test]
 fn test_rfc6229_length_80_bits_key2() {
-    run_test::<U10>(
-        hex!("8b37641910833222772a").into(),
+    run_test(
+        hex!("8b37641910833222772a"),
         hex!(
             "ab65c26eddb287600db2fda10d1e605c"
             "bb759010c29658f2c72d93a2d16d2930"
@@ -322,8 +321,8 @@ fn test_rfc6229_length_80_bits_key2() {
 
 #[test]
 fn test_rfc6229_length_128_bits_key2() {
-    run_test::<U16>(
-        hex!("ebb46227c6cc8b37641910833222772a").into(),
+    run_test(
+        hex!("ebb46227c6cc8b37641910833222772a"),
         hex!(
             "720c94b63edf44e131d950ca211a5a30"
             "c366fdeacf9ca80436be7c358424d20b"
@@ -349,8 +348,8 @@ fn test_rfc6229_length_128_bits_key2() {
 
 #[test]
 fn test_rfc6229_length_192_bits_key2() {
-    run_test::<U24>(
-        hex!("c109163908ebe51debb46227c6cc8b37641910833222772a").into(),
+    run_test(
+        hex!("c109163908ebe51debb46227c6cc8b37641910833222772a"),
         hex!(
             "54b64e6b5a20b5e2ec84593dc7989da7"
             "c135eee237a85465ff97dc03924f45ce"
@@ -376,8 +375,8 @@ fn test_rfc6229_length_192_bits_key2() {
 
 #[test]
 fn test_rfc6229_length_256_bits_key2() {
-    run_test::<U32>(
-        hex!("1ada31d5cf688221c109163908ebe51debb46227c6cc8b37641910833222772a").into(),
+    run_test(
+        hex!("1ada31d5cf688221c109163908ebe51debb46227c6cc8b37641910833222772a"),
         hex!(
             "dd5bcb0018e922d494759d7c395d02d3"
             "c8446f8f77abf737685353eb89a1c9eb"
