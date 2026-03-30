@@ -10,14 +10,12 @@
 
 Implementation of the [ChaCha] family of stream ciphers.
 
-<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/chacha20.png" width="300px">
-
 ChaCha improves upon the previous [Salsa] family of stream ciphers
 with increased per-round diffusion at no cost to performance.
 
 This crate also contains an implementation of the [XChaCha] family of stream ciphers
 with an extended 192-bit (24-byte) nonce, gated under the `xchacha` Cargo feature,
-and "legacy" (a.k.a "djb") variant with 64-bit nonce, gated under `legacy` crate feature.
+and "legacy" (a.k.a "djb") variant with 64-bit nonce, gated under the `legacy` crate feature.
 
 **WARNING:** This implementation internally uses 32-bit counter,
 while the original "legacy" variant implementation uses 64-bit counter.

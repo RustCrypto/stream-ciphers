@@ -10,8 +10,6 @@
 
 Implementation of the [Salsa] family of stream ciphers
 
-<img src="https://raw.githubusercontent.com/RustCrypto/meta/master/img/stream-ciphers/salsa20.png" width="300px">
-
 This crate also contains an implementation of [XSalsa] variants with
 an extended 192-bit (24-byte) nonce.
 
