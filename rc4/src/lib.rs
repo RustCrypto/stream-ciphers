@@ -15,7 +15,7 @@ use cipher::{BlockSizeUser, InOutBuf, InvalidLength, Key, KeySizeUser, StreamCip
 const MIN_KEY_SIZE: usize = 1;
 const MAX_KEY_SIZE: usize = 256;
 
-/// Core state of the RC4 stream cipher.
+/// RC4 stream cipher.
 pub struct Rc4 {
     state: [u8; 256],
     i: u8,
