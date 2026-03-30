@@ -8,7 +8,7 @@
 [![Project Chat][chat-image]][chat-link]
 [![HAZMAT][hazmat-image]][hazmat-link]
 
-Rust implementation of the [Rabbit Stream Cipher Algorithm (RFC 4503)][1].
+Implementation of the [Rabbit] stream cipher ([RFC 4503]).
 
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
@@ -21,6 +21,45 @@ thoroughly assessed to ensure its operation is constant-time on common CPU
 architectures.
 
 **USE AT YOUR OWN RISK!**
+
+
+## Examples
+
+```rust
+use rabbit::Rabbit;
+// Import relevant traits
+use rabbit::cipher::{KeyIvInit, StreamCipher};
+use hex_literal::hex;
+
+let key = [0x42; 16];
+let nonce = [0x24; 8];
+let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
+let ciphertext = hex!("10298496 ceda18ee 0e257cbb 1ab43bcc");
+
+// Key and IV must be references to the `Array` type.
+// Here we use the `Into` trait to convert arrays into it.
+let mut cipher = Rabbit::new(&key.into(), &nonce.into());
+
+let mut buffer = plaintext;
+
+// apply keystream (encrypt)
+cipher.apply_keystream(&mut buffer);
+assert_eq!(buffer, ciphertext);
+
+let ciphertext = buffer;
+
+// decrypt ciphertext by applying keystream again
+let mut cipher = Rabbit::new(&key.into(), &nonce.into());
+cipher.apply_keystream(&mut buffer);
+assert_eq!(buffer, plaintext);
+
+// stream ciphers can be used with streaming messages
+let mut cipher = Rabbit::new(&key.into(), &nonce.into());
+for chunk in buffer.chunks_mut(3) {
+    cipher.apply_keystream(chunk);
+}
+assert_eq!(buffer, ciphertext);
+```
 
 ## License
 
@@ -54,4 +93,5 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (footnotes)
 
-[1]: https://tools.ietf.org/html/rfc4503
+[Rabbit]: https://en.wikipedia.org/wiki/Rabbit_(cipher)
+[RFC 4503]: https://tools.ietf.org/html/rfc4503
