@@ -32,8 +32,8 @@ use hex_literal::hex;
 
 let key = [0x42; 16];
 let nonce = [0x24; 8];
-let plaintext = hex!("00010203 04050607 08090A0B 0C0D0E0F");
-let ciphertext = hex!("10298496 ceda18ee 0e257cbb 1ab43bcc");
+let plaintext = hex!("000102030405060708090A0B0C0D0E0F");
+let ciphertext = hex!("10298496ceda18ee0e257cbb1ab43bcc");
 
 // Key and IV must be references to the `Array` type.
 // Here we use the `Into` trait to convert arrays into it.

@@ -41,9 +41,9 @@ pub type Iv = cipher::Iv<RabbitCore>;
 
 type BlockSize = U16;
 
-/// The Rabbit stream cipher initializied only with key.
+/// The Rabbit stream cipher initialized only with key.
 pub type RabbitKeyOnly = StreamCipherCoreWrapper<RabbitKeyOnlyCore>;
-/// The Rabbit stream cipher initializied with key and IV.
+/// The Rabbit stream cipher initialized with key and IV.
 pub type Rabbit = StreamCipherCoreWrapper<RabbitCore>;
 
 /// RFC 4503. 2.2.  Inner State (page 2).
