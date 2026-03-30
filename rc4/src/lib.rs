@@ -11,6 +11,7 @@
 pub use cipher::{self, KeyInit, StreamCipher, consts};
 
 use cipher::{BlockSizeUser, InOutBuf, InvalidLength, Key, KeySizeUser, StreamCipherError};
+use core::array;
 
 const MIN_KEY_SIZE: usize = 1;
 const MAX_KEY_SIZE: usize = 256;
@@ -23,23 +24,6 @@ pub struct Rc4 {
 }
 
 impl Rc4 {
-    fn ksa(&mut self, key: &[u8]) {
-        self.state.iter_mut().enumerate().for_each(|(i, x)| {
-            *x = i as u8;
-        });
-
-        let i_iter = 0..256usize;
-        let key_iter = key.iter().cycle();
-
-        let mut j = 0u8;
-
-        i_iter.zip(key_iter).for_each(|(i, k)| {
-            j = j.wrapping_add(self.state[i]).wrapping_add(*k);
-
-            self.state.swap(i, j.into());
-        });
-    }
-
     fn s_i(&self) -> u8 {
         self.state[self.i as usize]
     }
@@ -52,11 +36,11 @@ impl Rc4 {
         self.i = self.i.wrapping_add(1);
         self.j = self.j.wrapping_add(self.s_i());
 
-        self.state.swap(self.i.into(), self.j.into());
+        self.state.swap(usize::from(self.i), usize::from(self.j));
 
-        let index: usize = self.s_i().wrapping_add(self.s_j()).into();
+        let index = self.s_i().wrapping_add(self.s_j());
 
-        self.state[index]
+        self.state[usize::from(index)]
     }
 }
 
@@ -67,13 +51,7 @@ impl KeySizeUser for Rc4 {
 impl KeyInit for Rc4 {
     #[inline]
     fn new(key: &Key<Self>) -> Self {
-        let mut state = Self {
-            state: [0; 256],
-            i: 0,
-            j: 0,
-        };
-        state.ksa(key);
-        state
+        Self::new_from_slice(key).expect("32 byte keys are supported")
     }
 
     #[inline]
@@ -81,15 +59,20 @@ impl KeyInit for Rc4 {
         if key.len() < MIN_KEY_SIZE || key.len() > MAX_KEY_SIZE {
             return Err(InvalidLength);
         }
-        let mut state = Self {
-            state: [0; 256],
-            i: 0,
-            j: 0,
-        };
 
-        state.ksa(key);
+        let mut state = array::from_fn(|i| u8::try_from(i).expect("`i` is less than 256"));
 
-        Ok(state)
+        let i_iter = 0..256usize;
+        let key_iter = key.iter().cycle();
+
+        let mut j = 0u8;
+
+        i_iter.zip(key_iter).for_each(|(i, k)| {
+            j = j.wrapping_add(state[i]).wrapping_add(*k);
+            state.swap(i, usize::from(j));
+        });
+
+        Ok(Self { state, i: 0, j: 0 })
     }
 }
 
