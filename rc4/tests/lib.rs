@@ -14,7 +14,7 @@ const CHUNK_SIZE: usize = 16;
 fn run_test<const N: usize>(key: [u8; N], test_vectors: [u8; 288]) {
     let mut cipher = Rc4::new_from_slice(&key).expect("key size should supported");
     let mut data = [0u8; BUF_LEN];
-    cipher.apply_keystream(&mut data);
+    cipher.write_keystream(&mut data);
 
     for (offset, chunk) in OFFSETS.into_iter().zip(test_vectors.chunks(CHUNK_SIZE)) {
         assert_eq!(&data[offset..][..CHUNK_SIZE], chunk);
