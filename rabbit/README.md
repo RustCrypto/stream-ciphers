@@ -27,7 +27,6 @@ architectures.
 
 ```rust
 use rabbit::Rabbit;
-// Import relevant traits
 use rabbit::cipher::{KeyIvInit, StreamCipher};
 use hex_literal::hex;
 
