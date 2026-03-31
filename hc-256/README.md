@@ -22,7 +22,7 @@ architectures.
 
 USE AT YOUR OWN RISK!
 
-# Examples
+## Examples
 
 ```rust
 use hc_256::Hc256;
