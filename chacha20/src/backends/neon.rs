@@ -1,7 +1,8 @@
 //! NEON-optimized implementation for aarch64 CPUs.
 //!
 //! Adapted from the Crypto++ `chacha_simd` implementation by Jack Lloyd and
-//! Jeffrey Walton (public domain).
+//! Jeffrey Walton (public domain), but uses **8-block** outer batches for
+//! bulk paths (see `ChaCha20_512_neon` in OpenSSL).
 
 #![allow(unsafe_op_in_unsafe_fn, reason = "needs triage")]
 
@@ -17,12 +18,12 @@ use crate::chacha::Block;
 #[cfg(feature = "cipher")]
 use cipher::{
     BlockSizeUser, ParBlocks, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
-    consts::{U4, U64},
+    consts::{U8, U64},
 };
 
 struct Backend<R: Rounds, V: Variant> {
     state: [uint32x4_t; 4],
-    ctrs: [uint32x4_t; 4],
+    ctrs: [uint32x4_t; 8],
     _pd: PhantomData<(R, V)>,
 }
 
@@ -53,6 +54,10 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
             vld1q_u32([2, 0, 0, 0].as_ptr()),
             vld1q_u32([3, 0, 0, 0].as_ptr()),
             vld1q_u32([4, 0, 0, 0].as_ptr()),
+            vld1q_u32([5, 0, 0, 0].as_ptr()),
+            vld1q_u32([6, 0, 0, 0].as_ptr()),
+            vld1q_u32([7, 0, 0, 0].as_ptr()),
+            vld1q_u32([8, 0, 0, 0].as_ptr()),
         ];
         Backend::<R, V> {
             state,
@@ -110,7 +115,8 @@ impl<R: Rounds, V: Variant> BlockSizeUser for Backend<R, V> {
 }
 #[cfg(feature = "cipher")]
 impl<R: Rounds, V: Variant> ParBlocksSizeUser for Backend<R, V> {
-    type ParBlocksSize = U4;
+    /// Match OpenSSL's large-buffer path: 8 blocks
+    type ParBlocksSize = U8;
 }
 
 /// Evaluates to `a = a + b`, where the operands are u32x4s
@@ -159,13 +165,37 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
                     self.state[2],
                     add_counter!(self.state[3], self.ctrs[2], V),
                 ],
+                [
+                    self.state[0],
+                    self.state[1],
+                    self.state[2],
+                    add_counter!(self.state[3], self.ctrs[3], V),
+                ],
+                [
+                    self.state[0],
+                    self.state[1],
+                    self.state[2],
+                    add_counter!(self.state[3], self.ctrs[4], V),
+                ],
+                [
+                    self.state[0],
+                    self.state[1],
+                    self.state[2],
+                    add_counter!(self.state[3], self.ctrs[5], V),
+                ],
+                [
+                    self.state[0],
+                    self.state[1],
+                    self.state[2],
+                    add_counter!(self.state[3], self.ctrs[6], V),
+                ],
             ];
 
             for _ in 0..R::COUNT {
                 double_quarter_round(&mut blocks);
             }
 
-            for block in 0..4 {
+            for block in 0..8 {
                 // add state to block
                 for state_row in 0..3 {
                     add_assign_vec!(blocks[block][state_row], self.state[state_row]);
@@ -186,7 +216,7 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
                     );
                 }
             }
-            self.state[3] = add_counter!(self.state[3], self.ctrs[3], V);
+            self.state[3] = add_counter!(self.state[3], self.ctrs[7], V);
         }
     }
 }
@@ -278,7 +308,7 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
 }
 
 #[inline]
-unsafe fn double_quarter_round(blocks: &mut [[uint32x4_t; 4]; 4]) {
+unsafe fn double_quarter_round<const N: usize>(blocks: &mut [[uint32x4_t; 4]; N]) {
     add_xor_rot(blocks);
     rows_to_cols(blocks);
     add_xor_rot(blocks);
@@ -286,7 +316,7 @@ unsafe fn double_quarter_round(blocks: &mut [[uint32x4_t; 4]; 4]) {
 }
 
 #[inline]
-unsafe fn add_xor_rot(blocks: &mut [[uint32x4_t; 4]; 4]) {
+unsafe fn add_xor_rot<const N: usize>(blocks: &mut [[uint32x4_t; 4]; N]) {
     /// Evaluates to `a = a ^ b`, where the operands are u32x4s
     macro_rules! xor_assign_vec {
         ($a:expr, $b:expr) => {
@@ -316,7 +346,7 @@ unsafe fn add_xor_rot(blocks: &mut [[uint32x4_t; 4]; 4]) {
 }
 
 #[inline]
-unsafe fn rows_to_cols(blocks: &mut [[uint32x4_t; 4]; 4]) {
+unsafe fn rows_to_cols<const N: usize>(blocks: &mut [[uint32x4_t; 4]; N]) {
     for block in blocks.iter_mut() {
         extract!(block[1], 1);
         extract!(block[2], 2);
@@ -325,7 +355,7 @@ unsafe fn rows_to_cols(blocks: &mut [[uint32x4_t; 4]; 4]) {
 }
 
 #[inline]
-unsafe fn cols_to_rows(blocks: &mut [[uint32x4_t; 4]; 4]) {
+unsafe fn cols_to_rows<const N: usize>(blocks: &mut [[uint32x4_t; 4]; N]) {
     for block in blocks.iter_mut() {
         extract!(block[1], 3);
         extract!(block[2], 2);
