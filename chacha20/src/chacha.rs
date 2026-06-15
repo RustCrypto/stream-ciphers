@@ -1,4 +1,4 @@
-pub use cipher::{
+use cipher::{
     IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper,
     array::Array,
     consts::{U12, U32, U64},
