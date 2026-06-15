@@ -17,8 +17,8 @@ env:
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: "-Dwarnings"
   # NOTE: The mirror number changes with each version so keep these in sync
-  SDE_FULL_VERSION_MIRROR: "859732"
-  SDE_FULL_VERSION: "9.58.0-2025-06-16"
+  SDE_FULL_VERSION_MIRROR: "915934"
+  SDE_FULL_VERSION: "10.8.0-2026-03-15"
 
 jobs:
   build:
