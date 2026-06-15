@@ -31,7 +31,7 @@ pub use rand_core;
 #[cfg(feature = "rng")]
 pub use rng::{ChaCha8Rng, ChaCha12Rng, ChaCha20Rng, Seed, SerializedRngState};
 #[cfg(feature = "xchacha")]
-pub use xchacha::{XChaCha8, XChaCha12, XChaCha20, XKey, XNonce, hchacha};
+pub use xchacha::{XChaCha8, XChaCha12, XChaCha20, XNonce, hchacha};
 
 use cfg_if::cfg_if;
 use core::{fmt, marker::PhantomData};

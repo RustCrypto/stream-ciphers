@@ -1,7 +1,7 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
 use crate::{
-    CONSTANTS, ChaChaCore, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
+    CONSTANTS, ChaChaCore, Key, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
 };
 use cipher::{
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
@@ -12,9 +12,6 @@ use cipher::{
 
 #[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
-
-/// Key type used by all ChaCha variants.
-pub type XKey = Array<u8, U32>;
 
 /// Nonce type used by XChaCha variants.
 pub type XNonce = Array<u8, U24>;
@@ -57,7 +54,7 @@ impl<R: Rounds> BlockSizeUser for XChaChaCore<R> {
 }
 
 impl<R: Rounds> KeyIvInit for XChaChaCore<R> {
-    fn new(key: &XKey, iv: &XNonce) -> Self {
+    fn new(key: &Key, iv: &XNonce) -> Self {
         #[allow(clippy::unwrap_used)]
         let subkey = hchacha::<R>(key, iv[..16].as_ref().try_into().unwrap());
 
@@ -113,7 +110,7 @@ impl<R: Rounds> ZeroizeOnDrop for XChaChaCore<R> {}
 ///
 /// <http://cr.yp.to/snuffle/xsalsa-20110204.pdf>
 #[must_use]
-pub fn hchacha<R: Rounds>(key: &XKey, input: &Array<u8, U16>) -> Array<u8, U32> {
+pub fn hchacha<R: Rounds>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> {
     let mut state = [0u32; STATE_WORDS];
     state[..4].copy_from_slice(&CONSTANTS);
 
