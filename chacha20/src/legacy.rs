@@ -1,7 +1,6 @@
 //! Legacy version of ChaCha20 with a 64-bit nonce
 
-use crate::chacha::Key;
-use crate::{ChaChaCore, R20};
+use crate::{ChaChaCore, Key, R20, variants::Legacy};
 use cipher::{
     IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherCoreWrapper,
     array::Array,
@@ -10,7 +9,6 @@ use cipher::{
 
 /// Nonce type used by [`ChaCha20Legacy`].
 pub type LegacyNonce = Array<u8, U8>;
-use crate::variants::Legacy;
 
 /// The ChaCha20 stream cipher (legacy "djb" construction with 64-bit nonce).
 pub type ChaCha20Legacy = StreamCipherCoreWrapper<ChaCha20LegacyCore>;

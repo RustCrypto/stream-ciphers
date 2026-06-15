@@ -79,6 +79,9 @@ jobs:
 
   # Tests for the AVX-512 backend
   avx512:
+    # It looks like Intel blocks `curl` downloads, so the job is disabled
+    # until a fix is found
+    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:

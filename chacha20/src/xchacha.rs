@@ -1,7 +1,7 @@
 //! XChaCha is an extended nonce variant of ChaCha
 
 use crate::{
-    CONSTANTS, ChaChaCore, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
+    CONSTANTS, ChaChaCore, Key, R8, R12, R20, Rounds, STATE_WORDS, quarter_round, variants::Ietf,
 };
 use cipher::{
     BlockSizeUser, IvSizeUser, KeyIvInit, KeySizeUser, StreamCipherClosure, StreamCipherCore,
@@ -12,9 +12,6 @@ use cipher::{
 
 #[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
-
-/// Key type used by all ChaCha variants.
-pub type Key = Array<u8, U32>;
 
 /// Nonce type used by XChaCha variants.
 pub type XNonce = Array<u8, U24>;

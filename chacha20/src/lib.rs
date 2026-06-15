@@ -19,11 +19,13 @@ mod rng;
 mod xchacha;
 
 #[cfg(feature = "cipher")]
-pub use chacha::{ChaCha8, ChaCha12, ChaCha20, Key, KeyIvInit};
+pub use chacha::{ChaCha8, ChaCha12, ChaCha20, Key, Nonce};
 #[cfg(feature = "cipher")]
 pub use cipher;
+#[cfg(feature = "cipher")]
+pub use cipher::KeyIvInit;
 #[cfg(feature = "legacy")]
-pub use legacy::{ChaCha20Legacy, LegacyNonce};
+pub use legacy::{ChaCha20Legacy, ChaCha20LegacyCore, LegacyNonce};
 #[cfg(feature = "rng")]
 pub use rand_core;
 #[cfg(feature = "rng")]

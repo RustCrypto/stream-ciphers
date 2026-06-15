@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.10.1 (UNRELEASED)
+### Added
+- `ChaCha20LegacyCore` type and `Nonce` type alias ([#570])
+
+[#570]: https://github.com/RustCrypto/stream-ciphers/pull/570
+
 ## 0.10.0 (2026-02-07)
 ### Added
 - `rand_core` v0.10 support ([#333], [#513])
