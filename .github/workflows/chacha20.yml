@@ -16,9 +16,6 @@ defaults:
 env:
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: "-Dwarnings"
-  # NOTE: The mirror number changes with each version so keep these in sync
-  SDE_FULL_VERSION_MIRROR: "859732"
-  SDE_FULL_VERSION: "9.58.0-2025-06-16"
 
 jobs:
   build:
@@ -79,9 +76,6 @@ jobs:
 
   # Tests for the AVX-512 backend
   avx512:
-    # It looks like Intel blocks `curl` downloads, so the job is disabled
-    # until a fix is found
-    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -94,11 +88,7 @@ jobs:
       RUSTFLAGS: ${{ matrix.RUSTFLAGS }}
     steps:
       - uses: actions/checkout@v6
-      - name: Install Intel SDE
-        run: |
-          curl -JLO "https://downloadmirror.intel.com/${{ env.SDE_FULL_VERSION_MIRROR }}/sde-external-${{ env.SDE_FULL_VERSION }}-lin.tar.xz"
-          tar xvf sde-external-${{ env.SDE_FULL_VERSION }}-lin.tar.xz -C /opt
-          echo "/opt/sde-external-${{ env.SDE_FULL_VERSION }}-lin" >> $GITHUB_PATH
+      - uses: RustCrypto/actions/intel-sde-install@master
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:
