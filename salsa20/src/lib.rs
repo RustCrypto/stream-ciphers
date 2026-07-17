@@ -23,6 +23,16 @@ use cipher::zeroize::{Zeroize, ZeroizeOnDrop};
 mod backends;
 mod xsalsa;
 
+cfg_if::cfg_if! {
+    if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+        cpufeatures::new!(avx2_cpuid, "avx2");
+        cpufeatures::new!(sse2_cpuid, "sse2");
+        type Tokens = (avx2_cpuid::InitToken, sse2_cpuid::InitToken);
+    } else {
+        type Tokens = ();
+    }
+}
+
 pub use xsalsa::{XSalsa8, XSalsa12, XSalsa20, XSalsaCore, hsalsa};
 
 /// Salsa20/8 stream cipher
@@ -56,6 +66,9 @@ const CONSTANTS: [u32; 4] = [0x6170_7865, 0x3320_646e, 0x7962_2d32, 0x6b20_6574]
 pub struct SalsaCore<R: Unsigned> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
+    /// CPU target feature tokens
+    #[allow(dead_code)]
+    tokens: Tokens,
     /// Number of rounds to perform
     rounds: PhantomData<R>,
 }
@@ -66,8 +79,16 @@ impl<R: Unsigned> SalsaCore<R> {
     /// This method is mainly intended for the `scrypt` crate.
     /// Other users generally should not use this method.
     pub fn from_raw_state(state: [u32; STATE_WORDS]) -> Self {
+        cfg_if::cfg_if! {
+            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
+            } else {
+                let tokens = ();
+            }
+        }
         Self {
             state,
+            tokens,
             rounds: PhantomData,
         }
     }
@@ -110,8 +131,17 @@ impl<R: Unsigned> KeyIvInit for SalsaCore<R> {
 
         state[15] = CONSTANTS[3];
 
+        cfg_if::cfg_if! {
+            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
+            } else {
+                let tokens = ();
+            }
+        }
+
         Self {
             state,
+            tokens,
             rounds: PhantomData,
         }
     }
@@ -124,7 +154,24 @@ impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
         rem.try_into().ok()
     }
     fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
-        f.call(&mut backends::soft::Backend(self));
+        cfg_if::cfg_if! {
+            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+                let (avx2_token, sse2_token) = self.tokens;
+                if avx2_token.get() {
+                    unsafe {
+                        backends::avx2::inner::<R, _>(&mut self.state, f);
+                    }
+                } else if sse2_token.get() {
+                    unsafe {
+                        backends::sse2::inner::<R, _>(&mut self.state, f);
+                    }
+                } else {
+                    f.call(&mut backends::soft::Backend(self));
+                }
+            } else {
+                f.call(&mut backends::soft::Backend(self));
+            }
+        }
     }
 }
 

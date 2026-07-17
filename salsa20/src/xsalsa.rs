@@ -8,8 +8,6 @@ use cipher::{
     consts::{U4, U6, U10, U16, U24, U32, U64},
 };
 
-use crate::backends::soft::quarter_round;
-
 #[cfg(feature = "zeroize")]
 use cipher::zeroize::ZeroizeOnDrop;
 
@@ -113,27 +111,24 @@ pub fn hsalsa<R: Unsigned>(key: &Key, input: &Array<u8, U16>) -> Array<u8, U32> 
         .for_each(|(v, chunk)| *v = to_u32(chunk));
     state[15] = CONSTANTS[3];
 
-    // 20 rounds consisting of 10 column rounds and 10 diagonal rounds
+    use crate::backends::soft::quarter_round;
     for _ in 0..R::USIZE {
-        // column rounds
         quarter_round(0, 4, 8, 12, &mut state);
         quarter_round(5, 9, 13, 1, &mut state);
         quarter_round(10, 14, 2, 6, &mut state);
         quarter_round(15, 3, 7, 11, &mut state);
-
-        // diagonal rounds
         quarter_round(0, 1, 2, 3, &mut state);
         quarter_round(5, 6, 7, 4, &mut state);
         quarter_round(10, 11, 8, 9, &mut state);
         quarter_round(15, 12, 13, 14, &mut state);
     }
 
-    let mut output = Array::default();
     let key_idx: [usize; 8] = [0, 5, 10, 15, 6, 7, 8, 9];
+    let words: [u32; 8] = core::array::from_fn(|i| state[key_idx[i]]);
 
+    let mut output = Array::default();
     for (i, chunk) in output.chunks_exact_mut(4).enumerate() {
-        chunk.copy_from_slice(&state[key_idx[i]].to_le_bytes());
+        chunk.copy_from_slice(&words[i].to_le_bytes());
     }
-
     output
 }

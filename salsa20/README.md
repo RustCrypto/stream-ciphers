@@ -11,6 +11,9 @@
 Implementation of the [Salsa] family of stream ciphers, including the [XSalsa] variants with
 an extended 192-bit (24-byte) nonce.
 
+SIMD-accelerated on x86/x86\_64 with SSE2 and AVX2 backends, selected
+automatically at runtime via [cpufeatures].
+
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]
 
 This crate does not ensure ciphertexts are authentic (i.e. by using a MAC to
@@ -96,3 +99,4 @@ dual licensed as above, without any additional terms or conditions.
 
 [Salsa]: https://en.wikipedia.org/wiki/Salsa20
 [XSalsa]: https://cr.yp.to/snuffle/xsalsa-20081128.pdf
+[cpufeatures]: https://crates.io/crates/cpufeatures

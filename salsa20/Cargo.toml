@@ -16,8 +16,12 @@ description = "Pure Rust implementation of the Salsa20 stream cipher"
 cfg-if = "1"
 cipher = { version = "0.5", features = ["stream-wrapper"] }
 
+[target.'cfg(any(target_arch = "x86_64", target_arch = "x86"))'.dependencies]
+cpufeatures = "0.3"
+
 [dev-dependencies]
 cipher = { version = "0.5", features = ["dev"] }
+dudect-bencher = "0.7"
 hex-literal = "1"
 
 [features]
