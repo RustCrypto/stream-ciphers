@@ -28,8 +28,14 @@ cfg_if::cfg_if! {
         cpufeatures::new!(avx2_cpuid, "avx2");
         cpufeatures::new!(sse2_cpuid, "sse2");
         type Tokens = (avx2_cpuid::InitToken, sse2_cpuid::InitToken);
+
+        fn init_tokens() -> Tokens {
+            (avx2_cpuid::init(), sse2_cpuid::init())
+        }
     } else {
         type Tokens = ();
+
+        fn init_tokens() -> Tokens {}
     }
 }
 
@@ -67,7 +73,10 @@ pub struct SalsaCore<R: Unsigned> {
     /// Internal state of the core function
     state: [u32; STATE_WORDS],
     /// CPU target feature tokens
-    #[allow(dead_code)]
+    #[allow(
+        dead_code,
+        reason = "tokens are held for their type-level proof, used by SIMD backends"
+    )]
     tokens: Tokens,
     /// Number of rounds to perform
     rounds: PhantomData<R>,
@@ -79,16 +88,9 @@ impl<R: Unsigned> SalsaCore<R> {
     /// This method is mainly intended for the `scrypt` crate.
     /// Other users generally should not use this method.
     pub fn from_raw_state(state: [u32; STATE_WORDS]) -> Self {
-        cfg_if::cfg_if! {
-            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
-            } else {
-                let tokens = ();
-            }
-        }
         Self {
             state,
-            tokens,
+            tokens: init_tokens(),
             rounds: PhantomData,
         }
     }
@@ -131,17 +133,9 @@ impl<R: Unsigned> KeyIvInit for SalsaCore<R> {
 
         state[15] = CONSTANTS[3];
 
-        cfg_if::cfg_if! {
-            if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                let tokens = (avx2_cpuid::init(), sse2_cpuid::init());
-            } else {
-                let tokens = ();
-            }
-        }
-
         Self {
             state,
-            tokens,
+            tokens: init_tokens(),
             rounds: PhantomData,
         }
     }

@@ -7,8 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
-- SSE2 and AVX2 intrinsics backends with runtime detection via `cpufeatures`
-- `dudect` constant-time timing tests (`examples/ctbench.rs`)
+- SSE2 and AVX2 intrinsics backends with runtime detection via `cpufeatures` ([#576])
 
 ## 0.11.0 (2026-03-30)
 ### Added
@@ -25,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#333]: https://github.com/RustCrypto/stream-ciphers/pull/333
 [#338]: https://github.com/RustCrypto/stream-ciphers/pull/338
 [#397]: https://github.com/RustCrypto/stream-ciphers/pull/397
+[#576]: https://github.com/RustCrypto/stream-ciphers/pull/576
 
 ## 0.10.2 (2022-02-17)
 ### Added
