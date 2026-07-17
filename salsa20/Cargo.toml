@@ -21,7 +21,6 @@ cpufeatures = "0.3"
 
 [dev-dependencies]
 cipher = { version = "0.5", features = ["dev"] }
-dudect-bencher = "0.7"
 hex-literal = "1"
 
 [features]
