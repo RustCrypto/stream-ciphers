@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
-- SSE2 and AVX2 intrinsics backends with runtime detection via `cpufeatures` ([#576])
+- AVX2 intrinsics backend with runtime detection via `cpufeatures` ([#576])
 
 ## 0.11.0 (2026-03-30)
 ### Added

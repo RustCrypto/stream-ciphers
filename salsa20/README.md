@@ -11,7 +11,7 @@
 Implementation of the [Salsa] family of stream ciphers, including the [XSalsa] variants with
 an extended 192-bit (24-byte) nonce.
 
-SIMD-accelerated on x86/x86\_64 with SSE2 and AVX2 backends, selected
+SIMD-accelerated on x86/x86\_64 with an AVX2 backend, selected
 automatically at runtime via [cpufeatures].
 
 ## ⚠️ Security Warning: [Hazmat!][hazmat-link]

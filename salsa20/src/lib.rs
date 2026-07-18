@@ -26,11 +26,10 @@ mod xsalsa;
 cfg_if::cfg_if! {
     if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
         cpufeatures::new!(avx2_cpuid, "avx2");
-        cpufeatures::new!(sse2_cpuid, "sse2");
-        type Tokens = (avx2_cpuid::InitToken, sse2_cpuid::InitToken);
+        type Tokens = avx2_cpuid::InitToken;
 
         fn init_tokens() -> Tokens {
-            (avx2_cpuid::init(), sse2_cpuid::init())
+            avx2_cpuid::init()
         }
     } else {
         type Tokens = ();
@@ -150,14 +149,9 @@ impl<R: Unsigned> StreamCipherCore for SalsaCore<R> {
     fn process_with_backend(&mut self, f: impl StreamCipherClosure<BlockSize = Self::BlockSize>) {
         cfg_if::cfg_if! {
             if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
-                let (avx2_token, sse2_token) = self.tokens;
-                if avx2_token.get() {
+                if self.tokens.get() {
                     unsafe {
                         backends::avx2::inner::<R, _>(&mut self.state, f);
-                    }
-                } else if sse2_token.get() {
-                    unsafe {
-                        backends::sse2::inner::<R, _>(&mut self.state, f);
                     }
                 } else {
                     f.call(&mut backends::soft::Backend(self));
