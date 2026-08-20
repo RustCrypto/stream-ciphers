@@ -350,6 +350,24 @@ impl_chacha_rng!(ChaCha20Rng, R20);
 #[derive(Debug)]
 pub struct FastErasureCore<R: Rounds, V: Variant>(ChaChaCore<R, V>);
 
+impl<R: Rounds, V: Variant> SeedableRng for FastErasureCore<R, V> {
+    type Seed = Seed;
+
+    #[inline]
+    fn from_seed(seed: Self::Seed) -> Self {
+        FastErasureCore(ChaChaCore::from_seed(seed))
+    }
+}
+
+impl<R: Rounds, V: Variant> FastErasureCore<R, V> {
+    /// Get the current block position.
+    #[inline(always)]
+    #[must_use]
+    pub fn get_block_pos(&self) -> V::Counter {
+        self.0.get_block_pos()
+    }
+}
+
 impl<R: Rounds, V: Variant> Generator for FastErasureCore<R, V> {
     type Word = u32;
     type Output = [u32; BUFFER_SIZE];
