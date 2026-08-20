@@ -345,3 +345,110 @@ macro_rules! impl_chacha_rng {
 impl_chacha_rng!(ChaCha8Rng, R8);
 impl_chacha_rng!(ChaCha12Rng, R12);
 impl_chacha_rng!(ChaCha20Rng, R20);
+
+/// ChaCha core with fast erasure
+#[derive(Debug)]
+pub struct FastErasureCore<R: Rounds, V: Variant>(ChaChaCore<R, V>);
+
+impl<R: Rounds, V: Variant> Generator for FastErasureCore<R, V> {
+    type Word = u32;
+    type Output = [u32; BUFFER_SIZE];
+
+    // Generate a block, overwriting the seed
+    //
+    // The counter is incremented like usual (i.e. it is not reset).
+    fn generate(&mut self, buffer: &mut [u32; BUFFER_SIZE]) -> usize {
+        let _ = self.0.generate(buffer);
+        self.0.state[4..12].copy_from_slice(&buffer[0..8]);
+        8
+    }
+
+    fn erase(slice: &mut [Self::Word]) {
+        // Zero consumed values. We don't need zeroize to observe the result
+        // since the buffer is not deallocated here.
+        for word in slice {
+            *word = 0;
+        }
+    }
+
+    // drop() method of inner type is called
+}
+
+macro_rules! impl_chacha_rng {
+    ($Rng:ident, $rounds:ident) => {
+        /// A cryptographically secure random number generator with fast key erasure using the ChaCha stream cipher.
+        ///
+        /// See the [crate docs][crate] for more information about the underlying stream cipher.
+        ///
+        /// This RNG implementation uses fast key erasure to provide backtracking resistance. Each
+        /// time a new buffer of results are generated, the first 32 bytes are used to overwrite the
+        /// key. Each time any value is consumed from the buffer, it is overwritten with zero.
+        ///
+        /// # Example
+        ///
+        /// ```rust
+        #[doc = concat!("use chacha20::", stringify!($Rng), ";")]
+        /// use rand_core::{SeedableRng, Rng};
+        ///
+        /// let seed = [42u8; 32];
+        #[doc = concat!("let mut rng = ", stringify!($Rng), "::from_seed(seed);")]
+        ///
+        /// let random_u32 = rng.next_u32();
+        /// let random_u64 = rng.next_u64();
+        ///
+        /// let mut random_bytes = [0u8; 3];
+        /// rng.fill_bytes(&mut random_bytes);
+        /// ```
+        ///
+        /// See the [`rand`](https://docs.rs/rand/) crate for more advanced RNG functionality.
+        pub struct $Rng {
+            core: BlockRng<FastErasureCore<$rounds, Legacy>>,
+        }
+
+        impl SeedableRng for $Rng {
+            type Seed = Seed;
+
+            #[inline]
+            fn from_seed(seed: Self::Seed) -> Self {
+                let core = FastErasureCore(ChaChaCore::new_internal(&seed, &[0u8; 8]));
+                Self {
+                    core: BlockRng::new(core),
+                }
+            }
+        }
+
+        impl TryRng for $Rng {
+            type Error = Infallible;
+
+            #[inline]
+            fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+                Ok(self.core.next_word())
+            }
+            #[inline]
+            fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+                Ok(self.core.next_u64_from_u32())
+            }
+            #[inline]
+            fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+                self.core.fill_bytes(dest);
+                Ok(())
+            }
+        }
+
+        impl TryCryptoRng for $Rng {}
+
+        #[cfg(feature = "zeroize")]
+        impl ZeroizeOnDrop for $Rng {}
+
+        // Custom Debug implementation that does not expose the internal state
+        impl fmt::Debug for $Rng {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                write!(f, concat!(stringify!($Rng), " {{ ... }}"))
+            }
+        }
+    };
+}
+
+impl_chacha_rng!(FastErasureChaCha8Rng, R8);
+impl_chacha_rng!(FastErasureChaCha12Rng, R12);
+impl_chacha_rng!(FastErasureChaCha20Rng, R20);
