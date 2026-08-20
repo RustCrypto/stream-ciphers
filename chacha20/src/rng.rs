@@ -42,11 +42,12 @@ impl<R: Rounds, V: Variant> SeedableRng for ChaChaCore<R, V> {
 }
 
 impl<R: Rounds, V: Variant> Generator for ChaChaCore<R, V> {
+    type Word = u32;
     type Output = [u32; BUFFER_SIZE];
 
     /// Generates 4 blocks in parallel with avx2 & neon, but merely fills
     /// 4 blocks with sse2 & soft
-    fn generate(&mut self, buffer: &mut [u32; BUFFER_SIZE]) {
+    fn generate(&mut self, buffer: &mut [u32; BUFFER_SIZE]) -> usize {
         cfg_if! {
             if #[cfg(chacha20_backend = "soft")] {
                 backends::soft::Backend(self).gen_ks_blocks(buffer);
@@ -89,6 +90,8 @@ impl<R: Rounds, V: Variant> Generator for ChaChaCore<R, V> {
                 backends::soft::Backend(self).gen_ks_blocks(buffer);
             }
         }
+
+        0
     }
 
     // `Drop` impl of `BlockRng` calls this method and passes reference to
