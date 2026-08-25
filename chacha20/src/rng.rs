@@ -378,6 +378,7 @@ impl<R: Rounds, V: Variant> Generator for FastErasureCore<R, V> {
     fn generate(&mut self, buffer: &mut [u32; BUFFER_SIZE]) -> usize {
         let _ = self.0.generate(buffer);
         self.0.state[4..12].copy_from_slice(&buffer[0..8]);
+        Self::erase(&mut buffer[0..8]);
         8
     }
 
