@@ -6,13 +6,13 @@
 #![allow(clippy::cast_sign_loss, reason = "needs triage")]
 #![allow(clippy::undocumented_unsafe_blocks, reason = "TODO")]
 
-use crate::{Rounds, Variant};
+use crate::{Rounds, STATE_WORDS, Variant};
 
 #[cfg(feature = "rng")]
 use crate::ChaChaCore;
 
 #[cfg(feature = "cipher")]
-use crate::{STATE_WORDS, chacha::Block};
+use crate::chacha::Block;
 #[cfg(feature = "cipher")]
 use cipher::{
     BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
@@ -36,28 +36,42 @@ where
     F: StreamCipherClosure<BlockSize = U64>,
     V: Variant,
 {
-    let state_ptr = state.as_ptr().cast::<__m128i>();
-    let mut backend = Backend::<R, V> {
-        v: [
-            _mm_loadu_si128(state_ptr.add(0)),
-            _mm_loadu_si128(state_ptr.add(1)),
-            _mm_loadu_si128(state_ptr.add(2)),
-            _mm_loadu_si128(state_ptr.add(3)),
-        ],
-        _pd: PhantomData,
-    };
-
+    let mut backend = Backend::<R, V>::new(state);
     f.call(&mut backend);
+    backend.save_ctr(state);
+}
 
-    state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
-    if size_of::<V::Counter>() == 8 {
-        state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
-    }
+#[inline]
+#[target_feature(enable = "sse2")]
+#[cfg(feature = "rng")]
+pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
+where
+    R: Rounds,
+    V: Variant,
+{
+    let mut backend = Backend::<R, V>::new(&core.state);
+    backend.gen_ks_blocks(buffer);
+    backend.save_ctr(&mut core.state);
 }
 
 struct Backend<R: Rounds, V: Variant> {
     v: [__m128i; 4],
     _pd: PhantomData<(R, V)>,
+}
+
+impl<R: Rounds, V: Variant> Backend<R, V> {
+    unsafe fn new(state: &[u32; STATE_WORDS]) -> Self {
+        let state_ptr = state.as_ptr().cast::<__m128i>();
+        Self {
+            v: core::array::from_fn(|i| _mm_loadu_si128(state_ptr.add(i))),
+            _pd: PhantomData,
+        }
+    }
+
+    unsafe fn save_ctr(self, state: &mut [u32; STATE_WORDS]) {
+        let state_ptr = state.as_mut_ptr().cast::<__m128i>();
+        _mm_storeu_si128(state_ptr.add(3), self.v[3]);
+    }
 }
 
 #[cfg(feature = "cipher")]
@@ -88,6 +102,7 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
             }
         }
     }
+
     #[inline(always)]
     fn gen_par_ks_blocks(&mut self, blocks: &mut cipher::ParBlocks<Self>) {
         unsafe {
@@ -106,31 +121,6 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
             }
         }
     }
-}
-
-#[inline]
-#[target_feature(enable = "sse2")]
-#[cfg(feature = "rng")]
-pub(crate) unsafe fn rng_inner<R, V>(core: &mut ChaChaCore<R, V>, buffer: &mut [u32; 64])
-where
-    R: Rounds,
-    V: Variant,
-{
-    let state_ptr = core.state.as_ptr().cast::<__m128i>();
-    let mut backend = Backend::<R, V> {
-        v: [
-            _mm_loadu_si128(state_ptr.add(0)),
-            _mm_loadu_si128(state_ptr.add(1)),
-            _mm_loadu_si128(state_ptr.add(2)),
-            _mm_loadu_si128(state_ptr.add(3)),
-        ],
-        _pd: PhantomData,
-    };
-
-    backend.gen_ks_blocks(buffer);
-
-    core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
-    core.state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
 }
 
 #[cfg(feature = "rng")]
