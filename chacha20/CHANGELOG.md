@@ -11,13 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#580]: https://github.com/RustCrypto/stream-ciphers/pull/580
 
-## 0.10.1 (2026-06-24)
+## 0.10.1 (2026-06-24) [YANKED]
 ### Added
 - `ChaCha20LegacyCore` type and `Nonce` type alias ([#570])
 
 [#570]: https://github.com/RustCrypto/stream-ciphers/pull/570
 
-## 0.10.0 (2026-02-07)
+## 0.10.0 (2026-02-07) [YANKED]
 ### Added
 - `rand_core` v0.10 support ([#333], [#513])
 - 64-bit counter support ([#439])
