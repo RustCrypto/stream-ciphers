@@ -6,13 +6,13 @@
 #![allow(clippy::cast_sign_loss, reason = "needs triage")]
 #![allow(clippy::undocumented_unsafe_blocks, reason = "TODO")]
 
-use crate::{Rounds, Variant};
+use crate::{Rounds, STATE_WORDS, Variant};
 
 #[cfg(feature = "rng")]
 use crate::ChaChaCore;
 
 #[cfg(feature = "cipher")]
-use crate::{STATE_WORDS, chacha::Block};
+use crate::chacha::Block;
 #[cfg(feature = "cipher")]
 use cipher::{
     BlockSizeUser, ParBlocksSizeUser, StreamCipherBackend, StreamCipherClosure,
@@ -59,7 +59,6 @@ struct Backend<R: Rounds, V: Variant> {
     _pd: PhantomData<(R, V)>,
 }
 
-#[cfg(any(feature = "cipher", feature = "rng"))]
 impl<R: Rounds, V: Variant> Backend<R, V> {
     unsafe fn new(state: &[u32; STATE_WORDS]) -> Self {
         let state_ptr = state.as_ptr().cast::<__m128i>();
