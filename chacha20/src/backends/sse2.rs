@@ -36,7 +36,7 @@ where
     F: StreamCipherClosure<BlockSize = U64>,
     V: Variant,
 {
-    let state_ptr = state.as_ptr().cast::<__m128i>();
+    let state_ptr = state.as_mut_ptr().cast::<__m128i>();
     let v = core::array::from_fn(|i| _mm_loadu_si128(state_ptr.add(i)));
     let mut backend = Backend::<R, V> {
         v,
@@ -45,15 +45,7 @@ where
 
     f.call(&mut backend);
 
-    match size_of::<V::Counter>() {
-        4 => state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32,
-        8 => {
-            let c = _mm_cvtsi128_si64(backend.v[3]) as u64;
-            state[12] = c as u32;
-            state[13] = (c >> 32) as u32;
-        }
-        _ => unreachable!(),
-    }
+    _mm_storeu_si128(state_ptr.add(3), backend.v[3]);
 }
 
 struct Backend<R: Rounds, V: Variant> {
@@ -117,7 +109,7 @@ where
     R: Rounds,
     V: Variant,
 {
-    let state_ptr = core.state.as_ptr().cast::<__m128i>();
+    let state_ptr = core.state.as_mut_ptr().cast::<__m128i>();
     let v = core::array::from_fn(|i| _mm_loadu_si128(state_ptr.add(i)));
     let mut backend = Backend::<R, V> {
         v,
@@ -126,15 +118,7 @@ where
 
     backend.gen_ks_blocks(buffer);
 
-    match size_of::<V::Counter>() {
-        4 => core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32,
-        8 => {
-            let c = _mm_cvtsi128_si64(backend.v[3]) as u64;
-            core.state[12] = c as u32;
-            core.state[13] = (c >> 32) as u32;
-        }
-        _ => unreachable!(),
-    }
+    _mm_storeu_si128(state_ptr.add(3), backend.v[3]);
 }
 
 #[cfg(feature = "rng")]
