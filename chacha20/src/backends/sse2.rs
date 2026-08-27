@@ -37,21 +37,22 @@ where
     V: Variant,
 {
     let state_ptr = state.as_ptr().cast::<__m128i>();
+    let v = core::array::from_fn(|i| _mm_loadu_si128(state_ptr.add(i)));
     let mut backend = Backend::<R, V> {
-        v: [
-            _mm_loadu_si128(state_ptr.add(0)),
-            _mm_loadu_si128(state_ptr.add(1)),
-            _mm_loadu_si128(state_ptr.add(2)),
-            _mm_loadu_si128(state_ptr.add(3)),
-        ],
+        v,
         _pd: PhantomData,
     };
 
     f.call(&mut backend);
 
-    state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
-    if size_of::<V::Counter>() == 8 {
-        state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
+    match size_of::<V::Counter>() {
+        4 => state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32,
+        8 => {
+            let c = _mm_cvtsi128_si64(backend.v[3]) as u64;
+            state[12] = c as u32;
+            state[13] = (c >> 32) as u32;
+        }
+        _ => unreachable!(),
     }
 }
 
@@ -117,20 +118,23 @@ where
     V: Variant,
 {
     let state_ptr = core.state.as_ptr().cast::<__m128i>();
+    let v = core::array::from_fn(|i| _mm_loadu_si128(state_ptr.add(i)));
     let mut backend = Backend::<R, V> {
-        v: [
-            _mm_loadu_si128(state_ptr.add(0)),
-            _mm_loadu_si128(state_ptr.add(1)),
-            _mm_loadu_si128(state_ptr.add(2)),
-            _mm_loadu_si128(state_ptr.add(3)),
-        ],
+        v,
         _pd: PhantomData,
     };
 
     backend.gen_ks_blocks(buffer);
 
-    core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32;
-    core.state[13] = _mm_extract_epi32(backend.v[3], 1) as u32;
+    match size_of::<V::Counter>() {
+        4 => core.state[12] = _mm_cvtsi128_si32(backend.v[3]) as u32,
+        8 => {
+            let c = _mm_cvtsi128_si64(backend.v[3]) as u64;
+            core.state[12] = c as u32;
+            core.state[13] = (c >> 32) as u32;
+        }
+        _ => unreachable!(),
+    }
 }
 
 #[cfg(feature = "rng")]
