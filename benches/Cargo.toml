@@ -12,6 +12,7 @@ publish = false
 [dependencies]
 criterion = "0.5"
 chacha20 = { path = "../chacha20/", features = ["rng", "zeroize"] }
+salsa20 = { path = "../salsa20/" }
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "x86", all(target_arch = "aarch64", target_os = "linux")))'.dependencies]
 criterion-cycles-per-byte = "0.6.0"
@@ -19,4 +20,9 @@ criterion-cycles-per-byte = "0.6.0"
 [[bench]]
 name = "chacha20"
 path = "src/chacha20.rs"
+harness = false
+
+[[bench]]
+name = "salsa20"
+path = "src/salsa20.rs"
 harness = false
