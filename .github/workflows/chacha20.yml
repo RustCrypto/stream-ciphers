@@ -107,19 +107,33 @@ jobs:
       - run: cargo test --target ${{ matrix.target }}
       - run: cargo test --target ${{ matrix.target }} --all-features
 
-  # Tests for the WebAssembly SIMD backend
-  simd128:
+  # Tests on WebAssembly under wasmtime: the SIMD backend and the software one
+  wasm:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # with simd
+          - rust: 1.85.0 # MSRV
+            flags: "-Dwarnings -C target-feature=+simd128"
+          - rust: stable
+            flags: "-Dwarnings -C target-feature=+simd128"
+
+          # without simd
+          - rust: 1.85.0 # MSRV
+            flags: "-Dwarnings -C target-feature=-simd128"
+          - rust: stable
+            flags: "-Dwarnings -C target-feature=-simd128"
     env:
       CARGO_INCREMENTAL: 0
-      RUSTFLAGS: "-Dwarnings -C target-feature=+simd128"
+      RUSTFLAGS: ${{ matrix.flags }}
       CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime
     steps:
       - uses: actions/checkout@v7
       - uses: RustCrypto/actions/cargo-cache@master
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: stable
+          toolchain: ${{ matrix.rust }}
           targets: wasm32-wasip1
       - uses: bytecodealliance/actions/wasmtime/setup@v1
       - uses: RustCrypto/actions/cargo-hack-install@master
