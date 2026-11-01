@@ -26,6 +26,8 @@ cfg_if! {
         }
     } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon"))] {
         pub(crate) mod neon;
+    } else if #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))] {
+        pub(crate) mod simd128;
     } else {
         pub(crate) mod soft;
     }

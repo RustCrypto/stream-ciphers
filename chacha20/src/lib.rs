@@ -291,6 +291,8 @@ impl<R: Rounds, V: Variant> StreamCipherCore for ChaChaCore<R, V> {
                 unsafe {
                     backends::neon::inner::<R, _, V>(&mut self.state, f);
                 }
+            } else if #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))] {
+                backends::simd128::inner::<R, _, V>(&mut self.state, f);
             } else {
                 f.call(&mut backends::soft::Backend(self));
             }
