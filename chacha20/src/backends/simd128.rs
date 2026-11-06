@@ -26,17 +26,6 @@ struct Backend<R: Rounds, V: Variant> {
     _pd: PhantomData<(R, V)>,
 }
 
-/// The counter row `row` advanced by `n` blocks: the 32-bit counter of the
-/// IETF variant, or the 64-bit counter of the legacy one.
-#[inline(always)]
-fn add_counter<V: Variant>(row: v128, n: u32) -> v128 {
-    match size_of::<V::Counter>() {
-        4 => u32x4_add(row, u32x4(n, 0, 0, 0)),
-        8 => u64x2_add(row, u64x2(u64::from(n), 0)),
-        _ => unreachable!(),
-    }
-}
-
 /// Lane `N` of `v` in every lane.
 #[inline(always)]
 fn splat_lane<const N: usize>(v: v128) -> v128 {
@@ -60,6 +49,17 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
         if size_of::<V::Counter>() == 8 {
             state[13] = u32x4_extract_lane::<1>(self.state[3]);
         }
+    }
+
+    /// Advances the counter by one block: the 32-bit counter of the IETF
+    /// variant, or the 64-bit counter of the legacy one.
+    #[inline(always)]
+    fn increment_counter(&mut self) {
+        self.state[3] = match size_of::<V::Counter>() {
+            4 => u32x4_add(self.state[3], u32x4(1, 0, 0, 0)),
+            8 => u64x2_add(self.state[3], u64x2(1, 0)),
+            _ => unreachable!(),
+        };
     }
 
     /// The state's words, each across the next four blocks: the counter's
@@ -102,13 +102,12 @@ impl<R: Rounds, V: Variant> Backend<R, V> {
             double_round(&mut words);
         }
         let mut blocks = transpose(&words);
-        for (n, block) in (0..).zip(blocks.iter_mut()) {
-            for (row, initial) in block.iter_mut().zip(&self.state).take(3) {
-                *row = u32x4_add(*row, *initial);
+        for block in &mut blocks {
+            for i in 0..4 {
+                block[i] = u32x4_add(block[i], self.state[i]);
             }
-            block[3] = u32x4_add(block[3], add_counter::<V>(self.state[3], n));
+            self.increment_counter();
         }
-        self.state[3] = add_counter::<V>(self.state[3], 4);
         blocks
     }
 }
@@ -179,7 +178,7 @@ impl<R: Rounds, V: Variant> StreamCipherBackend for Backend<R, V> {
             *row = u32x4_add(*row, *initial);
         }
         store(&rows, block);
-        self.state[3] = add_counter::<V>(self.state[3], 1);
+        self.increment_counter();
     }
 
     #[inline(always)]
