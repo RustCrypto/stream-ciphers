@@ -85,6 +85,8 @@ impl<R: Rounds, V: Variant> Generator for ChaChaCore<R, V> {
                 unsafe {
                     backends::neon::rng_inner::<R, V>(self, buffer);
                 }
+            } else if #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))] {
+                backends::simd128::rng_inner::<R, V>(self, buffer);
             } else {
                 backends::soft::Backend(self).gen_ks_blocks(buffer);
             }

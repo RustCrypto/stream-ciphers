@@ -100,6 +100,10 @@ You can modify crate using the following configuration flags:
 To use the MSRV 1.89 AVX-512 support with autodetection, you must enable it using
 `chacha20_avx512` configuration flag.
 
+On `wasm32` targets compiled with the `simd128` target feature
+(`RUSTFLAGS='-C target-feature=+simd128'`) the crate uses its WebAssembly SIMD
+backend; `chacha20_backend="soft"` forces the software one there too.
+
 The flags can be enabled using `RUSTFLAGS` environmental variable
 (e.g. `RUSTFLAGS='--cfg chacha20_backend="avx2"'`) or by modifying `.cargo/config.toml`.
 
