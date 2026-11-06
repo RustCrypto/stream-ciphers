@@ -46,7 +46,7 @@ pub(crate) fn quarter_round(
 }
 
 #[inline(always)]
-fn run_rounds<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS] {
+pub(crate) fn run_rounds<R: Unsigned>(state: &[u32; STATE_WORDS]) -> [u32; STATE_WORDS] {
     let mut res = *state;
 
     for _ in 0..R::USIZE {
