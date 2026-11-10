@@ -7,17 +7,17 @@ use cipher::{
     consts::{U1, U64},
 };
 
-pub(crate) struct Backend<'a, R: Unsigned>(pub(crate) &'a mut SalsaCore<R>);
+pub(crate) struct Backend<'a, R: Unsigned, KeySize>(pub(crate) &'a mut SalsaCore<R, KeySize>);
 
-impl<R: Unsigned> BlockSizeUser for Backend<'_, R> {
+impl<R: Unsigned, KeySize> BlockSizeUser for Backend<'_, R, KeySize> {
     type BlockSize = U64;
 }
 
-impl<R: Unsigned> ParBlocksSizeUser for Backend<'_, R> {
+impl<R: Unsigned, KeySize> ParBlocksSizeUser for Backend<'_, R, KeySize> {
     type ParBlocksSize = U1;
 }
 
-impl<R: Unsigned> StreamCipherBackend for Backend<'_, R> {
+impl<R: Unsigned, KeySize> StreamCipherBackend for Backend<'_, R, KeySize> {
     #[inline(always)]
     fn gen_ks_block(&mut self, block: &mut Block<Self>) {
         let res = run_rounds::<R>(&self.0.state);
