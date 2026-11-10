@@ -117,8 +117,7 @@ dependencies = [
 [[package]]
 name = "rand_core"
 version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
+source = "git+https://github.com/rust-random/rand_core.git?rev=45fb1f9609a874e146a118bb9c697e96293d6cad#45fb1f9609a874e146a118bb9c697e96293d6cad"
 
 [[package]]
 name = "rc4"
